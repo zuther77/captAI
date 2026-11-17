@@ -1,0 +1,21 @@
+# Build output
+build/
+DerivedData/
+*.xcresult
+
+# Per-developer config
+Config/Local.xcconfig
+
+# Xcode user state
+xcuserdata/
+*.xcuserstate
+
+# macOS
+.DS_Store
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# Code graph index
+.codegraph/
