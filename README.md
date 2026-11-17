@@ -1,6 +1,6 @@
 # captAI
 
-A native, local-first macOS utility for capturing the screen, copying text with on-device OCR, and discussing captures with an AI assistant. Source documents: `captAI_PRD.md`, `captAI_Design_Spec.md`, `captAI_Implementation_Plan.md`.
+A native, local-first macOS utility for capturing the screen, copying text with on-device OCR, and discussing captures with an AI assistant. Source documents: `docs/captAI_PRD.md`, `docs/captAI_Design_Spec.md`, `docs/captAI_Implementation_Plan.md`.
 
 **Status:** Milestone M0 (foundation). The app is a menu-bar shell with a Settings window. Capture, OCR and AI arrive in later milestones.
 
