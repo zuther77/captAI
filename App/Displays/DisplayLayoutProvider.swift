@@ -1,15 +1,22 @@
 import AppKit
 import Foundation
 
-/// Builds a DisplayLayout from the current NSScreen configuration.
-struct DisplayLayoutProvider: Sendable {
+extension NSScreen {
+    /// The `CGDirectDisplayID` AppKit reports for this screen.
+    var captAIDisplayID: DisplayID? {
+        guard let number = deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber else { return nil }
+        return DisplayID(number.uint32Value)
+    }
+}
+
+/// Builds a `DisplayLayout` from the current `NSScreen` configuration.
+@MainActor
+struct DisplayLayoutProvider {
     func currentLayout() -> DisplayLayout {
-        let displays: [DisplayDescriptor] = (NSScreen.screens).compactMap { screen in
-            guard let idNumber = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber else { return nil }
-            let id = DisplayID(idNumber.uint32Value)
-            let frame = screen.frame // AppKit global coordinates
-            let scale = screen.backingScaleFactor
-            return DisplayDescriptor(id: id, frame: frame, backingScale: scale)
+        let displays = NSScreen.screens.compactMap { screen -> DisplayDescriptor? in
+            guard let id = screen.captAIDisplayID else { return nil }
+            // `frame` is in AppKit global coordinates (bottom-left origin, primary display at the origin).
+            return DisplayDescriptor(id: id, frame: screen.frame, backingScale: screen.backingScaleFactor)
         }
         return DisplayLayout(displays: displays)
     }

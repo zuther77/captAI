@@ -17,7 +17,11 @@ struct CaptAIApp: App {
         if UITestSupport.isActive {
             // The menu bar extra is not reliably automatable, so UI tests start with Settings open.
             DispatchQueue.main.async { environment.windows.showSettings(pane: .providers) }
+        } else if !UITestSupport.isHostingTests {
+            environment.startShortcuts()
         }
+        #else
+        environment.startShortcuts()
         #endif
     }
 
@@ -26,25 +30,10 @@ struct CaptAIApp: App {
             MenuBarContent(
                 settings: environment.settings,
                 permissions: environment.permissions,
+                capture: environment.capture,
+                shortcuts: environment.shortcuts,
                 openSettings: { pane in environment.windows.showSettings(pane: pane) },
-                startCapture: {
-                    Task { @MainActor in
-                        // Request Screen Recording if needed, then proceed or open System Settings.
-                        if environment.permissions.status(for: .screenCapture) == .notDetermined {
-                            await environment.permissions.request(.screenCapture)
-                        }
-                        switch environment.permissions.status(for: .screenCapture) {
-                        case .granted:
-                            environment.diagnostics.info(.app, "capture.saved", ["code": "capture.saved"]) // placeholder for real capture
-                        case .denied, .restricted:
-                            environment.diagnostics.error(.app, "capture.permissionDenied", ["code": "capture.permissionDenied"]) 
-                            environment.permissions.openSystemSettings(for: .screenCapture)
-                        case .notDetermined:
-                            // User dismissed the prompt; do nothing.
-                            break
-                        }
-                    }
-                }
+                startCapture: { Task { await environment.capture.startScreenshot() } }
             )
         }
         .menuBarExtraStyle(.menu)
