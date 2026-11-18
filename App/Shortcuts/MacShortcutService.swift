@@ -1,80 +1,94 @@
-// DRAFT for M1. Not a member of any target yet: it uses a `ShortcutService` protocol and
-// `RegisteredShortcut` type that are not written. Add it to the targets once those exist.
-
 import AppKit
 import Carbon
-import Foundation
 
-/// macOS implementation of ShortcutService using Carbon hotkeys.
-/// Registers global hotkeys and invokes provided closures on key events.
+/// `ShortcutService` backed by Carbon hot keys (`RegisterEventHotKey`), the supported way to get a global
+/// shortcut without the Accessibility or Input Monitoring permission. Construction has no side effects; the
+/// Carbon event handler is installed the first time a shortcut is registered.
+@MainActor
 final class MacShortcutService: ShortcutService {
     private struct Entry {
-        let hotKeyRef: EventHotKeyRef?
-        let action: @Sendable () -> Void
+        let reference: EventHotKeyRef
+        let handler: @MainActor () -> Void
     }
 
-    private var nextID: UInt32 = 1
+    private static let signature: OSType = 0x4350_5441 // 'CPTA'
+
     private var entries: [UInt32: Entry] = [:]
-    private var installedHandler = false
+    private var nextID: UInt32 = 1
+    private var eventHandler: EventHandlerRef?
 
-    init() {
-        installHandlerIfNeeded()
-    }
+    init() {}
 
-    func register(_ combo: KeyCombo, action: @escaping @Sendable () -> Void) -> RegisteredShortcut {
-        installHandlerIfNeeded()
-        var hotKeyRef: EventHotKeyRef? = nil
+    func register(_ combo: KeyCombo, handler: @escaping @MainActor () -> Void) throws(ShortcutRegistrationError) -> ShortcutToken {
+        try installEventHandlerIfNeeded()
+
         let id = nextID
         nextID &+= 1
-        var hotKeyID = EventHotKeyID(signature: OSType(UInt32(truncatingIfNeeded: 0x43505441)), id: id) // 'CPTA'
-        let modifiers = Self.carbonModifiers(from: combo.modifiers)
-        let status = RegisterEventHotKey(UInt32(combo.keyCode), modifiers, hotKeyID, GetEventDispatcherTarget(), 0, &hotKeyRef)
-        if status == noErr {
-            entries[id] = Entry(hotKeyRef: hotKeyRef, action: action)
-            return RegisteredShortcut()
-        } else {
-            // Registration failed; store a placeholder so unregister is a no-op.
-            entries[id] = Entry(hotKeyRef: nil, action: action)
-            return RegisteredShortcut()
+        var reference: EventHotKeyRef?
+        let status = RegisterEventHotKey(
+            UInt32(combo.keyCode),
+            Self.carbonModifiers(for: combo.modifiers),
+            EventHotKeyID(signature: Self.signature, id: id),
+            GetApplicationEventTarget(),
+            0,
+            &reference
+        )
+        guard status == noErr, let reference else {
+            throw status == OSStatus(eventHotKeyExistsErr) ? .alreadyInUse : .failed(status: status)
         }
+        entries[id] = Entry(reference: reference, handler: handler)
+        return ShortcutToken(rawValue: id)
     }
 
-    func unregister(_ handle: RegisteredShortcut) {
-        // No stable mapping from handle to id in PR2; clear all for safety.
-        // Future improvement: return a handle that carries the assigned id.
-        for (id, entry) in entries {
-            if let hk = entry.hotKeyRef { UnregisterEventHotKey(hk) }
-            entries.removeValue(forKey: id)
-        }
+    func unregister(_ token: ShortcutToken) {
+        guard let entry = entries.removeValue(forKey: token.rawValue) else { return }
+        UnregisterEventHotKey(entry.reference)
     }
 
-    private func installHandlerIfNeeded() {
-        guard !installedHandler else { return }
-        installedHandler = true
-        var eventType = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
-        InstallEventHandler(GetEventDispatcherTarget(), { (nextHandler, theEvent, userData) -> OSStatus in
-            var hotKeyID = EventHotKeyID()
-            let status = GetEventParameter(theEvent, EventParamName(kEventParamDirectObject), EventParamType(typeEventHotKeyID), nil, MemoryLayout<EventHotKeyID>.size, nil, &hotKeyID)
-            guard status == noErr else { return status }
-            let id = hotKeyID.id
-            MacShortcutService.invokeAction(for: id)
-            return noErr
-        }, 1, &eventType, nil, nil)
-        MacShortcutService._shared = self
+    fileprivate func fire(id: UInt32) {
+        entries[id]?.handler()
     }
 
-    private static func carbonModifiers(from mods: KeyCombo.Modifiers) -> UInt32 {
+    private func installEventHandlerIfNeeded() throws(ShortcutRegistrationError) {
+        guard eventHandler == nil else { return }
+        var spec = EventTypeSpec(
+            eventClass: OSType(kEventClassKeyboard),
+            eventKind: UInt32(kEventHotKeyPressed)
+        )
+        let status = InstallEventHandler(
+            GetApplicationEventTarget(),
+            { _, event, userData in
+                guard let event, let userData else { return OSStatus(eventNotHandledErr) }
+                var hotKeyID = EventHotKeyID()
+                let result = GetEventParameter(
+                    event,
+                    EventParamName(kEventParamDirectObject),
+                    EventParamType(typeEventHotKeyID),
+                    nil,
+                    MemoryLayout<EventHotKeyID>.size,
+                    nil,
+                    &hotKeyID
+                )
+                guard result == noErr else { return result }
+                let service = Unmanaged<MacShortcutService>.fromOpaque(userData).takeUnretainedValue()
+                // Carbon delivers hot key events on the main thread's run loop.
+                MainActor.assumeIsolated { service.fire(id: hotKeyID.id) }
+                return noErr
+            },
+            1,
+            &spec,
+            Unmanaged.passUnretained(self).toOpaque(),
+            &eventHandler
+        )
+        guard status == noErr else { throw .failed(status: status) }
+    }
+
+    private static func carbonModifiers(for modifiers: KeyCombo.Modifiers) -> UInt32 {
         var result: UInt32 = 0
-        if mods.contains(.command) { result |= UInt32(cmdKey) }
-        if mods.contains(.shift) { result |= UInt32(shiftKey) }
-        if mods.contains(.option) { result |= UInt32(optionKey) }
-        if mods.contains(.control) { result |= UInt32(controlKey) }
+        if modifiers.contains(.command) { result |= UInt32(cmdKey) }
+        if modifiers.contains(.shift) { result |= UInt32(shiftKey) }
+        if modifiers.contains(.option) { result |= UInt32(optionKey) }
+        if modifiers.contains(.control) { result |= UInt32(controlKey) }
         return result
-    }
-
-    // Static trampoline to reach the instance from the Carbon callback.
-    private static weak var _shared: MacShortcutService?
-    private static func invokeAction(for id: UInt32) {
-        _shared?.entries[id]?.action()
     }
 }
