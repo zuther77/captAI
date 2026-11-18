@@ -1,15 +1,25 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-# Generates captAI.xcodeproj from the folder tree. The project file is committed so a fresh checkout
-# builds without running this; rerun it after adding or removing source files:
+# Bootstrap-only: generated the original captAI.xcodeproj from the folder tree.
 #
-#   ruby scripts/generate_project.rb
+# XCODE NOW OWNS THE PROJECT FILE (docs/DECISIONS.md D-001). Running this script deletes
+# captAI.xcodeproj and rebuilds it from scratch, discarding every change made in Xcode
+# (signing, capabilities, target membership, build settings). It is kept for reference only
+# and refuses to run unless you pass --force.
 #
-# Requires the `xcodeproj` gem (already present with CocoaPods / Fastlane installs: `gem install xcodeproj`).
+#   ruby scripts/generate_project.rb --force
+#
+# Requires the `xcodeproj` gem (`gem install xcodeproj`).
 
 require 'xcodeproj'
 require 'fileutils'
+
+unless ARGV.include?('--force')
+  warn 'Refusing to run: this replaces captAI.xcodeproj and discards changes made in Xcode.'
+  warn 'See docs/DECISIONS.md D-001. Pass --force only if you really want to regenerate.'
+  exit 1
+end
 
 ROOT = File.expand_path('..', __dir__)
 PROJECT_PATH = File.join(ROOT, 'captAI.xcodeproj')

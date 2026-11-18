@@ -2,13 +2,15 @@
 
 Approved deviations and resolved open questions. Status values: **Accepted** (applied), **Proposed** (needs product-owner review).
 
-## D-001 Generate the Xcode project with a Ruby script, not XcodeGen — Accepted
-`scripts/generate_project.rb` builds `captAI.xcodeproj` with the `xcodeproj` gem (already installed on the dev machine). The generated project is committed, so a fresh checkout builds without running the script. Rerun it after adding or removing source files.
-*Why:* XcodeGen/Tuist were not installed and `brew install` failed inside the agent sandbox. The script adds no dependency a developer must install to build.
+## D-001 Xcode owns the project file — Accepted (amended 2026-11-17)
+`captAI.xcodeproj` was bootstrapped by `scripts/generate_project.rb` (the `xcodeproj` Ruby gem), because XcodeGen and Tuist were not installed and `brew install` failed inside the agent sandbox.
+**Amendment:** the product owner will develop in Xcode from here on. The project file is now edited in Xcode and committed as the source of truth. The script is kept for reference only and refuses to run without `--force`, since regenerating discards Xcode changes. There is no generated-project workflow and no `project.yml`.
+*Consequence:* new source files must be added to the right targets in Xcode (see D-002).
 
 ## D-002 Unit and integration tests are not hosted by the app — Accepted
 The two bundles compile `App/`, `Features/` and `Core/` directly (minus the `@main` entry file). Tests never launch the menu-bar app, need no window server, and cannot touch real settings or permissions. Only `captAIUITests` launches the real app.
-*Why:* hosted tests hung before connecting in the agent environment, and unhosted tests are faster and more deterministic. *Trade-off:* sources compile three times; acceptable at this size. Revisit by extracting a framework if build time grows.
+*Why:* hosted tests hung before connecting in the agent environment, and unhosted tests are faster and more deterministic. *Trade-off:* sources compile three times; acceptable at this size.
+*Xcode workflow cost:* because Xcode owns the project (D-001), every new file under `App/`, `Features/` or `Core/` must be ticked for `captAI`, `captAIUnitTests` and `captAIIntegrationTests`. A file missing from the test targets is untested, and tests that reference it fail to compile. Extracting that code into a framework target would remove this step; not done, pending the product owner's decision.
 
 ## D-003 Not sandboxed; hardened runtime in Release — Accepted for M0, revisit at M10
 M0 requests no entitlements. Screen Recording is a TCC permission, not an entitlement. Release enables the hardened runtime; Debug does not (ad-hoc test bundles would fail library validation).

@@ -7,7 +7,13 @@ A native, local-first macOS utility for capturing the screen, copying text with 
 ## Requirements
 
 - Xcode with a macOS SDK that includes macOS 26 (built with Xcode 27 beta).
-- No other tools or dependencies. The Ruby `xcodeproj` gem is needed only to regenerate the project file.
+- No other tools or dependencies.
+
+## Project file
+
+**Xcode owns `captAI.xcodeproj`.** Open it in Xcode, edit it there, and commit the changes. `scripts/generate_project.rb` bootstrapped the project and is kept only for reference. It refuses to run without `--force`, because running it replaces the project and discards any change made in Xcode.
+
+When you add a source file under `App/`, `Features/` or `Core/`, tick its target membership for `captAI`, `captAIUnitTests` and `captAIIntegrationTests`. The unit and integration bundles compile those sources directly instead of launching the app, so a file missing from them is not tested. Files under `Tests/Unit` and `Tests/Support` belong to the unit and integration targets as before, and `Tests/UI` to `captAIUITests`.
 
 ## Commands
 
@@ -15,8 +21,9 @@ A native, local-first macOS utility for capturing the screen, copying text with 
 scripts/build.sh [Debug|Release]      # build
 scripts/test.sh [unit|integration|ui|fast|all]   # fast = unit + integration (default)
 scripts/run.sh                        # build Debug and launch; look for the camera icon in the menu bar
-ruby scripts/generate_project.rb      # regenerate captAI.xcodeproj after adding/removing source files
 ```
+
+The same builds and tests run from Xcode: open `captAI.xcodeproj`, choose the `captAI` scheme, ⌘R to run, ⌘U to test.
 
 UI tests drive the real app and need a logged-in desktop session with Accessibility access for Xcode's test runner.
 
