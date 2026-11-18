@@ -30,8 +30,16 @@ Plan rule 10 asks for a disabled, labeled feature over a button that does nothin
 ## D-007 Screen Recording status is derived, not queried — Accepted
 `CGPreflightScreenCaptureAccess()` returns only true/false and never prompts. "Not determined" versus "denied" is inferred from a local record of whether captAI has ever asked (`PermissionRequestLedger`). If the user granted access through System Settings before first launch, the status reads as granted. If the ledger is cleared while access is denied, it reads as "not requested" until the user clicks Request Access once.
 
-## D-008 Toolchain and deployment target — Accepted, with a verification gap
-Built with Xcode 27 beta (Swift 6.4, macOS 27.0 SDK) on macOS 27.3, deployment target 26.0, Swift 6 language mode, strict concurrency complete, warnings as errors. Nothing has been run on a macOS 26 machine; see KNOWN_ISSUES KI-002. M0 uses only system chrome, which receives Liquid Glass automatically. Explicit `glassEffect` use begins in M3 and must be verified against the SDK then.
+## D-008 Toolchain and deployment target — Accepted (target amended by D-010)
+Built with Xcode 27 beta (Swift 6.4, macOS 27.0 SDK) on macOS 27.3, Swift 6 language mode, strict concurrency complete, warnings as errors. The deployment target is now 27.0 (D-010). Nothing has been run on a macOS 26 machine; see KNOWN_ISSUES KI-002, which is now deferred. M0 uses only system chrome, which receives Liquid Glass automatically. Explicit `glassEffect` use begins in M3 and must be verified against the SDK then.
 
 ## D-009 `@Observable` and `MenuBarExtra` — Accepted
 The Observation framework and SwiftUI `MenuBarExtra` keep M0 free of third-party dependencies. The Settings window is an AppKit `NSWindow` hosting SwiftUI, owned by `WindowCoordinator`, so later panels and HUDs share one lifecycle owner (plan §4).
+
+## D-010 Deployment target raised to macOS 27.0; backwards compatibility deferred — Accepted (2026-11-18)
+The product owner's machine runs macOS 27 and cannot be downgraded, and macOS 27 is the only OS available for testing. `Config/Shared.xcconfig` now sets `MACOSX_DEPLOYMENT_TARGET = 27.0`.
+*Consequence:* the app will not install or run on macOS 26 or earlier. KI-002 is deferred.
+*Deferred:* supporting macOS 26 again means lowering the target, guarding macOS 27-only APIs with availability checks, and testing on real macOS 26 hardware (plan rule 8). This is tracked as a later task. Until then, the PRD (§1, §8), the implementation plan and the design spec still say "macOS 26+"; they should be updated when the product owner confirms this scope change.
+
+## D-011 Screenshot default shortcut is ⌘⇧8 — Accepted (2026-11-18)
+The product owner chose ⌘⇧8 as the default screenshot shortcut, replacing the PRD's proposed ⌘⇧2. `AppSettings.screenshotShortcut` now uses `KeyCombo.keyCode8`. Apple's default screenshot shortcuts are ⌘⇧3, ⌘⇧4 and ⌘⇧5, so ⌘⇧8 is not expected to collide. This was checked against Apple's documented defaults, not by querying the live system; M1 conflict checking should still verify it at runtime. The recording (⌘⇧3) and Quick Copy (⌘⇧C) defaults are unchanged, and D-004 still applies to recording.
