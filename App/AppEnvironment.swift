@@ -8,17 +8,20 @@ final class AppEnvironment {
     let settings: SettingsModel
     let permissions: PermissionStore
     let windows: WindowCoordinator
+    let capture: CaptureCoordinator
 
     init(
         diagnostics: Diagnostics,
         settings: SettingsModel,
         permissions: PermissionStore,
-        windows: WindowCoordinator
+        windows: WindowCoordinator,
+        capture: CaptureCoordinator
     ) {
         self.diagnostics = diagnostics
         self.settings = settings
         self.permissions = permissions
         self.windows = windows
+        self.capture = capture
     }
 
     /// Wires the graph with real services. Nothing here prompts for a permission or opens a window.
@@ -36,6 +39,7 @@ final class AppEnvironment {
         let navigation = SettingsNavigation()
         let factory = AppKitWindowFactory(settings: settings, navigation: navigation, permissions: permissions)
         let windows = WindowCoordinator(factory: factory, navigation: navigation, diagnostics: diagnostics)
-        return AppEnvironment(diagnostics: diagnostics, settings: settings, permissions: permissions, windows: windows)
+        let capture = CaptureCoordinator(permissions: permissions, diagnostics: diagnostics)
+        return AppEnvironment(diagnostics: diagnostics, settings: settings, permissions: permissions, windows: windows, capture: capture)
     }
 }

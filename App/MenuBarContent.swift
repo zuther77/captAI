@@ -7,11 +7,18 @@ struct MenuBarContent: View {
     let settings: SettingsModel
     let permissions: PermissionStore
     let openSettings: (SettingsPane) -> Void
+    let startCapture: () -> Void
+
+    init(settings: SettingsModel, permissions: PermissionStore, openSettings: @escaping (SettingsPane) -> Void, startCapture: @escaping () -> Void) {
+        self.settings = settings
+        self.permissions = permissions
+        self.openSettings = openSettings
+        self.startCapture = startCapture
+    }
 
     var body: some View {
         Group {
-            Button("Capture Screenshot — Coming Soon") {}
-                .disabled(true)
+            Button("Capture Screenshot") { startCapture() }
             Button("Quick Copy Text — Coming Soon") {}
                 .disabled(true)
             Button("Record Screen — Coming Soon") {}

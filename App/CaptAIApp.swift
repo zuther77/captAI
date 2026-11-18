@@ -26,7 +26,25 @@ struct CaptAIApp: App {
             MenuBarContent(
                 settings: environment.settings,
                 permissions: environment.permissions,
-                openSettings: { pane in environment.windows.showSettings(pane: pane) }
+                openSettings: { pane in environment.windows.showSettings(pane: pane) },
+                startCapture: {
+                    Task { @MainActor in
+                        // Request Screen Recording if needed, then proceed or open System Settings.
+                        if environment.permissions.status(for: .screenCapture) == .notDetermined {
+                            await environment.permissions.request(.screenCapture)
+                        }
+                        switch environment.permissions.status(for: .screenCapture) {
+                        case .granted:
+                            environment.diagnostics.info(.app, "capture.saved", ["code": "capture.saved"]) // placeholder for real capture
+                        case .denied, .restricted:
+                            environment.diagnostics.error(.app, "capture.permissionDenied", ["code": "capture.permissionDenied"]) 
+                            environment.permissions.openSystemSettings(for: .screenCapture)
+                        case .notDetermined:
+                            // User dismissed the prompt; do nothing.
+                            break
+                        }
+                    }
+                }
             )
         }
         .menuBarExtraStyle(.menu)

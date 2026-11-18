@@ -50,6 +50,9 @@ final class SettingsModel {
     /// The most recent load or save problem, cleared by the next successful save.
     private(set) var lastError: AppError?
 
+    /// Optional callback invoked whenever settings are successfully saved (including initial load).
+    var onSettingsSaved: ((AppSettings) -> Void)?
+
     @ObservationIgnored private let store: any SettingsStore
     @ObservationIgnored private let diagnostics: Diagnostics
 
@@ -62,6 +65,8 @@ final class SettingsModel {
         if let recovered = result.recoveredFrom {
             diagnostics.error(.settings, "Settings recovered with defaults", error: recovered)
         }
+        // Notify initial settings load so observers (e.g., ShortcutCoordinator) can register defaults.
+        onSettingsSaved?(settings)
     }
 
     /// Applies `change` to a copy and commits it only if saving succeeds. Returns whether it was applied.
@@ -74,6 +79,7 @@ final class SettingsModel {
             try store.save(candidate)
             settings = candidate
             lastError = nil
+            onSettingsSaved?(candidate)
             return true
         } catch let error as AppError {
             lastError = error
@@ -94,3 +100,4 @@ final class SettingsModel {
         lastError = nil
     }
 }
+
