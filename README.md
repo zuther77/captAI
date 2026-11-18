@@ -6,7 +6,7 @@ A native, local-first macOS utility for capturing the screen, copying text with 
 
 ## Requirements
 
-- Xcode with a macOS SDK that includes macOS 26 (built with Xcode 27 beta).
+- Xcode 27 beta with the macOS 27 SDK, on macOS 27. The deployment target is macOS 27.0; earlier-OS support is deferred (see `docs/DECISIONS.md` D-010).
 - No other tools or dependencies.
 
 ## Project file

@@ -5,7 +5,7 @@ struct AppSettingsTests {
     @Test func defaultsMatchTheProductRequirements() {
         let settings = AppSettings()
         #expect(settings.version == AppSettings.currentVersion)
-        #expect(settings.screenshotShortcut == KeyCombo(keyCode: KeyCombo.keyCode2, modifiers: [.command, .shift]))
+        #expect(settings.screenshotShortcut == KeyCombo(keyCode: KeyCombo.keyCode8, modifiers: [.command, .shift]))
         #expect(settings.recordingShortcut == KeyCombo(keyCode: KeyCombo.keyCode3, modifiers: [.command, .shift]))
         #expect(settings.quickCopyShortcut == KeyCombo(keyCode: KeyCombo.keyCodeC, modifiers: [.command, .shift]))
         #expect(settings.ocrRecognitionLevel == .accurate)
@@ -80,7 +80,7 @@ struct AppSettingsTests {
     }
 
     @Test func shortcutDisplayStringUsesMacOSGlyphOrder() {
-        #expect(AppSettings().screenshotShortcut.displayString == "⇧⌘2")
+        #expect(AppSettings().screenshotShortcut.displayString == "⇧⌘8")
         #expect(AppSettings().quickCopyShortcut.displayString == "⇧⌘C")
         #expect(KeyCombo(keyCode: 0, modifiers: [.control, .option, .shift, .command]).displayString == "⌃⌥⇧⌘A")
         #expect(KeyCombo(keyCode: 200, modifiers: [.command]).displayString == "⌘Key 200")

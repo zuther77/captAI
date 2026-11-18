@@ -9,11 +9,14 @@ final class AppKitManagedWindow: NSObject, ManagedWindow, NSWindowDelegate {
 
     var isVisible: Bool { window.isVisible }
 
-    init(title: String, size: NSSize, minSize: NSSize, autosaveName: String, content: some View) {
+    /// `identifier` is a stable accessibility identifier. A hosted SwiftUI `navigationTitle` rewrites the window
+    /// title (e.g. to the selected Settings pane), so UI tests must not locate the window by title.
+    init(title: String, identifier: String, size: NSSize, minSize: NSSize, autosaveName: String, content: some View) {
         let controller = NSHostingController(rootView: content)
         window = NSWindow(contentViewController: controller)
         super.init()
         window.title = title
+        window.identifier = NSUserInterfaceItemIdentifier(identifier)
         window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
         window.setContentSize(size)
         window.contentMinSize = minSize
@@ -57,6 +60,7 @@ struct AppKitWindowFactory: WindowFactory {
         case .settings:
             AppKitManagedWindow(
                 title: "captAI Settings",
+                identifier: "settings.window",
                 size: NSSize(width: 720, height: 480),
                 minSize: NSSize(width: 640, height: 420),
                 autosaveName: "captAI.settingsWindow",

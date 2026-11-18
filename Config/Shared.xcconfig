@@ -1,7 +1,7 @@
 // Shared build settings for every captAI target.
 // Optional per-developer overrides (signing team) live in Local.xcconfig, which is gitignored.
 
-MACOSX_DEPLOYMENT_TARGET = 26.0
+MACOSX_DEPLOYMENT_TARGET = 27.0
 SWIFT_VERSION = 6.0
 SWIFT_STRICT_CONCURRENCY = complete
 SWIFT_TREAT_WARNINGS_AS_ERRORS = YES

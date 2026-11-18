@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 46;
+	objectVersion = 54;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -186,7 +186,7 @@
 		A7E2B2AEA7C69DE26D1E1C10 /* WindowCoordinatorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WindowCoordinatorTests.swift; sourceTree = "<group>"; };
 		AA424CA4951AB9F5189D4AD4 /* PrivacySettingsPane.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PrivacySettingsPane.swift; sourceTree = "<group>"; };
 		AB6F1AF59A6C06D0A0F210BB /* Identifiers.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Identifiers.swift; sourceTree = "<group>"; };
-		AD921DDC517FD3A54D1DC28C /* Local.xcconfig.example */ = {isa = PBXFileReference; includeInIndex = 1; path = Local.xcconfig.example; sourceTree = "<group>"; };
+		AD921DDC517FD3A54D1DC28C /* Local.xcconfig.example */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; path = Local.xcconfig.example; sourceTree = "<group>"; };
 		B23EE6E57F45DF352EFADCF0 /* KeyComboDisplay.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = KeyComboDisplay.swift; sourceTree = "<group>"; };
 		B55C28E07C43241CC94E802E /* SettingsStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
 		B8BB48657F876EF60CA7E086 /* ShortcutsSettingsPane.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ShortcutsSettingsPane.swift; sourceTree = "<group>"; };
@@ -260,7 +260,6 @@
 				596CF94D13756D70B39F1D5B /* Identifiers.swift */,
 				06EBA653BFC1FB5E3E4E58D7 /* KeyComboDisplay.swift */,
 			);
-			name = Models;
 			path = Models;
 			sourceTree = "<group>";
 		};
@@ -283,7 +282,6 @@
 			children = (
 				8A0AC9C7712729DDDC824378 /* SettingsStore.swift */,
 			);
-			name = Storage;
 			path = Storage;
 			sourceTree = "<group>";
 		};
@@ -294,7 +292,6 @@
 				6A01B6B2DA4C6483FCA124EB /* SettingsModel.swift */,
 				5DFB7AE8580CD5D241A8F6B6 /* SettingsView.swift */,
 			);
-			name = Settings;
 			path = Settings;
 			sourceTree = "<group>";
 		};
@@ -330,7 +327,6 @@
 			children = (
 				4F0ADB8046CAAE3E98D2C1CC /* AppError.swift */,
 			);
-			name = Utilities;
 			path = Utilities;
 			sourceTree = "<group>";
 		};
@@ -339,7 +335,6 @@
 			children = (
 				0750801359698AC010297A3D /* SettingsStore.swift */,
 			);
-			name = Storage;
 			path = Storage;
 			sourceTree = "<group>";
 		};
@@ -349,7 +344,6 @@
 				3338B550538B10194D9C4B33 /* AppKitManagedWindow.swift */,
 				CE3FF24B9216B9F066528AD8 /* WindowCoordinator.swift */,
 			);
-			name = Windows;
 			path = Windows;
 			sourceTree = "<group>";
 		};
@@ -358,7 +352,6 @@
 			children = (
 				BEE09FBB6CBACC9164515C00 /* DisplayGeometry.swift */,
 			);
-			name = Geometry;
 			path = Geometry;
 			sourceTree = "<group>";
 		};
@@ -368,7 +361,6 @@
 				C625B759577017A8FC221523 /* captAI.entitlements */,
 				AD921DDC517FD3A54D1DC28C /* Local.xcconfig.example */,
 			);
-			name = Config;
 			path = Config;
 			sourceTree = "<group>";
 		};
@@ -381,7 +373,6 @@
 				294ED785EF24A3E4182EF77B /* Storage */,
 				9CC444AEB3025ECF00E6D9A7 /* Utilities */,
 			);
-			name = Core;
 			path = Core;
 			sourceTree = "<group>";
 		};
@@ -414,7 +405,6 @@
 			children = (
 				B55C28E07C43241CC94E802E /* SettingsStore.swift */,
 			);
-			name = Storage;
 			path = Storage;
 			sourceTree = "<group>";
 		};
@@ -425,7 +415,6 @@
 				5E606E3F1DDE4F59A0D1A54B /* SettingsModel.swift */,
 				BB82859C89EFDDE406C6AA3D /* SettingsView.swift */,
 			);
-			name = Settings;
 			path = Settings;
 			sourceTree = "<group>";
 		};
@@ -467,7 +456,6 @@
 				93C65F4777E22398CE595A5E /* PermissionMapping.swift */,
 				F28EAA46AF95FAA178E6F191 /* PermissionTypes.swift */,
 			);
-			name = Security;
 			path = Security;
 			sourceTree = "<group>";
 		};
@@ -477,7 +465,6 @@
 				219ED40AD8CDD65F3F66854E /* PermissionProvider.swift */,
 				4467428EC508D0A13FD14349 /* PermissionStore.swift */,
 			);
-			name = Permissions;
 			path = Permissions;
 			sourceTree = "<group>";
 		};
@@ -487,7 +474,6 @@
 				EB197DD177D66EC6A567D655 /* PermissionProvider.swift */,
 				8140E7052E1283339A30886C /* PermissionStore.swift */,
 			);
-			name = Permissions;
 			path = Permissions;
 			sourceTree = "<group>";
 		};
@@ -499,7 +485,6 @@
 				13CB0BFCDC1749105450C90D /* Identifiers.swift */,
 				5533E962020AA3EF2C4A6A2D /* KeyComboDisplay.swift */,
 			);
-			name = Models;
 			path = Models;
 			sourceTree = "<group>";
 		};
@@ -508,7 +493,6 @@
 			children = (
 				95E839E512D37A5B5A056C6C /* AppError.swift */,
 			);
-			name = Utilities;
 			path = Utilities;
 			sourceTree = "<group>";
 		};
@@ -528,7 +512,6 @@
 			children = (
 				D33D48009E74CCE139D690B6 /* Settings */,
 			);
-			name = Features;
 			path = Features;
 			sourceTree = "<group>";
 		};
@@ -537,7 +520,6 @@
 			children = (
 				7F5BC126FA629AD711E80AEF /* DisplayGeometry.swift */,
 			);
-			name = Geometry;
 			path = Geometry;
 			sourceTree = "<group>";
 		};
@@ -547,7 +529,6 @@
 				CA578C17D495E4E55170836F /* AppKitManagedWindow.swift */,
 				69B6C0B8EA4E8D525B7DF2A4 /* WindowCoordinator.swift */,
 			);
-			name = Windows;
 			path = Windows;
 			sourceTree = "<group>";
 		};
@@ -566,7 +547,6 @@
 				69E9A7EE43FA7DD0244D8446 /* PermissionMapping.swift */,
 				4868504FF05DDCAB82857A6A /* PermissionTypes.swift */,
 			);
-			name = Security;
 			path = Security;
 			sourceTree = "<group>";
 		};
@@ -576,7 +556,6 @@
 				C6A3078CEBB4785700A6DEA8 /* AppKitManagedWindow.swift */,
 				72DD597469C564B70A2715F1 /* WindowCoordinator.swift */,
 			);
-			name = Windows;
 			path = Windows;
 			sourceTree = "<group>";
 		};
@@ -585,7 +564,6 @@
 			children = (
 				FD6B62D018203D0D703F2AA1 /* AppError.swift */,
 			);
-			name = Utilities;
 			path = Utilities;
 			sourceTree = "<group>";
 		};
@@ -608,7 +586,6 @@
 				699F98941F65DCD28636D0C7 /* ShortcutsSettingsPane.swift */,
 				5F8D030571470D887219B5A4 /* StorageSettingsPane.swift */,
 			);
-			name = Panes;
 			path = Panes;
 			sourceTree = "<group>";
 		};
@@ -651,7 +628,6 @@
 				C3CCEA290F9501E73F62F9A0 /* PermissionMapping.swift */,
 				5ECA25CFA50888691F8898A5 /* PermissionTypes.swift */,
 			);
-			name = Security;
 			path = Security;
 			sourceTree = "<group>";
 		};
@@ -661,7 +637,6 @@
 				267420F62D164B494E8348C1 /* PermissionProvider.swift */,
 				D9AC8271374C776D9E895DCF /* PermissionStore.swift */,
 			);
-			name = Permissions;
 			path = Permissions;
 			sourceTree = "<group>";
 		};
@@ -670,7 +645,6 @@
 			children = (
 				2F411E4F542ECB106E7BE1D2 /* DisplayGeometry.swift */,
 			);
-			name = Geometry;
 			path = Geometry;
 			sourceTree = "<group>";
 		};
@@ -678,7 +652,6 @@
 			isa = PBXGroup;
 			children = (
 			);
-			name = scripts;
 			path = scripts;
 			sourceTree = "<group>";
 		};
@@ -692,7 +665,6 @@
 				FB6FE6C560E3BF742F65C473 /* ShortcutsSettingsPane.swift */,
 				0081D94013012EF1ACB63FBE /* StorageSettingsPane.swift */,
 			);
-			name = Panes;
 			path = Panes;
 			sourceTree = "<group>";
 		};
@@ -704,7 +676,6 @@
 				AB6F1AF59A6C06D0A0F210BB /* Identifiers.swift */,
 				B23EE6E57F45DF352EFADCF0 /* KeyComboDisplay.swift */,
 			);
-			name = Models;
 			path = Models;
 			sourceTree = "<group>";
 		};
@@ -715,7 +686,6 @@
 				03CB47284541B554C5718E64 /* SettingsModel.swift */,
 				5C835FD9FBEA076B50EBF508 /* SettingsView.swift */,
 			);
-			name = Settings;
 			path = Settings;
 			sourceTree = "<group>";
 		};
@@ -729,7 +699,6 @@
 				A0CB239A6A52B1EEE92CFDB2 /* UITestSupport.swift */,
 				96F59DAD50D99BE56BE6828C /* Windows */,
 			);
-			name = App;
 			path = App;
 			sourceTree = "<group>";
 		};
@@ -737,7 +706,6 @@
 			isa = PBXGroup;
 			children = (
 			);
-			name = docs;
 			path = docs;
 			sourceTree = "<group>";
 		};
@@ -755,7 +723,6 @@
 			children = (
 				EE58C3A793CF4312DEF5107A /* Assets.xcassets */,
 			);
-			name = Resources;
 			path = Resources;
 			sourceTree = "<group>";
 		};
@@ -769,7 +736,6 @@
 				B8BB48657F876EF60CA7E086 /* ShortcutsSettingsPane.swift */,
 				4C8A1576C2544C620EDB5638 /* StorageSettingsPane.swift */,
 			);
-			name = Panes;
 			path = Panes;
 			sourceTree = "<group>";
 		};
@@ -865,8 +831,20 @@
 		A48E47138618365F1644F0DA /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
+				BuildIndependentTargetsInParallel = YES;
 				LastSwiftUpdateCheck = 1600;
 				LastUpgradeCheck = 2700;
+				TargetAttributes = {
+					68D61EB564B7A915B9BF08A0 = {
+						ProvisioningStyle = Manual;
+					};
+					7DE4ED4A5B6AFF4FFAAD2D0F = {
+						ProvisioningStyle = Manual;
+					};
+					8421CB6027D8682C174C12C9 = {
+						ProvisioningStyle = Manual;
+					};
+				};
 			};
 			buildConfigurationList = E2058DC61317BAAB21A5288A /* Build configuration list for PBXProject "captAI" */;
 			compatibilityVersion = "Xcode 3.2";
@@ -877,8 +855,6 @@
 				Base,
 			);
 			mainGroup = 261638963905BC319D747D69;
-			minimizedProjectReferenceProxies = 0;
-			preferredProjectObjectVersion = 77;
 			productRefGroup = 7F22EAED8B7E0FED7608D651 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -1059,18 +1035,27 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Config/captAI.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = DSN35A4YBL;
+				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = captAI;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "captAI uses the microphone only if you turn on microphone audio when recording your screen.";
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
 				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = app.captai.captAI;
 				PRODUCT_NAME = captAI;
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = macosx;
 			};
 			name = Release;
@@ -1078,6 +1063,7 @@
 		2B19D004F71CD62BA9BC3E86 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = app.captai.captAI.captAIUnitTests;
 				PRODUCT_NAME = captAIUnitTests;
@@ -1089,6 +1075,7 @@
 		3CAB206BF017A3C342AAB04E /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = app.captai.captAI.captAIUnitTests;
 				PRODUCT_NAME = captAIUnitTests;
@@ -1100,6 +1087,7 @@
 		44254A46F2C0D6A52BC9D619 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = app.captai.captAI.captAIIntegrationTests;
 				PRODUCT_NAME = captAIIntegrationTests;
@@ -1143,6 +1131,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_HARDENED_RUNTIME = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1166,6 +1155,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -1178,18 +1168,27 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Config/captAI.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = DSN35A4YBL;
+				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = captAI;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "captAI uses the microphone only if you turn on microphone audio when recording your screen.";
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
 				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = app.captai.captAI;
 				PRODUCT_NAME = captAI;
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = macosx;
 			};
 			name = Debug;
@@ -1197,6 +1196,7 @@
 		7CED55D705AEDE058524DE31 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = app.captai.captAI.captAIUITests;
 				PRODUCT_NAME = captAIUITests;
@@ -1209,6 +1209,7 @@
 		A39E32E316A3D51B7BA1EC0F /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = app.captai.captAI.captAIIntegrationTests;
 				PRODUCT_NAME = captAIIntegrationTests;
@@ -1252,6 +1253,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1270,6 +1272,7 @@
 				ONLY_ACTIVE_ARCH = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "";
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
@@ -1280,6 +1283,7 @@
 		FF656A23DF3941980834FB87 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = app.captai.captAI.captAIUITests;
 				PRODUCT_NAME = captAIUITests;

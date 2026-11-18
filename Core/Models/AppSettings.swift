@@ -24,6 +24,7 @@ struct KeyCombo: Hashable, Codable, Sendable {
     static let keyCodeC: UInt16 = 8
     static let keyCode2: UInt16 = 19
     static let keyCode3: UInt16 = 20
+    static let keyCode8: UInt16 = 28
 }
 
 enum OCRRecognitionLevel: String, Codable, CaseIterable, Sendable {
@@ -53,7 +54,7 @@ struct AppSettings: Equatable, Codable, Sendable {
     var version: Int = AppSettings.currentVersion
 
     // Shortcuts (Settings > Shortcuts). Defaults follow PRD §5 and are conflict-checked in M1.
-    var screenshotShortcut = KeyCombo(keyCode: KeyCombo.keyCode2, modifiers: [.command, .shift])
+    var screenshotShortcut = KeyCombo(keyCode: KeyCombo.keyCode8, modifiers: [.command, .shift])
     var recordingShortcut = KeyCombo(keyCode: KeyCombo.keyCode3, modifiers: [.command, .shift])
     var quickCopyShortcut = KeyCombo(keyCode: KeyCombo.keyCodeC, modifiers: [.command, .shift])
 

@@ -26,7 +26,7 @@ PROJECT_PATH = File.join(ROOT, 'captAI.xcodeproj')
 
 APP_NAME = 'captAI'
 BUNDLE_ID = 'app.captai.captAI'
-DEPLOYMENT_TARGET = '26.0'
+DEPLOYMENT_TARGET = '27.0'
 
 FileUtils.rm_rf(PROJECT_PATH)
 project = Xcodeproj::Project.new(PROJECT_PATH)
