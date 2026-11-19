@@ -1,24 +1,31 @@
 import SwiftUI
 
-/// The floating assistant (Design Spec S2): glass header, composer and footer around an opaque reading card.
+/// The floating assistant (Design Spec S2): one semi-transparent Liquid Glass window holding a header, a reading
+/// card, a composer and a footer.
 ///
-/// Glass is used for chrome only. The analysis and conversation sit on an opaque surface so text stays readable
-/// in light and dark mode and with Reduce Transparency on.
+/// The whole assistant sits on a single glass surface, so every label, including the footer, has the window
+/// behind it instead of whatever is on the desktop. Controls inside it are flat rather than glass, because glass
+/// on glass is hard to read. The analysis and conversation sit on a nearly opaque card, which becomes fully
+/// opaque with Reduce Transparency on.
 struct AssistantView: View {
     let model: ScreenshotWorkspaceModel
 
     @FocusState private var composerFocused: Bool
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    private static let windowRadius: CGFloat = 28
+    private static let innerRadius: CGFloat = 18
 
     var body: some View {
-        GlassEffectContainer(spacing: 8) {
-            VStack(spacing: 8) {
-                header
-                readingCard
-                composer
-                footer
-            }
-            .padding(8)
+        VStack(spacing: 8) {
+            header
+            readingCard
+            composer
+            footer
         }
+        .padding(10)
+        .glassEffect(.regular, in: .rect(cornerRadius: Self.windowRadius))
+        .overlay(RoundedRectangle(cornerRadius: Self.windowRadius).strokeBorder(.separator))
         .onExitCommand { model.requestClose() }
         .onAppear { composerFocused = true }
         .accessibilityElement(children: .contain)
@@ -44,8 +51,10 @@ struct AssistantView: View {
                 model.setPinned(!model.isPinned)
             } label: {
                 Image(systemName: model.isPinned ? "pin.fill" : "pin")
+                    .frame(width: 28, height: 28)
+                    .contentShape(.circle)
             }
-            .buttonStyle(.glass)
+            .buttonStyle(.borderless)
             .help(model.isPinned ? "Unpin: let other windows cover the capture and assistant" : "Pin: keep the capture and assistant on top")
             .accessibilityLabel(model.isPinned ? "Unpin" : "Pin")
             .accessibilityIdentifier("workspace.pin")
@@ -53,15 +62,16 @@ struct AssistantView: View {
                 model.requestClose()
             } label: {
                 Image(systemName: "xmark")
+                    .frame(width: 28, height: 28)
+                    .contentShape(.circle)
             }
-            .buttonStyle(.glass)
+            .buttonStyle(.borderless)
             .help("Close (Esc)")
             .accessibilityLabel("Close")
             .accessibilityIdentifier("workspace.close")
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .glassEffect(.regular, in: .rect(cornerRadius: 18))
+        .padding(.horizontal, 8)
+        .padding(.vertical, 2)
         .gesture(WindowDragGesture())
     }
 
@@ -86,8 +96,11 @@ struct AssistantView: View {
             Divider()
             actionRow
         }
-        .background(Color(nsColor: .controlBackgroundColor), in: .rect(cornerRadius: 18))
-        .overlay(RoundedRectangle(cornerRadius: 18).strokeBorder(.separator))
+        .background(
+            Color(nsColor: .controlBackgroundColor).opacity(reduceTransparency ? 1 : 0.9),
+            in: .rect(cornerRadius: Self.innerRadius)
+        )
+        .overlay(RoundedRectangle(cornerRadius: Self.innerRadius).strokeBorder(.separator))
         .frame(maxHeight: .infinity)
     }
 
@@ -160,7 +173,7 @@ struct AssistantView: View {
                     Text(hint).font(.callout).foregroundStyle(.secondary)
                 }
                 Button("Retry") { model.retry() }
-                    .buttonStyle(.glass)
+                    .buttonStyle(.bordered)
                     .accessibilityIdentifier("workspace.retry")
             }
             .accessibilityIdentifier("workspace.error")
@@ -180,7 +193,7 @@ struct AssistantView: View {
             } label: {
                 Label("Copy Text", systemImage: "doc.on.clipboard")
             }
-            .buttonStyle(.glass)
+            .buttonStyle(.bordered)
             .disabled(model.isCopyingText)
             .help("Copy the text in the capture. Runs on this Mac.")
             .accessibilityIdentifier("workspace.copyText")
@@ -209,7 +222,8 @@ struct AssistantView: View {
             } label: {
                 Image(systemName: "arrow.up")
             }
-            .buttonStyle(.glassProminent)
+            .buttonStyle(.borderedProminent)
+            .buttonBorderShape(.circle)
             .disabled(!model.canSend)
             .keyboardShortcut(.return, modifiers: .command)
             .help("Send (Return)")
@@ -218,7 +232,7 @@ struct AssistantView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .glassEffect(.regular, in: .rect(cornerRadius: 18))
+        .background(.quaternary, in: .rect(cornerRadius: Self.innerRadius))
     }
 
     // MARK: Footer
