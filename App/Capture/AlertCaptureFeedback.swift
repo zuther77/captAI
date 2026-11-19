@@ -1,14 +1,20 @@
 import AppKit
 
-/// Shows capture problems in a standard alert. Permission problems add the two actions that actually fix
-/// them: open the Screen Recording pane, and relaunch captAI (macOS applies a Screen Recording grant only to
-/// processes started afterwards, KI-005).
+/// Shows capture problems that need an answer in a standard alert, and short results in a toast.
+/// Permission problems add the two actions that actually fix them: open the Screen Recording pane, and relaunch
+/// captAI (macOS applies a Screen Recording grant only to processes started afterwards, KI-005).
 @MainActor
 final class AlertCaptureFeedback: CaptureFeedback {
     private let opener: any URLOpening
+    private let toasts: ToastPresenter
 
-    init(opener: any URLOpening) {
+    init(opener: any URLOpening, toasts: ToastPresenter = ToastPresenter()) {
         self.opener = opener
+        self.toasts = toasts
+    }
+
+    func showToast(_ message: ToastMessage) {
+        toasts.show(message)
     }
 
     func present(_ error: AppError) {

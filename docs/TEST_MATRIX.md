@@ -49,6 +49,23 @@ The product owner ran this list on a real Mac on 2026-11-18 with an external dis
 
 **Note on item 4.** The first run (before D-017) passed for the external display only, because a drag could not cross displays (D-013). After D-017 the product owner reran it and it passed. Item 11 remains untested; see KI-018.
 
+## Manual: M2 (real Mac, no AI provider, no network)
+
+Quick Copy is wired to the ⇧⌘H shortcut and the menu, with toast feedback. Not yet performed on a real Mac.
+
+| # | Step | Expected | Status |
+|---|---|---|---|
+| 1 | Fresh settings, no API key, Ollama, or internet. Select terminal text on screen and run Quick Copy; paste into TextEdit and compare | Pasted text matches the screen in reading order | PASS |
+| 2 | Copy code with indentation, a paragraph, multilingual text, and an image with no text | Indentation and line breaks kept; the no-text image shows the "no text" feedback and leaves the clipboard unchanged | PASS |
+| 3 | Check that no AI panel, provider call, media file, or history record was created | None | PASS |
+| 4 | Benchmark OCR on reference hardware (Fast and Accurate) | p50 and p95 recorded against the ~2 s aspiration | SKIPPED |
+| 5 | Press ⇧⌘H (or Menu > Quick Copy Text), select text, then wait | Toast appears top-centre on the pointer's display, says "Copied N lines", disappears after about 2 s; VoiceOver announces it | PASS |
+| 6 | Quick Copy a blank or text-free area | Toast says "No text found in the selection"; clipboard unchanged from before | PASS |
+| 7 | Press Esc during the Quick Copy selection | Overlay closes, no toast, clipboard unchanged | PASS |
+| 8 | Deny Screen Recording, then Quick Copy | Permission alert (not a toast) with Open System Settings / Relaunch / Cancel | PASS |
+| 9 | Menu shows "Quick Copy Text ⇧⌘H"; it is disabled while a capture is running | Item enabled when idle, disabled during a capture | PASS |
+| 10 | Quick Copy a large selection, or text in a slow language (for example Japanese or Chinese), ideally while the Mac is busy | A "Copying text…" toast with a spinner appears as soon as the selection is released and stays until the result toast replaces it; it never lingers after the result | PASS |
+
 ## Cross-milestone privacy matrix (M0 slice)
 
 | Scenario | M0 evidence |

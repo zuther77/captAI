@@ -9,6 +9,7 @@ enum LogCategory: String, Sendable {
     case settings
     case capture
     case shortcuts
+    case ocr
 }
 
 /// A sink for diagnostic events. Injected so tests can capture events and assert nothing sensitive is recorded.

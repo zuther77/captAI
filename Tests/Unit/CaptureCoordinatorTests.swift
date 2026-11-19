@@ -18,6 +18,7 @@ struct CaptureCoordinatorTests {
         let capturer: FakeCapturer
         let store: FakeStore
         let feedback: FakeFeedback
+        let textCopier: FakeTextCopier
         let clock: TestClock
         let sink: RecordingDiagnosticsSink
     }
@@ -39,6 +40,7 @@ struct CaptureCoordinatorTests {
         let capturer = FakeCapturer()
         let store = FakeStore()
         let feedback = FakeFeedback()
+        let textCopier = FakeTextCopier()
         let clock = TestClock()
         let coordinator = CaptureCoordinator(
             permissions: permissions,
@@ -46,6 +48,7 @@ struct CaptureCoordinatorTests {
             capturer: capturer,
             store: store,
             feedback: feedback,
+            textCopier: textCopier,
             diagnostics: diagnostics,
             settings: { settings },
             layout: { Self.layout },
@@ -55,7 +58,7 @@ struct CaptureCoordinatorTests {
         )
         return Harness(
             coordinator: coordinator, permissions: permissions, provider: provider, overlay: overlay,
-            capturer: capturer, store: store, feedback: feedback, clock: clock, sink: sink
+            capturer: capturer, store: store, feedback: feedback, textCopier: textCopier, clock: clock, sink: sink
         )
     }
 
@@ -260,4 +263,81 @@ struct CaptureCoordinatorTests {
         #expect(h.coordinator.state == .idle)
         #expect(h.feedback.errors.isEmpty)
     }
+
+    // MARK: Quick Copy
+
+    @Test func quickCopyCopiesTextAndSavesNothing() async {
+        let h = makeHarness()
+        h.textCopier.outcome = .copied(characters: 5, lines: 1)
+        await h.coordinator.startQuickCopy()
+
+        #expect(h.textCopier.calls == 1)
+        #expect(h.feedback.toasts == [QuickCopyService.progressToast, QuickCopyService.Outcome.copied(characters: 5, lines: 1).toast])
+        #expect(h.store.recordedSaves.isEmpty)
+        #expect(h.coordinator.lastCapture == nil)
+        #expect(h.overlay.dismissCount >= 1)
+        #expect(h.coordinator.state == .idle)
+    }
+
+    @Test func quickCopyWithNoTextSaysSoInAToast() async {
+        let h = makeHarness()
+        h.textCopier.outcome = .noText
+        await h.coordinator.startQuickCopy()
+        #expect(h.feedback.toasts == [QuickCopyService.progressToast, QuickCopyService.Outcome.noText.toast])
+        #expect(h.store.recordedSaves.isEmpty)
+    }
+
+    @Test func aFailedQuickCopyUsesAToastNotAnAlert() async {
+        let h = makeHarness()
+        h.textCopier.outcome = .failed(.ocrFailed)
+        await h.coordinator.startQuickCopy()
+        #expect(h.feedback.toasts == [QuickCopyService.progressToast, QuickCopyService.Outcome.failed(.ocrFailed).toast])
+        #expect(h.feedback.errors.isEmpty)
+    }
+
+    @Test func aCopyingToastIsShownWhileTheTextIsBeingRead() async {
+        let h = makeHarness()
+        h.textCopier.outcome = .copied(characters: 5, lines: 1)
+        var shownDuringCopy: [ToastMessage] = []
+        h.textCopier.duringCopy = { shownDuringCopy = h.feedback.toasts }
+        await h.coordinator.startQuickCopy()
+
+        #expect(shownDuringCopy == [QuickCopyService.progressToast])
+        #expect(h.feedback.toasts.last == QuickCopyService.Outcome.copied(characters: 5, lines: 1).toast)
+    }
+
+    @Test func aScreenshotNeverShowsTheCopyingToast() async {
+        let h = makeHarness()
+        await h.coordinator.startScreenshot()
+        #expect(h.feedback.toasts.isEmpty)
+    }
+
+    @Test func aCancelledQuickCopyDoesNothing() async {
+        let h = makeHarness()
+        h.overlay.outcome = .cancelled
+        await h.coordinator.startQuickCopy()
+        #expect(h.textCopier.calls == 0)
+        #expect(h.feedback.toasts.isEmpty)
+        #expect(h.overlay.dismissCount >= 1)
+        #expect(h.coordinator.state == .idle)
+    }
+
+    @Test func aCaptureFailureDuringQuickCopyIsAToast() async {
+        let h = makeHarness()
+        h.capturer.result = .failure(.captureFailed)
+        await h.coordinator.startQuickCopy()
+        #expect(h.textCopier.calls == 0)
+        #expect(h.feedback.toasts == [QuickCopyService.Outcome.failed(.captureFailed).toast])
+        #expect(h.feedback.errors.isEmpty)
+        #expect(h.coordinator.state == .idle)
+    }
+
+    @Test func aDeniedPermissionDuringQuickCopyStillShowsTheAlert() async {
+        let h = makeHarness(screenCapture: .denied)
+        await h.coordinator.startQuickCopy()
+        #expect(h.feedback.errors == [.permissionDenied(.screenCapture)])
+        #expect(h.textCopier.calls == 0)
+        #expect(h.feedback.toasts.isEmpty)
+    }
 }
+

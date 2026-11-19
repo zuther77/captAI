@@ -180,7 +180,23 @@ final class FakeStore: ScreenshotStoring, @unchecked Sendable {
 @MainActor
 final class FakeFeedback: CaptureFeedback {
     private(set) var errors: [AppError] = []
+    private(set) var toasts: [ToastMessage] = []
     func present(_ error: AppError) { errors.append(error) }
+    func showToast(_ message: ToastMessage) { toasts.append(message) }
+}
+
+/// Stands in for the OCR service. Records each call and returns a fixed outcome.
+@MainActor
+final class FakeTextCopier: TextCopying {
+    var outcome: QuickCopyService.Outcome = .noText
+    /// Runs while recognition is "in progress", so a test can look at what the user sees at that moment.
+    var duringCopy: (@MainActor () -> Void)?
+    private(set) var calls = 0
+    func copyText(from capture: CapturedImage, settings: AppSettings) async -> QuickCopyService.Outcome {
+        calls += 1
+        duringCopy?()
+        return outcome
+    }
 }
 
 /// A clock the test advances by hand.
@@ -224,5 +240,35 @@ final class FakeShortcutService: ShortcutService {
     /// Simulates the user pressing `combo`.
     func press(_ combo: KeyCombo) {
         for entry in registered.values where entry.combo == combo { entry.handler() }
+    }
+}
+
+/// Recognizer that returns a fixed result and records what it was asked to do.
+final class FakeTextRecognizer: TextRecognizing, @unchecked Sendable {
+    private let lock = NSLock()
+    private var calls: [(level: OCRRecognitionLevel, languages: [String])] = []
+    var result: Result<[TextObservation], AppError> = .success([])
+
+    var recordedCalls: [(level: OCRRecognitionLevel, languages: [String])] { lock.withLock { calls } }
+
+    func recognize(in capture: CapturedImage, level: OCRRecognitionLevel, languages: [String]) async throws(AppError) -> [TextObservation] {
+        lock.withLock { calls.append((level, languages)) }
+        switch result {
+        case .success(let observations): return observations
+        case .failure(let error): throw error
+        }
+    }
+}
+
+/// Clipboard that records every write. `accept = false` makes the pasteboard refuse writes.
+@MainActor
+final class FakeTextClipboard: TextClipboard {
+    private(set) var writes: [String] = []
+    var accept = true
+
+    func replaceContents(with text: String) -> Bool {
+        guard accept else { return false }
+        writes.append(text)
+        return true
     }
 }

@@ -31,10 +31,25 @@ protocol ScreenshotStoring: Sendable {
     func save(_ capture: CapturedImage, in folder: URL) throws(AppError) -> URL
 }
 
-/// Tells the user about a problem that stops a capture.
+/// A short, transient message. Shown in a toast, read aloud through accessibility, and never persisted.
+struct ToastMessage: Equatable, Sendable {
+    enum Style: Equatable, Sendable {
+        case success
+        case neutral
+        case failure
+        /// Work is in progress. Shows a spinner and stays up until the next toast replaces it.
+        case progress
+    }
+
+    let text: String
+    let style: Style
+}
+
+/// Tells the user about a capture: problems that need an answer (alert), and short results (toast).
 @MainActor
 protocol CaptureFeedback: AnyObject {
     func present(_ error: AppError)
+    func showToast(_ message: ToastMessage)
 }
 
 /// The most recent successful capture, for the menu's "Reveal Last Capture".
