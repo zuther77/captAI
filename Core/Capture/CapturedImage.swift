@@ -3,7 +3,8 @@ import Foundation
 
 /// What was captured and where it came from (Design Spec section 9, `CaptureAsset`). Carries no pixels.
 struct CaptureMetadata: Equatable, Sendable {
-    let displayID: DisplayID
+    /// Every display the image was taken from, in capture order. One entry unless the selection spanned displays.
+    let displayIDs: [DisplayID]
     let widthPx: Int
     let heightPx: Int
     /// The captured area in AppKit global points.

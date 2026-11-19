@@ -3,7 +3,7 @@ import Foundation
 
 /// How a selection ended.
 enum SelectionOutcome: Equatable, Sendable {
-    case committed(CaptureRegion)
+    case committed(CaptureSelection)
     case cancelled
     /// The display arrangement changed while the overlay was up, so the geometry can no longer be trusted.
     case interrupted
@@ -22,8 +22,8 @@ protocol SelectionOverlayPresenting: AnyObject {
 }
 
 protocol ScreenCapturing: Sendable {
-    /// Captures `region` as one still image without the windows listed in `excludingWindowIDs`.
-    func captureStill(of region: CaptureRegion, excludingWindowIDs: [CGWindowID]) async throws(AppError) -> CapturedImage
+    /// Captures `selection` as one still image without the windows listed in `excludingWindowIDs`.
+    func captureStill(of selection: CaptureSelection, excludingWindowIDs: [CGWindowID]) async throws(AppError) -> CapturedImage
 }
 
 protocol ScreenshotStoring: Sendable {

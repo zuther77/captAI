@@ -19,8 +19,10 @@ final class SelectionOverlayView: NSView {
     /// This display's frame in AppKit global points; the view's own origin is the display's bottom-left.
     var displayFrame: CGRect = .zero
     var dimOpacity: Double = 0.35
-    /// The selection to draw, in AppKit global points. Nil on displays the selection is not on.
+    /// The whole selection in AppKit global points. Every display draws the part that falls on it.
     var selection: CGRect? { didSet { needsDisplay = true } }
+    /// The W x H label. Only the display the pointer is on sets it, so the label appears once.
+    var sizeText: String? { didSet { needsDisplay = true } }
     var hint: String? { didSet { needsDisplay = true } }
 
     override var acceptsFirstResponder: Bool { true }
@@ -36,9 +38,9 @@ final class SelectionOverlayView: NSView {
         if let global = selection {
             let local = global.offsetBy(dx: -displayFrame.minX, dy: -displayFrame.minY)
             NSColor.clear.setFill()
-            local.fill(using: .copy)
+            local.intersection(bounds).fill(using: .copy)
             drawBorder(around: local)
-            drawSizeLabel(for: local)
+            if let sizeText { drawSizeLabel(sizeText, for: local) }
         } else if let hint {
             drawPill(hint, centeredAt: CGPoint(x: bounds.midX, y: 64))
         }
@@ -55,12 +57,12 @@ final class SelectionOverlayView: NSView {
         inner.stroke()
     }
 
-    private func drawSizeLabel(for rect: CGRect) {
-        let scale = window?.backingScaleFactor ?? 1
-        let text = "\(Int((rect.width * scale).rounded())) × \(Int((rect.height * scale).rounded()))"
-        // Below the selection when there is room, otherwise just inside its top edge.
+    /// Below the selection when there is room on this display, otherwise just inside its top edge. The
+    /// position is kept on screen even when the selection extends past this display.
+    private func drawSizeLabel(_ text: String, for rect: CGRect) {
         let below = rect.minY > 36
-        let y = below ? rect.minY - 18 : rect.maxY - 18
+        let rawY = below ? rect.minY - 18 : rect.maxY - 18
+        let y = min(max(rawY, 18), bounds.maxY - 18)
         drawPill(text, centeredAt: CGPoint(x: min(max(rect.midX, 60), bounds.maxX - 60), y: y))
     }
 

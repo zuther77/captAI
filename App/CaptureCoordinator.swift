@@ -99,10 +99,10 @@ final class CaptureCoordinator {
             diagnostics.error(.capture, "capture.interrupted", error: .captureDisplayChanged)
             feedback.present(.captureDisplayChanged)
 
-        case .committed(let region):
+        case .committed(let selection):
             state = .capturing
             let excluded = overlay.overlayWindowIDs
-            let result = await capture(region, excluding: excluded)
+            let result = await capture(selection, excluding: excluded)
             // The overlay was up for the capture so its windows could be excluded; it always goes away now.
             overlay.dismiss()
             state = .idle
@@ -138,9 +138,9 @@ final class CaptureCoordinator {
         }
     }
 
-    private func capture(_ region: CaptureRegion, excluding windowIDs: [CGWindowID]) async -> Result<CapturedImage, AppError> {
+    private func capture(_ selection: CaptureSelection, excluding windowIDs: [CGWindowID]) async -> Result<CapturedImage, AppError> {
         do throws(AppError) {
-            return .success(try await capturer.captureStill(of: region, excludingWindowIDs: windowIDs))
+            return .success(try await capturer.captureStill(of: selection, excludingWindowIDs: windowIDs))
         } catch {
             return .failure(error)
         }

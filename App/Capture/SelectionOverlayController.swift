@@ -130,9 +130,9 @@ final class SelectionOverlayController: SelectionOverlayPresenting {
     func mouseUp(at point: CGPoint) {
         guard let outcome = machine?.mouseUp(at: point) else { return }
         switch outcome {
-        case .committed(let region):
+        case .committed(let selection):
             refresh()
-            finish(.committed(region))
+            finish(.committed(selection))
         case .rejectedTooSmall:
             showHint("Selection too small · drag a larger area")
             refresh()
@@ -148,20 +148,31 @@ final class SelectionOverlayController: SelectionOverlayPresenting {
 
     // MARK: Helpers
 
-    /// Pushes the current selection to the views. Only the display the drag started on draws it.
+    /// Pushes the current selection to every view. Each display draws the part of it that falls on it, and the
+    /// W x H label goes on the display under the pointer, so it is shown once.
     private func refresh() {
         guard let machine else { return }
-        var selected: (display: DisplayID, rect: CGRect)?
+        var rect: CGRect?
+        var pointer: CGPoint?
+        var size: CaptureSelection?
         switch machine.phase {
         case .selecting:
-            selected = machine.activeSelection
-        case .committed(let region):
-            selected = (region.displayID, region.appKitRect)
+            rect = machine.activeSelection
+            pointer = machine.activePointer
+            size = rect.flatMap { machine.layout.captureSelection(forSelection: $0) }
+        case .committed(let selection):
+            rect = selection.appKitRect
+            pointer = CGPoint(x: selection.appKitRect.midX, y: selection.appKitRect.minY)
+            size = selection
         case .idle, .cancelled:
-            selected = nil
+            break
         }
+
+        let labelDisplay = pointer.flatMap { machine.layout.display(containing: $0)?.id }
+        let text = size.map { "\($0.pixelWidth) × \($0.pixelHeight)" }
         for (id, view) in views {
-            view.selection = (selected?.display == id) ? selected?.rect : nil
+            view.selection = rect
+            view.sizeText = (id == labelDisplay) ? text : nil
         }
     }
 

@@ -103,16 +103,16 @@ func makeTestImage(width: Int, height: Int, red: UInt8, green: UInt8, blue: UInt
     return context.makeImage()!
 }
 
-func makeTestCapture(region: CaptureRegion, image: CGImage? = nil) -> CapturedImage {
-    let picture = image ?? makeTestImage(width: region.pixelWidth, height: region.pixelHeight, red: 200, green: 80, blue: 40)
+func makeTestCapture(selection: CaptureSelection, image: CGImage? = nil) -> CapturedImage {
+    let picture = image ?? makeTestImage(width: selection.pixelWidth, height: selection.pixelHeight, red: 200, green: 80, blue: 40)
     return CapturedImage(
         image: picture,
         metadata: CaptureMetadata(
-            displayID: region.displayID,
+            displayIDs: selection.displayIDs,
             widthPx: picture.width,
             heightPx: picture.height,
-            captureBoundsPoints: region.appKitRect,
-            backingScale: region.backingScale,
+            captureBoundsPoints: selection.appKitRect,
+            backingScale: selection.scale,
             creationTime: Date(timeIntervalSince1970: 1_800_000_000)
         )
     )
@@ -149,15 +149,15 @@ final class FakeOverlay: SelectionOverlayPresenting {
 
 final class FakeCapturer: ScreenCapturing, @unchecked Sendable {
     private let lock = NSLock()
-    private var calls: [(region: CaptureRegion, excluded: [CGWindowID])] = []
+    private var calls: [(selection: CaptureSelection, excluded: [CGWindowID])] = []
     var result: Result<CapturedImage?, AppError> = .success(nil)
 
-    var recordedCalls: [(region: CaptureRegion, excluded: [CGWindowID])] { lock.withLock { calls } }
+    var recordedCalls: [(selection: CaptureSelection, excluded: [CGWindowID])] { lock.withLock { calls } }
 
-    func captureStill(of region: CaptureRegion, excludingWindowIDs: [CGWindowID]) async throws(AppError) -> CapturedImage {
-        lock.withLock { calls.append((region, excludingWindowIDs)) }
+    func captureStill(of selection: CaptureSelection, excludingWindowIDs: [CGWindowID]) async throws(AppError) -> CapturedImage {
+        lock.withLock { calls.append((selection, excludingWindowIDs)) }
         switch result {
-        case .success(let capture): return capture ?? makeTestCapture(region: region)
+        case .success(let capture): return capture ?? makeTestCapture(selection: selection)
         case .failure(let error): throw error
         }
     }

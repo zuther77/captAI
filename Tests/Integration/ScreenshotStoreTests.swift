@@ -5,9 +5,9 @@ import Testing
 
 /// Writes real PNG files into a temporary folder.
 struct ScreenshotStoreTests {
-    private static let region = DisplayLayout(displays: [
+    private static let selection = DisplayLayout(displays: [
         DisplayDescriptor(id: DisplayID(1), frame: CGRect(x: 0, y: 0, width: 1440, height: 900), backingScale: 2)
-    ]).captureRegion(forSelection: CGRect(x: 100, y: 600, width: 200, height: 100), on: DisplayID(1))!
+    ]).captureSelection(forSelection: CGRect(x: 100, y: 600, width: 200, height: 100))!
 
     private func makeFolder() throws -> URL {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("captAI-store-\(UUID().uuidString)", isDirectory: true)
@@ -19,7 +19,7 @@ struct ScreenshotStoreTests {
         let folder = try makeFolder()
         defer { try? FileManager.default.removeItem(at: folder) }
 
-        let url = try PNGScreenshotStore().save(makeTestCapture(region: Self.region), in: folder)
+        let url = try PNGScreenshotStore().save(makeTestCapture(selection: Self.selection), in: folder)
 
         #expect(url.pathExtension == "png")
         #expect(url.deletingLastPathComponent().standardizedFileURL == folder.standardizedFileURL)
@@ -34,14 +34,14 @@ struct ScreenshotStoreTests {
         defer { try? FileManager.default.removeItem(at: parent) }
         let nested = parent.appendingPathComponent("a/b", isDirectory: true)
 
-        let url = try PNGScreenshotStore().save(makeTestCapture(region: Self.region), in: nested)
+        let url = try PNGScreenshotStore().save(makeTestCapture(selection: Self.selection), in: nested)
         #expect(FileManager.default.fileExists(atPath: url.path))
     }
 
     @Test func leavesNoTemporaryFileBehind() throws {
         let folder = try makeFolder()
         defer { try? FileManager.default.removeItem(at: folder) }
-        _ = try PNGScreenshotStore().save(makeTestCapture(region: Self.region), in: folder)
+        _ = try PNGScreenshotStore().save(makeTestCapture(selection: Self.selection), in: folder)
         let names = try FileManager.default.contentsOfDirectory(atPath: folder.path)
         #expect(names.count == 1)
         #expect(names.allSatisfy { !$0.hasPrefix(".") })
@@ -50,7 +50,7 @@ struct ScreenshotStoreTests {
     @Test func twoCapturesInTheSameSecondGetDistinctNames() throws {
         let folder = try makeFolder()
         defer { try? FileManager.default.removeItem(at: folder) }
-        let capture = makeTestCapture(region: Self.region)
+        let capture = makeTestCapture(selection: Self.selection)
         let first = try PNGScreenshotStore().save(capture, in: folder)
         let second = try PNGScreenshotStore().save(capture, in: folder)
         #expect(first != second)
@@ -65,7 +65,7 @@ struct ScreenshotStoreTests {
         try Data().write(to: blocker)
 
         #expect(throws: AppError.captureSaveFailed) {
-            try PNGScreenshotStore().save(makeTestCapture(region: Self.region), in: blocker)
+            try PNGScreenshotStore().save(makeTestCapture(selection: Self.selection), in: blocker)
         }
         let names = try FileManager.default.contentsOfDirectory(atPath: parent.path)
         #expect(names == ["not-a-folder"])

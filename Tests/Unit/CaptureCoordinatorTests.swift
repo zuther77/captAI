@@ -7,7 +7,7 @@ import Testing
 struct CaptureCoordinatorTests {
     private static let display = DisplayDescriptor(id: DisplayID(1), frame: CGRect(x: 0, y: 0, width: 1440, height: 900), backingScale: 2)
     private static let layout = DisplayLayout(displays: [display])
-    private static let region = layout.captureRegion(forSelection: CGRect(x: 100, y: 600, width: 200, height: 100), on: DisplayID(1))!
+    private static let selection = layout.captureSelection(forSelection: CGRect(x: 100, y: 600, width: 200, height: 100))!
     private static let defaultFolder = URL(fileURLWithPath: "/tmp/captAI-tests/default", isDirectory: true)
 
     private struct Harness {
@@ -35,7 +35,7 @@ struct CaptureCoordinatorTests {
         )
         let permissions = PermissionStore(provider: provider, opener: FakeURLOpener(), diagnostics: diagnostics)
         let overlay = FakeOverlay()
-        overlay.outcome = .committed(Self.region)
+        overlay.outcome = .committed(Self.selection)
         let capturer = FakeCapturer()
         let store = FakeStore()
         let feedback = FakeFeedback()
@@ -71,11 +71,11 @@ struct CaptureCoordinatorTests {
         await h.coordinator.startScreenshot()
 
         let call = try #require(h.capturer.recordedCalls.first)
-        #expect(call.region == Self.region)
+        #expect(call.selection == Self.selection)
         #expect(call.excluded == [11, 12])
         let save = try #require(h.store.recordedSaves.first)
         #expect(save.folder == Self.defaultFolder)
-        #expect(save.capture.metadata.displayID == DisplayID(1))
+        #expect(save.capture.metadata.displayIDs == [DisplayID(1)])
         #expect(save.capture.metadata.widthPx == 400)
         #expect(save.capture.metadata.heightPx == 200)
         #expect(save.capture.metadata.captureBoundsPoints == CGRect(x: 100, y: 600, width: 200, height: 100))
@@ -105,7 +105,7 @@ struct CaptureCoordinatorTests {
 
     @Test func aBlankCaptureIsSavedButFlagged() async {
         let h = makeHarness()
-        h.capturer.result = .success(makeTestCapture(region: Self.region, image: makeTestImage(width: 400, height: 200, red: 0, green: 0, blue: 0)))
+        h.capturer.result = .success(makeTestCapture(selection: Self.selection, image: makeTestImage(width: 400, height: 200, red: 0, green: 0, blue: 0)))
         await h.coordinator.startScreenshot()
         #expect(h.coordinator.lastCapture?.appearsBlank == true)
         #expect(h.store.recordedSaves.count == 1)

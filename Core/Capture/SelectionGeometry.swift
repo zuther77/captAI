@@ -17,8 +17,7 @@ enum SelectionGeometry {
         )
     }
 
-    /// Moves `point` to the nearest location inside `bounds` (edges included), so a drag that leaves the
-    /// display where it started stays on that display.
+    /// Moves `point` to the nearest location inside `bounds` (edges included).
     static func clamp(_ point: CGPoint, to bounds: CGRect) -> CGPoint {
         CGPoint(
             x: min(max(point.x, bounds.minX), bounds.maxX),
@@ -32,69 +31,108 @@ enum SelectionGeometry {
     }
 }
 
-/// A user selection resolved against exactly one display and aligned to whole backing pixels, so the
-/// captured image is exactly ``pixelWidth`` x ``pixelHeight`` with no resampling.
-struct CaptureRegion: Equatable, Sendable {
+/// One display's share of a selection.
+struct CaptureSlice: Equatable, Sendable {
     let displayID: DisplayID
-    let backingScale: CGFloat
-    /// Whole backing pixels, relative to the display's top-left corner. The source of truth.
-    let pixelRect: CGRect
-    /// The same area in AppKit global points (bottom-left origin), for stored metadata and diagnostics.
+    /// Display-local points, top-left origin. This is the ScreenCaptureKit `sourceRect`.
+    let sourceRect: CGRect
+    /// Size of the slice in output pixels. ScreenCaptureKit delivers the slice at this size.
+    let pixelWidth: Int
+    let pixelHeight: Int
+    /// Where the slice sits in the output image, in pixels, top-left origin.
+    let destination: CGRect
+}
+
+/// A selection resolved into one pixel grid, possibly spanning several displays.
+///
+/// The grid uses `scale`, the highest backing scale of the displays the selection touches, so every edge
+/// falls on a whole output pixel. Slices from lower-scale displays are upscaled by ScreenCaptureKit.
+/// Parts of the area that no display covers (a gap in an uneven arrangement) are filled with black.
+struct CaptureSelection: Equatable, Sendable {
+    /// Output pixels per point.
+    let scale: CGFloat
+    let pixelWidth: Int
+    let pixelHeight: Int
+    /// The output area in AppKit global points (bottom-left origin), aligned outward to whole pixels.
     let appKitRect: CGRect
+    let slices: [CaptureSlice]
 
-    var pixelWidth: Int { Int(pixelRect.width) }
-    var pixelHeight: Int { Int(pixelRect.height) }
-
-    /// ScreenCaptureKit `sourceRect`: display-local points, top-left origin.
-    var sourceRect: CGRect {
-        CGRect(
-            x: pixelRect.minX / backingScale,
-            y: pixelRect.minY / backingScale,
-            width: pixelRect.width / backingScale,
-            height: pixelRect.height / backingScale
-        )
-    }
+    var displayIDs: [DisplayID] { slices.map(\.displayID) }
 }
 
 extension DisplayLayout {
-    /// Resolves an AppKit-global selection on `displayID` into a pixel-aligned capture region.
+    /// The smallest rectangle containing every display, in AppKit global points.
+    var boundingFrame: CGRect? {
+        displays.reduce(nil as CGRect?) { partial, display in
+            partial.map { $0.union(display.frame) } ?? display.frame
+        }
+    }
+
+    /// Resolves an AppKit-global selection into a pixel-aligned capture across every display it touches.
     ///
-    /// The selection is clipped to the display, flipped to a top-left origin local to that display
-    /// (which is what ScreenCaptureKit expects, and which is independent of where the display sits in the
-    /// global arrangement, so negative origins need no special handling), then expanded outward to whole
-    /// pixels so no selected edge is lost. Returns nil if the display is gone or the result is too small.
-    func captureRegion(forSelection selection: CGRect, on displayID: DisplayID) -> CaptureRegion? {
-        guard let display = display(withID: displayID) else { return nil }
-        let clipped = selection.standardized.intersection(display.frame)
-        guard !clipped.isNull, SelectionGeometry.isAcceptable(clipped) else { return nil }
+    /// The selection is clipped to the area covered by the displays, aligned outward to whole pixels at the
+    /// highest scale involved (so no selected edge is lost), then split into one slice per display.
+    /// Each slice is expressed in that display's local top-left points, which is what ScreenCaptureKit
+    /// expects, so negative global origins need no special handling. Returns nil when the selection is too
+    /// small or does not touch any display.
+    func captureSelection(forSelection selection: CGRect) -> CaptureSelection? {
+        let rect = selection.standardized
+        guard SelectionGeometry.isAcceptable(rect), let bounds = boundingFrame else { return nil }
+        let clipped = rect.intersection(bounds)
+        guard hasArea(clipped), SelectionGeometry.isAcceptable(clipped) else { return nil }
 
-        let scale = display.backingScale
-        guard scale > 0 else { return nil }
-        let left = clipped.minX - display.frame.minX
-        let top = display.frame.maxY - clipped.maxY
-        let right = left + clipped.width
-        let bottom = top + clipped.height
+        let touched = displays.filter { hasArea($0.frame.intersection(clipped)) }
+        guard let scale = touched.map(\.backingScale).max(), scale > 0 else { return nil }
 
-        // Snap with a small tolerance so 100.0000001 does not grow to 101 pixels.
+        // Snap outward with a small tolerance so 100.0000001 does not grow to 101 pixels.
         let tolerance = 1e-6
-        let pixelBounds = display.pixelSize
-        let minX = max(0, (left * scale + tolerance).rounded(.down))
-        let minY = max(0, (top * scale + tolerance).rounded(.down))
-        let maxX = min(pixelBounds.width, (right * scale - tolerance).rounded(.up))
-        let maxY = min(pixelBounds.height, (bottom * scale - tolerance).rounded(.up))
-        guard maxX > minX, maxY > minY else { return nil }
+        let minX = (clipped.minX * scale + tolerance).rounded(.down) / scale
+        let minY = (clipped.minY * scale + tolerance).rounded(.down) / scale
+        let maxX = (clipped.maxX * scale - tolerance).rounded(.up) / scale
+        let maxY = (clipped.maxY * scale - tolerance).rounded(.up) / scale
+        let canvas = CGRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
 
-        let pixelRect = CGRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
-        return CaptureRegion(
-            displayID: displayID,
-            backingScale: scale,
-            pixelRect: pixelRect,
-            appKitRect: CGRect(
-                x: display.frame.minX + pixelRect.minX / scale,
-                y: display.frame.maxY - pixelRect.maxY / scale,
-                width: pixelRect.width / scale,
-                height: pixelRect.height / scale
-            )
+        let pixelWidth = Int((canvas.width * scale).rounded())
+        let pixelHeight = Int((canvas.height * scale).rounded())
+        guard pixelWidth > 0, pixelHeight > 0 else { return nil }
+
+        var slices: [CaptureSlice] = []
+        for display in displays {
+            let part = canvas.intersection(display.frame)
+            guard hasArea(part) else { continue }
+            let width = Int((part.width * scale).rounded())
+            let height = Int((part.height * scale).rounded())
+            guard width > 0, height > 0 else { continue }
+            slices.append(CaptureSlice(
+                displayID: display.id,
+                sourceRect: CGRect(
+                    x: part.minX - display.frame.minX,
+                    y: display.frame.maxY - part.maxY,
+                    width: part.width,
+                    height: part.height
+                ),
+                pixelWidth: width,
+                pixelHeight: height,
+                destination: CGRect(
+                    x: ((part.minX - canvas.minX) * scale).rounded(),
+                    y: ((canvas.maxY - part.maxY) * scale).rounded(),
+                    width: CGFloat(width),
+                    height: CGFloat(height)
+                )
+            ))
+        }
+        guard !slices.isEmpty else { return nil }
+
+        return CaptureSelection(
+            scale: scale,
+            pixelWidth: pixelWidth,
+            pixelHeight: pixelHeight,
+            appKitRect: canvas,
+            slices: slices
         )
+    }
+
+    private func hasArea(_ rect: CGRect) -> Bool {
+        !rect.isNull && rect.width > 0 && rect.height > 0
     }
 }

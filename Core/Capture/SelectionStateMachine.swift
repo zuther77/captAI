@@ -10,15 +10,15 @@ import CoreGraphics
 struct SelectionStateMachine: Sendable {
     enum Phase: Equatable, Sendable {
         case idle
-        case selecting(display: DisplayID, anchor: CGPoint, current: CGPoint)
-        case committed(CaptureRegion)
+        case selecting(anchor: CGPoint, current: CGPoint)
+        case committed(CaptureSelection)
         case cancelled
     }
 
     enum Outcome: Equatable, Sendable {
         /// The event changed nothing the caller needs to act on.
         case none
-        case committed(CaptureRegion)
+        case committed(CaptureSelection)
         case rejectedTooSmall
         case cancelled
     }
@@ -37,39 +37,39 @@ struct SelectionStateMachine: Sendable {
         }
     }
 
-    /// The rectangle being dragged, with the display it belongs to. Nil unless a drag is in progress.
-    var activeSelection: (display: DisplayID, rect: CGRect)? {
-        guard case .selecting(let display, let anchor, let current) = phase else { return nil }
-        return (display, SelectionGeometry.rect(from: anchor, to: current))
+    /// The rectangle being dragged, in AppKit global points. Nil unless a drag is in progress.
+    var activeSelection: CGRect? {
+        guard case .selecting(let anchor, let current) = phase else { return nil }
+        return SelectionGeometry.rect(from: anchor, to: current)
     }
 
-    /// Starts a selection on the display under `point`. The selection stays on that display.
+    /// The pointer position of the drag in progress, already kept inside the displays.
+    var activePointer: CGPoint? {
+        guard case .selecting(_, let current) = phase else { return nil }
+        return current
+    }
+
+    /// Starts a selection at `point`, which must be on a display.
     mutating func mouseDown(at point: CGPoint) {
-        guard case .idle = phase, let display = layout.display(containing: point) else { return }
-        phase = .selecting(display: display.id, anchor: point, current: point)
+        guard case .idle = phase, layout.display(containing: point) != nil else { return }
+        phase = .selecting(anchor: point, current: point)
     }
 
     mutating func mouseDragged(to point: CGPoint) {
-        guard case .selecting(let displayID, let anchor, _) = phase,
-              let display = layout.display(withID: displayID) else { return }
-        phase = .selecting(
-            display: displayID,
-            anchor: anchor,
-            current: SelectionGeometry.clamp(point, to: display.frame)
-        )
+        guard case .selecting(let anchor, _) = phase, let bounds = layout.boundingFrame else { return }
+        phase = .selecting(anchor: anchor, current: SelectionGeometry.clamp(point, to: bounds))
     }
 
     mutating func mouseUp(at point: CGPoint) -> Outcome {
-        guard case .selecting(let displayID, let anchor, _) = phase,
-              let display = layout.display(withID: displayID) else { return .none }
-        let end = SelectionGeometry.clamp(point, to: display.frame)
+        guard case .selecting(let anchor, _) = phase, let bounds = layout.boundingFrame else { return .none }
+        let end = SelectionGeometry.clamp(point, to: bounds)
         let rect = SelectionGeometry.rect(from: anchor, to: end)
-        guard let region = layout.captureRegion(forSelection: rect, on: displayID) else {
+        guard let selection = layout.captureSelection(forSelection: rect) else {
             phase = .idle
             return .rejectedTooSmall
         }
-        phase = .committed(region)
-        return .committed(region)
+        phase = .committed(selection)
+        return .committed(selection)
     }
 
     mutating func cancel() -> Outcome {
