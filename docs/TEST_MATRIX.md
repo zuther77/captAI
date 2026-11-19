@@ -89,9 +89,9 @@ A screenshot (⌘⇧8 or Menu > Capture Screenshot) now saves the PNG as before 
 | 15 | Unplug or reconfigure a display while a workspace is open | The workspace closes cleanly; a new screenshot works afterwards | NOT PERFORMED |
 | 16 | Turn on System Settings > Accessibility > Display > Reduce transparency, then switch between Light and Dark | The assistant stays legible; the analysis and conversation sit on an opaque surface | NOT PERFORMED |
 | 17 | Use Tab and Shift+Tab, then VoiceOver | Focus moves through Pin, Close, Hide capture, Copy Text, the composer, Send and the footer; each control has a spoken label | NOT PERFORMED |
+| 18 | Capture a protected (DRM) window, if you have a source | The capture is black and the assistant shows "This capture looks blank…" and does not run the analysis | NOT PERFORMED (a DRM source was not available in M1 either, KI-018) |
 | 19 | Unpin, open other apps so one sits under the assistant, then click the app under the assistant, then click the capture, then click the assistant | Clicking the app raises it over both. Clicking the capture raises the capture and the assistant together, with the assistant on top and ready for typing. Clicking the assistant raises both | NOT PERFORMED |
 | 20 | Settings > Capture & Recording > Screenshot border: switch off "Use system accent color", pick a color, set the width to 0, 1 and 8, then take a screenshot each time | The preview matches the capture's outline; width 0 shows no outline; the color and width persist after relaunching the app | NOT PERFORMED |
-| 18 | Capture a protected (DRM) window, if you have a source | The capture is black and the assistant shows "This capture looks blank…" and does not run the analysis | NOT PERFORMED (a DRM source was not available in M1 either, KI-018) |
 
 ## Cross-milestone privacy matrix (M0 slice)
 
