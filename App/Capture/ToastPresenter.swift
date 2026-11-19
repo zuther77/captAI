@@ -8,10 +8,15 @@ import AppKit
 final class ToastPresenter {
     static let displayDuration: Duration = .seconds(2)
 
+    private let diagnostics: Diagnostics
     private var panel: NSPanel?
     private var label: NSTextField?
     private var icon: NSImageView?
     private var hideTask: Task<Void, Never>?
+
+    init(diagnostics: Diagnostics = Diagnostics()) {
+        self.diagnostics = diagnostics
+    }
 
     func show(_ message: ToastMessage) {
         let panel = panel ?? makePanel()
@@ -26,6 +31,7 @@ final class ToastPresenter {
         panel.setContentSize(size)
         panel.setFrameOrigin(Self.origin(for: size))
         panel.orderFrontRegardless()
+        recordShown(panel)
 
         NSAccessibility.post(
             element: NSApp as Any,
@@ -45,6 +51,32 @@ final class ToastPresenter {
         hideTask?.cancel()
         hideTask = nil
         panel?.orderOut(nil)
+    }
+
+    // MARK: Diagnostics
+
+    /// Records where the toast was placed, then checks shortly after whether macOS is actually drawing it.
+    /// Only geometry and window state are logged, never the message text.
+    private func recordShown(_ panel: NSPanel) {
+        let screen = panel.screen ?? NSScreen.main
+        diagnostics.info(.windows, "toast.shown", [
+            "screens": String(NSScreen.screens.count),
+            "panelFrame": NSStringFromRect(panel.frame),
+            "screenFrame": screen.map { NSStringFromRect($0.frame) } ?? "none",
+            "menuBarHidden": String(screen.map { $0.visibleFrame.maxY == $0.frame.maxY } ?? false),
+            "appActive": String(NSApp.isActive)
+        ])
+
+        let diagnostics = self.diagnostics
+        Task { [weak panel] in
+            try? await Task.sleep(for: .milliseconds(300))
+            guard let panel else { return }
+            diagnostics.info(.windows, "toast.visibility", [
+                "isVisible": String(panel.isVisible),
+                "onScreen": String(panel.occlusionState.contains(.visible)),
+                "appActive": String(NSApp.isActive)
+            ])
+        }
     }
 
     // MARK: Construction
