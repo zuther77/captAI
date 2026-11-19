@@ -64,6 +64,7 @@ Quick Copy is wired to the ⇧⌘H shortcut and the menu, with toast feedback. N
 | 7 | Press Esc during the Quick Copy selection | Overlay closes, no toast, clipboard unchanged | PASS |
 | 8 | Deny Screen Recording, then Quick Copy | Permission alert (not a toast) with Open System Settings / Relaunch / Cancel | PASS |
 | 9 | Menu shows "Quick Copy Text ⇧⌘H"; it is disabled while a capture is running | Item enabled when idle, disabled during a capture | PASS |
+| 10 | Quick Copy a large selection, or text in a slow language (for example Japanese or Chinese), ideally while the Mac is busy | A "Copying text…" toast with a spinner appears as soon as the selection is released and stays until the result toast replaces it; it never lingers after the result | NOT PERFORMED |
 
 ## Cross-milestone privacy matrix (M0 slice)
 
