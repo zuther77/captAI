@@ -80,3 +80,6 @@ Recognition runs through `VNRecognizeTextRequest` on the Mac (Fast or Accurate p
 The product owner chose ⇧⌘H as the default Quick Copy shortcut, replacing the PRD's proposed ⇧⌘C (KI-019). `AppSettings.quickCopyShortcut` now uses `KeyCombo.keyCodeH`. Settings saved before this change keep whatever value they hold; only new installs and Restore Defaults get ⇧⌘H.
 *Known conflict:* Finder uses ⇧⌘H for Go > Home. While captAI runs, its global hotkey takes precedence in Finder. The validator does not check other apps' shortcuts (KI-019).
 
+## D-020 No OCR language picker; recognition detects the language automatically — Accepted (2026-11-19)
+The product owner decided a language picker is not needed because `automaticallyDetectsLanguage` is on when no languages are chosen (D-018). PRD FR-O01 asks for language choices only "where practical", so this is treated as met. The stored `ocrLanguages` setting stays as a hidden override. Fast mode still reads only six Latin-script languages, so other languages need Accurate.
+
