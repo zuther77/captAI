@@ -74,9 +74,19 @@ final class ScreenshotWorkspaceController: ScreenshotWorkspacePresenting {
         model.onEvent = { [weak self] event in self?.handle(event) }
         self.model = model
 
-        let frozen = FrozenCapturePanel(image: capture.image, scale: capture.metadata.backingScale, frame: captureRect)
+        let preferences = settings()
+        let frozen = FrozenCapturePanel(
+            image: capture.image,
+            scale: capture.metadata.backingScale,
+            frame: captureRect,
+            borderColor: preferences.captureBorderColor?.nsColor,
+            borderWidth: preferences.clampedCaptureBorderWidth
+        )
         let assistant = AssistantPanel(frame: placement.frame, maximumHeight: visible.height, model: model)
         assistant.onCancel = { [weak model] in model?.requestClose() }
+        // Clicking either window raises both, so the capture and the assistant always move together.
+        frozen.onMouseDown = { [weak self] in self?.raiseWorkspace(activating: true) }
+        assistant.onMouseDown = { [weak self] in self?.raiseWorkspace(activating: false) }
         self.frozen = frozen
         self.assistant = assistant
         applyLevels(pinned: model.isPinned)
@@ -121,6 +131,20 @@ final class ScreenshotWorkspaceController: ScreenshotWorkspacePresenting {
         }
     }
 
+    /// Brings the capture (if shown) and the assistant in front of other windows, assistant on top.
+    /// `activating` also makes this app active and the assistant key, for clicks on the capture, which never
+    /// takes focus itself. A click on the assistant already activates the app, so it only needs the reorder.
+    private func raiseWorkspace(activating: Bool) {
+        guard let model, !model.isClosed else { return }
+        if model.isCaptureVisible { frozen?.orderFrontRegardless() }
+        if activating {
+            NSApp.activate()
+            assistant?.makeKeyAndOrderFront(nil)
+        } else {
+            assistant?.orderFrontRegardless()
+        }
+    }
+
     /// Pinned: both windows float above normal windows, with the capture just under the assistant.
     /// Unpinned: both behave like ordinary windows, so other apps can cover them.
     private func applyLevels(pinned: Bool) {
@@ -159,6 +183,8 @@ final class ScreenshotWorkspaceController: ScreenshotWorkspacePresenting {
 /// composer. Esc closes the workspace when no text field handles it first.
 final class AssistantPanel: NSPanel {
     var onCancel: (() -> Void)?
+    /// Called on any mouse press in the window, before the press is handled.
+    var onMouseDown: (() -> Void)?
 
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }
@@ -194,6 +220,11 @@ final class AssistantPanel: NSPanel {
         onCancel?()
     }
 
+    override func sendEvent(_ event: NSEvent) {
+        if event.isMousePress { onMouseDown?() }
+        super.sendEvent(event)
+    }
+
     /// Keep the frame exactly where it was placed, including across displays.
     override func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect {
         frameRect
@@ -202,11 +233,14 @@ final class AssistantPanel: NSPanel {
 
 /// The frozen capture, shown at the screen location it was taken from. It never takes focus.
 final class FrozenCapturePanel: NSPanel {
+    /// Called on any mouse press in the window. The capture cannot take focus, so the controller does it.
+    var onMouseDown: (() -> Void)?
+
     override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }
 
     @MainActor
-    init(image: CGImage, scale: CGFloat, frame: CGRect) {
+    init(image: CGImage, scale: CGFloat, frame: CGRect, borderColor: NSColor?, borderWidth: CGFloat) {
         super.init(
             contentRect: frame,
             styleMask: [.borderless, .nonactivatingPanel],
@@ -221,8 +255,13 @@ final class FrozenCapturePanel: NSPanel {
         animationBehavior = .none
         sharingType = .none
         collectionBehavior = [.fullScreenAuxiliary, .ignoresCycle]
-        contentView = FrozenCaptureView(image: image, scale: scale)
+        contentView = FrozenCaptureView(image: image, scale: scale, borderColor: borderColor, borderWidth: borderWidth)
         setFrame(frame, display: false)
+    }
+
+    override func sendEvent(_ event: NSEvent) {
+        if event.isMousePress { onMouseDown?() }
+        super.sendEvent(event)
     }
 
     override func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect {
@@ -230,15 +269,26 @@ final class FrozenCapturePanel: NSPanel {
     }
 }
 
-/// Draws the capture pixel for pixel, with a thin accent outline so it reads as a frozen region.
+private extension NSEvent {
+    var isMousePress: Bool {
+        type == .leftMouseDown || type == .rightMouseDown || type == .otherMouseDown
+    }
+}
+
+/// Draws the capture pixel for pixel, with an outline so it reads as a frozen region. The outline is drawn
+/// inside the capture's bounds, so the window stays exactly where the capture was taken. `borderColor` nil
+/// means the system accent color.
 final class FrozenCaptureView: NSView {
-    init(image: CGImage, scale: CGFloat) {
+    private let customBorderColor: NSColor?
+
+    init(image: CGImage, scale: CGFloat, borderColor: NSColor?, borderWidth: CGFloat) {
+        customBorderColor = borderColor
         super.init(frame: .zero)
         wantsLayer = true
         layer?.contents = image
         layer?.contentsGravity = .resize
         layer?.contentsScale = scale
-        layer?.borderWidth = 1
+        layer?.borderWidth = borderWidth
         updateBorderColor()
     }
 
@@ -253,7 +303,7 @@ final class FrozenCaptureView: NSView {
 
     private func updateBorderColor() {
         effectiveAppearance.performAsCurrentDrawingAppearance {
-            layer?.borderColor = NSColor.controlAccentColor.withAlphaComponent(0.85).cgColor
+            layer?.borderColor = (customBorderColor ?? NSColor.controlAccentColor.withAlphaComponent(0.85)).cgColor
         }
     }
 }

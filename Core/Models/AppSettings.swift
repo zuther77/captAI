@@ -46,6 +46,24 @@ enum DefaultRecordingTarget: String, Codable, CaseIterable, Sendable {
     case display
 }
 
+/// An opaque sRGB color, kept free of AppKit and SwiftUI so it can be stored and tested anywhere.
+/// Components are clamped to 0...1.
+struct RGBColor: Equatable, Codable, Sendable {
+    let red: Double
+    let green: Double
+    let blue: Double
+
+    init(red: Double, green: Double, blue: Double) {
+        self.red = Self.clamp(red)
+        self.green = Self.clamp(green)
+        self.blue = Self.clamp(blue)
+    }
+
+    private static func clamp(_ value: Double) -> Double {
+        value.isFinite ? min(max(value, 0), 1) : 0
+    }
+}
+
 /// User-visible preferences. Every field has a default so a missing or partial file still decodes.
 /// Secrets (API keys) never live here; they belong in the Keychain (M4).
 struct AppSettings: Equatable, Codable, Sendable {
@@ -69,6 +87,10 @@ struct AppSettings: Equatable, Codable, Sendable {
     var recordingFolderPath: String?
 
     // Capture & Recording (Settings > Capture & Recording)
+    /// Outline drawn around the frozen screenshot. nil means the system accent color.
+    var captureBorderColor: RGBColor?
+    /// Outline width in points. 0 means no outline. Clamped by ``clampedCaptureBorderWidth``.
+    var captureBorderWidth: Double = 1
     /// Overlay dimming, clamped to the Design Spec's 30-40% range by ``clampedOverlayDimOpacity``.
     var overlayDimOpacity: Double = 0.35
     var defaultRecordingTarget: DefaultRecordingTarget = .region
@@ -81,6 +103,12 @@ struct AppSettings: Equatable, Codable, Sendable {
     var saveQuickCopyToHistory = false
 
     static let overlayDimRange: ClosedRange<Double> = 0.30...0.40
+    static let captureBorderWidthRange: ClosedRange<Double> = 0...8
+
+    var clampedCaptureBorderWidth: Double {
+        guard captureBorderWidth.isFinite else { return Self.captureBorderWidthRange.lowerBound }
+        return min(max(captureBorderWidth, Self.captureBorderWidthRange.lowerBound), Self.captureBorderWidthRange.upperBound)
+    }
 
     var clampedOverlayDimOpacity: Double {
         min(max(overlayDimOpacity, Self.overlayDimRange.lowerBound), Self.overlayDimRange.upperBound)
@@ -117,6 +145,8 @@ struct AppSettings: Equatable, Codable, Sendable {
         screenshotFolderPath = try container.decodeIfPresent(String.self, forKey: .screenshotFolderPath)
         recordingFolderPath = try container.decodeIfPresent(String.self, forKey: .recordingFolderPath)
         overlayDimOpacity = try container.decodeIfPresent(Double.self, forKey: .overlayDimOpacity) ?? defaults.overlayDimOpacity
+        captureBorderColor = try container.decodeIfPresent(RGBColor.self, forKey: .captureBorderColor)
+        captureBorderWidth = try container.decodeIfPresent(Double.self, forKey: .captureBorderWidth) ?? defaults.captureBorderWidth
         defaultRecordingTarget = try container.decodeIfPresent(DefaultRecordingTarget.self, forKey: .defaultRecordingTarget) ?? defaults.defaultRecordingTarget
         recordSystemAudio = try container.decodeIfPresent(Bool.self, forKey: .recordSystemAudio) ?? defaults.recordSystemAudio
         recordMicrophone = try container.decodeIfPresent(Bool.self, forKey: .recordMicrophone) ?? defaults.recordMicrophone
