@@ -45,7 +45,7 @@ final class ScreenshotWorkspaceController: ScreenshotWorkspacePresenting {
 
     // MARK: Presenting
 
-    func present(_ capture: CapturedImage, appearsBlank: Bool) {
+    func present(_ capture: CapturedImage, savedAt: URL?, appearsBlank: Bool) {
         let carriedApplication = previousApplication
         teardown(restoreFocus: false)
 
@@ -61,6 +61,7 @@ final class ScreenshotWorkspaceController: ScreenshotWorkspacePresenting {
 
         let model = ScreenshotWorkspaceModel(
             metadata: capture.metadata,
+            savedURL: savedAt,
             appearsBlank: appearsBlank,
             source: analysis,
             copyText: { [weak self] in

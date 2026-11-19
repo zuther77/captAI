@@ -352,6 +352,7 @@ struct CaptureCoordinatorTests {
         #expect(h.workspace.presented.count == 1)
         #expect(shown.capture.metadata.captureBoundsPoints == Self.selection.appKitRect)
         #expect(shown.appearsBlank == false)
+        #expect(shown.savedAt == Self.defaultFolder.appendingPathComponent("capture-1.png"))
         #expect(h.coordinator.state == .idle)
     }
 
@@ -369,6 +370,7 @@ struct CaptureCoordinatorTests {
         await h.coordinator.startScreenshot()
         #expect(h.feedback.errors == [.captureSaveFailed])
         #expect(h.workspace.presented.count == 1)
+        #expect(h.workspace.presented.first?.savedAt == nil)
     }
 
     @Test func openingTheWorkspaceNeverCapturesTheScreenAgain() async {

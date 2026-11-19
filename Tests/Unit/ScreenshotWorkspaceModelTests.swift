@@ -17,9 +17,26 @@ struct ScreenshotWorkspaceModelTests {
     private func makeModel(
         source: FakeAnalysisSource = FakeAnalysisSource(),
         blank: Bool = false,
+        savedURL: URL? = URL(fileURLWithPath: "/tmp/captAI-tests/shots/capture.png"),
         copy: @escaping @MainActor () async -> Void = {}
     ) -> ScreenshotWorkspaceModel {
-        ScreenshotWorkspaceModel(metadata: Self.metadata, appearsBlank: blank, source: source, copyText: copy)
+        ScreenshotWorkspaceModel(metadata: Self.metadata, savedURL: savedURL, appearsBlank: blank, source: source, copyText: copy)
+    }
+
+    // MARK: Save location
+
+    @Test func theSaveLocationIsTheFolderTheFileWentTo() {
+        #expect(makeModel().savedFolderDisplay == "/tmp/captAI-tests/shots")
+    }
+
+    @Test func aFileInTheHomeFolderIsShownWithATilde() {
+        let home = URL(fileURLWithPath: NSHomeDirectory(), isDirectory: true)
+        let model = makeModel(savedURL: home.appendingPathComponent("Pictures/captAI/capture.png"))
+        #expect(model.savedFolderDisplay == "~/Pictures/captAI")
+    }
+
+    @Test func aFailedSaveHasNoLocation() {
+        #expect(makeModel(savedURL: nil).savedFolderDisplay == nil)
     }
 
     // MARK: Analysis

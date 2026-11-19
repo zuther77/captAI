@@ -36,7 +36,8 @@ protocol ScreenshotStoring: Sendable {
 @MainActor
 protocol ScreenshotWorkspacePresenting: AnyObject {
     /// Shows the frozen capture and the assistant, replacing any workspace already open.
-    func present(_ capture: CapturedImage, appearsBlank: Bool)
+    /// `savedAt` is where the PNG was written, or nil when saving failed.
+    func present(_ capture: CapturedImage, savedAt: URL?, appearsBlank: Bool)
     /// Closes the workspace if one is open. Safe to call when none is.
     func dismiss()
     /// Window numbers of the workspace windows on screen, so a new capture can exclude them.

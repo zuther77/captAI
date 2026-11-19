@@ -39,6 +39,8 @@ final class ScreenshotWorkspaceModel {
 
     let id = UUID()
     let metadata: CaptureMetadata
+    /// Where the PNG was saved, or nil when saving failed.
+    let savedURL: URL?
     /// The capture is entirely black or transparent: usually protected content, or a Screen Recording grant
     /// that is not really in effect. No analysis is requested for it.
     let appearsBlank: Bool
@@ -62,11 +64,13 @@ final class ScreenshotWorkspaceModel {
 
     init(
         metadata: CaptureMetadata,
+        savedURL: URL?,
         appearsBlank: Bool,
         source: any AnalysisSource,
         copyText: @escaping @MainActor () async -> Void
     ) {
         self.metadata = metadata
+        self.savedURL = savedURL
         self.appearsBlank = appearsBlank
         self.source = source
         self.identity = source.identity
@@ -74,6 +78,12 @@ final class ScreenshotWorkspaceModel {
     }
 
     // MARK: Derived state
+
+    /// The folder the capture was saved in, with the home folder shown as `~`. Nil when it was not saved.
+    var savedFolderDisplay: String? {
+        savedURL.map { $0.deletingLastPathComponent().path(percentEncoded: false) }
+            .map { ($0 as NSString).abbreviatingWithTildeInPath }
+    }
 
     var isResponding: Bool { messages.last?.status == .streaming }
 

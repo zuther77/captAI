@@ -177,8 +177,8 @@ final class CaptureCoordinator {
         case .screenshot:
             state = .idle
             let blank = ImageBlankDetector.isBlank(capture.image)
-            finish(capture, blank: blank)
-            workspace.present(capture, appearsBlank: blank)
+            let savedURL = finish(capture, blank: blank)
+            workspace.present(capture, savedAt: savedURL, appearsBlank: blank)
         case .quickCopy:
             state = .recognizing
             feedback.showToast(QuickCopyService.progressToast)
@@ -188,7 +188,8 @@ final class CaptureCoordinator {
         }
     }
 
-    private func finish(_ capture: CapturedImage, blank: Bool) {
+    /// Saves the capture and returns where it went, or nil if saving failed (the user has been told).
+    private func finish(_ capture: CapturedImage, blank: Bool) -> URL? {
         let configured = settings().screenshotFolderPath.map { URL(fileURLWithPath: $0, isDirectory: true) }
         do throws(AppError) {
             let url = try store.save(capture, in: configured ?? defaultFolder)
@@ -198,9 +199,11 @@ final class CaptureCoordinator {
                 "height": String(capture.metadata.heightPx),
                 "blank": blank ? "yes" : "no"
             ])
+            return url
         } catch {
             diagnostics.error(.capture, "capture.saveFailed", error: error)
             feedback.present(error)
+            return nil
         }
     }
 

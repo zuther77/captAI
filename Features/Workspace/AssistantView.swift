@@ -106,10 +106,13 @@ struct AssistantView: View {
 
     private var contextRow: some View {
         HStack(spacing: 8) {
-            Text("\(model.metadata.widthPx) × \(model.metadata.heightPx) · \(model.metadata.creationTime.formatted(date: .omitted, time: .shortened))")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .accessibilityIdentifier("workspace.context")
+            VStack(alignment: .leading, spacing: 2) {
+                Text("\(model.metadata.widthPx) × \(model.metadata.heightPx) · \(model.metadata.creationTime.formatted(date: .omitted, time: .shortened))")
+                    .accessibilityIdentifier("workspace.context")
+                savedLocation
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
             Spacer(minLength: 0)
             Button(model.isCaptureVisible ? "Hide capture" : "Show capture") {
                 model.setCaptureVisible(!model.isCaptureVisible)
@@ -120,6 +123,22 @@ struct AssistantView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
+    }
+
+    /// Where the PNG went. The full path is in the tooltip; the row shows the folder, shortened in the middle.
+    @ViewBuilder
+    private var savedLocation: some View {
+        if let folder = model.savedFolderDisplay, let url = model.savedURL {
+            Label(folder, systemImage: "folder")
+                .lineLimit(1)
+                .truncationMode(.middle)
+                .help(url.path(percentEncoded: false))
+                .accessibilityLabel("Saved in \(folder)")
+                .accessibilityIdentifier("workspace.savedLocation")
+        } else {
+            Label("Not saved", systemImage: "exclamationmark.triangle")
+                .accessibilityIdentifier("workspace.savedLocation")
+        }
     }
 
     private var mockBanner: some View {

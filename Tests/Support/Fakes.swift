@@ -202,12 +202,12 @@ final class FakeTextCopier: TextCopying {
 /// Stands in for the screenshot workspace. Records what the coordinator asked it to show.
 @MainActor
 final class FakeWorkspace: ScreenshotWorkspacePresenting {
-    private(set) var presented: [(capture: CapturedImage, appearsBlank: Bool)] = []
+    private(set) var presented: [(capture: CapturedImage, savedAt: URL?, appearsBlank: Bool)] = []
     private(set) var dismissCount = 0
     var windowIDs: [CGWindowID] = []
 
-    func present(_ capture: CapturedImage, appearsBlank: Bool) {
-        presented.append((capture, appearsBlank))
+    func present(_ capture: CapturedImage, savedAt: URL?, appearsBlank: Bool) {
+        presented.append((capture, savedAt, appearsBlank))
     }
 
     func dismiss() { dismissCount += 1 }
