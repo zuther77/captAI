@@ -22,6 +22,7 @@ struct KeyCombo: Hashable, Codable, Sendable {
 
     // ANSI virtual key codes used by the defaults.
     static let keyCodeC: UInt16 = 8
+    static let keyCodeH: UInt16 = 4
     static let keyCode2: UInt16 = 19
     static let keyCode3: UInt16 = 20
     static let keyCode8: UInt16 = 28
@@ -56,7 +57,7 @@ struct AppSettings: Equatable, Codable, Sendable {
     // Shortcuts (Settings > Shortcuts). Defaults follow PRD §5 and are conflict-checked in M1.
     var screenshotShortcut = KeyCombo(keyCode: KeyCombo.keyCode8, modifiers: [.command, .shift])
     var recordingShortcut = KeyCombo(keyCode: KeyCombo.keyCode3, modifiers: [.command, .shift])
-    var quickCopyShortcut = KeyCombo(keyCode: KeyCombo.keyCodeC, modifiers: [.command, .shift])
+    var quickCopyShortcut = KeyCombo(keyCode: KeyCombo.keyCodeH, modifiers: [.command, .shift])
 
     // OCR (Settings > OCR)
     var ocrRecognitionLevel: OCRRecognitionLevel = .accurate

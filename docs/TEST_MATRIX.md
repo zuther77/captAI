@@ -51,7 +51,7 @@ The product owner ran this list on a real Mac on 2026-11-18 with an external dis
 
 ## Manual: M2 (real Mac, no AI provider, no network)
 
-Quick Copy is wired to the ⇧⌘C shortcut and the menu, with toast feedback. Not yet performed on a real Mac.
+Quick Copy is wired to the ⇧⌘H shortcut and the menu, with toast feedback. Not yet performed on a real Mac.
 
 | # | Step | Expected | Status |
 |---|---|---|---|
@@ -59,11 +59,11 @@ Quick Copy is wired to the ⇧⌘C shortcut and the menu, with toast feedback. N
 | 2 | Copy code with indentation, a paragraph, multilingual text, and an image with no text | Indentation and line breaks kept; the no-text image shows the "no text" feedback and leaves the clipboard unchanged | NOT PERFORMED |
 | 3 | Check that no AI panel, provider call, media file, or history record was created | None | NOT PERFORMED |
 | 4 | Benchmark OCR on reference hardware (Fast and Accurate) | p50 and p95 recorded against the ~2 s aspiration | NOT PERFORMED |
-| 5 | Press ⇧⌘C (or Menu > Quick Copy Text), select text, then wait | Toast appears top-centre on the pointer's display, says "Copied N lines", disappears after about 2 s; VoiceOver announces it | NOT PERFORMED |
+| 5 | Press ⇧⌘H (or Menu > Quick Copy Text), select text, then wait | Toast appears top-centre on the pointer's display, says "Copied N lines", disappears after about 2 s; VoiceOver announces it | NOT PERFORMED |
 | 6 | Quick Copy a blank or text-free area | Toast says "No text found in the selection"; clipboard unchanged from before | NOT PERFORMED |
 | 7 | Press Esc during the Quick Copy selection | Overlay closes, no toast, clipboard unchanged | NOT PERFORMED |
 | 8 | Deny Screen Recording, then Quick Copy | Permission alert (not a toast) with Open System Settings / Relaunch / Cancel | NOT PERFORMED |
-| 9 | Menu shows "Quick Copy Text ⇧⌘C"; it is disabled while a capture is running | Item enabled when idle, disabled during a capture | NOT PERFORMED |
+| 9 | Menu shows "Quick Copy Text ⇧⌘H"; it is disabled while a capture is running | Item enabled when idle, disabled during a capture | NOT PERFORMED |
 
 ## Cross-milestone privacy matrix (M0 slice)
 

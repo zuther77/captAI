@@ -76,3 +76,7 @@ Recognition runs through `VNRecognizeTextRequest` on the Mac (Fast or Accurate p
 *Clipboard rule:* the pasteboard is written only when there is text. A blank capture, no text, or a failed recognition leaves the previous clipboard contents unchanged.
 *Unverified:* accuracy of reading order on real content and OCR speed (TEST_MATRIX "Manual: M2").
 
+## D-019 Quick Copy default shortcut is ⇧⌘H — Accepted (2026-11-19)
+The product owner chose ⇧⌘H as the default Quick Copy shortcut, replacing the PRD's proposed ⇧⌘C (KI-019). `AppSettings.quickCopyShortcut` now uses `KeyCombo.keyCodeH`. Settings saved before this change keep whatever value they hold; only new installs and Restore Defaults get ⇧⌘H.
+*Known conflict:* Finder uses ⇧⌘H for Go > Home. While captAI runs, its global hotkey takes precedence in Finder. The validator does not check other apps' shortcuts (KI-019).
+
