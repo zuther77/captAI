@@ -18,9 +18,6 @@ struct OCRSettingsPane: View {
             } footer: {
                 Text("Text recognition runs entirely on this Mac and never uses the network.")
             }
-            Section {
-                PendingFeatureNote(text: "Recognition takes effect once Quick Copy is added.")
-            }
         }
         .formStyle(.grouped)
         .accessibilityIdentifier("settings.pane.ocr")
