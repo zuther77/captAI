@@ -5,6 +5,7 @@ struct SettingsView: View {
     @Bindable var navigation: SettingsNavigation
     let model: SettingsModel
     let permissions: PermissionStore
+    let shortcuts: ShortcutRegistrar
 
     var body: some View {
         NavigationSplitView {
@@ -33,7 +34,7 @@ struct SettingsView: View {
         switch pane {
         case .providers: ProvidersSettingsPane()
         case .ocr: OCRSettingsPane(model: model)
-        case .shortcuts: ShortcutsSettingsPane(model: model)
+        case .shortcuts: ShortcutsSettingsPane(model: model, shortcuts: shortcuts)
         case .storage: StorageSettingsPane(model: model)
         case .captureAndRecording: CaptureSettingsPane(model: model)
         case .privacy: PrivacySettingsPane(model: model, permissions: permissions)

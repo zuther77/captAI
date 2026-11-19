@@ -6,11 +6,11 @@ Status values: **PASS**, **FAIL**, **NOT PERFORMED** (no one has run it), **BLOC
 
 | Suite | Command | Result |
 |---|---|---|
-| Unit (76 tests, 10 suites) | `scripts/test.sh unit` | PASS (2026-11-18) |
-| Integration (12 tests, 2 suites) | `scripts/test.sh integration` | PASS (2026-11-18) |
-| UI (6 tests) | `scripts/test.sh ui` | PASS (2026-11-18, run by the product owner on a real Mac: 6 tests, 0 failures). The first run had 4 failures: the tests located the Settings window by title, but the SwiftUI `navigationTitle` renames it to the selected pane. The window now has the identifier `settings.window` (KI-001). |
-| Debug build, warnings as errors | `scripts/build.sh Debug` | PASS (2026-11-17) |
-| Release build, warnings as errors | `scripts/build.sh Release` | PASS (2026-11-17) |
+| Unit (156 tests, 20 suites) | `scripts/test.sh unit` | PASS (2026-11-18, M1 branch, after cross-display support; run through `xcrun xctest` because the scheme `test` action cannot run in the agent sandbox) |
+| Integration (17 tests, 3 suites) | `scripts/test.sh integration` | PASS (2026-11-18, M1 branch, after cross-display support; same note) |
+| UI (6 tests) | `scripts/test.sh ui` | PASS on M0 (2026-11-18) and on M1 (2026-11-18, product owner's Mac, after the Shortcuts pane rewrite) |
+| Debug build, warnings as errors | `scripts/build.sh Debug` | PASS (2026-11-18, M1 branch) |
+| Release build, warnings as errors | `scripts/build.sh Release` | PASS (2026-11-18, M1 branch) |
 
 ## Manual: M0 (real Mac)
 
@@ -24,6 +24,30 @@ Item 0 was performed by the agent without a display session. Items 1–5 were pe
 | 3 | Toggle System Settings > Appearance between Light and Dark with Settings open | All panes legible in both | PASS |
 | 4 | Privacy pane with Screen Recording never requested, then granted, then removed in System Settings | "Not requested" + Request Access; "Granted" with no button; "Denied" + Open System Settings | PASS (second attempt; the first showed "Denied" after granting because of a stale grant from an earlier ad-hoc build, fixed by `tccutil` reset and re-grant) |
 | 5 | Launch fresh, quit without touching anything; check System Settings > Privacy & Security | captAI is **not** listed under Screen Recording or Microphone | PASS |
+
+## Manual: M1 (real Mac, with at least one external display)
+
+The product owner ran this list on a real Mac on 2026-11-18 with an external display. All items passed except item 11, which could not be tested because no protected-content source was available. Items 4 and 13–15 were run after the D-017 change. The agent cannot observe the screen, so these results are the owner's reports. Run `scripts/run.sh`, then grant Screen Recording and use "Relaunch captAI" if prompted.
+
+| # | Step | Expected | Status |
+|---|---|---|---|
+| 1 | Press ⌘⇧8 (or use Menu > Capture Screenshot) | Every display dims, crosshair cursor, hint pill | PASS (product owner, 2026-11-18) |
+| 2 | Drag a region in each screen quadrant, including reverse drags (right-to-left, bottom-to-top) | Clear hole follows the cursor; W × H pill is correct; release saves `~/Pictures/captAI/captAI <date> at <time>.png`; pixel size equals the pill size × display scale | PASS (product owner, 2026-11-18) |
+| 3 | Open the saved PNGs | Content matches the selected area exactly; no dim, border, pill or crosshair in the image | PASS (product owner, 2026-11-18) |
+| 4 | Repeat on the external display, then with mixed scaling (Retina + non-Retina) and with the external display left of or below the main one (negative origin) | No offset; PNG matches the selection | PASS (product owner, 2026-11-18, rerun after D-017) |
+| 5 | Press Esc during selection; also click without dragging (under 6 pt) | Overlay disappears, no file written, no stuck dim; a tiny release keeps the overlay open | PASS (product owner, 2026-11-18) |
+| 6 | Press ⌘⇧8 repeatedly and quickly; choose the menu item while an overlay is open | One overlay at a time; no stacking | PASS (product owner, 2026-11-18) |
+| 7 | Start a capture inside a fullscreen app Space; start one near the Dock and menu bar | Overlay appears over the fullscreen Space on every display; selection near the Dock and menu bar is accurate | PASS (product owner, 2026-11-18) |
+| 8 | Change resolution or unplug the external display while the overlay is open | Overlay closes cleanly with no image; a new capture works afterwards | PASS (product owner, 2026-11-18) |
+| 9 | Revoke Screen Recording in System Settings, then capture | Alert with Open System Settings / Relaunch captAI / Cancel; no overlay left behind; after granting and relaunching, capture works | PASS (product owner, 2026-11-18) |
+| 10 | Settings > Shortcuts: change the screenshot shortcut; try ⌘⇧3, ⌘Space, a shortcut with no modifier, and the Quick Copy shortcut | New shortcut works and the old one stops; the others show a red reason and are not saved | PASS (product owner, 2026-11-18) |
+| 11 | Capture a window showing DRM or protected video | Documented outcome: the content is black. The app warns "capture looks blank" instead of failing silently | UNABLE TO TEST: no DRM or protected-video source available (KI-018) |
+| 12 | Quit and relaunch | No leftover windows; Screen Recording prompt does not appear until the first capture | PASS (product owner, 2026-11-18) |
+| 13 | Drag a selection that starts on the main display and crosses onto the external one, and the reverse | The overlay shows the selection on both displays, the W × H label appears once, and the PNG contains both parts in the right places with no seam or offset | PASS |
+| 14 | Span a selection across a Retina and a non-Retina display | The PNG is at the Retina scale; the non-Retina part is upscaled and otherwise correct | PASS |
+| 15 | Drag past the edge of the displays into an empty area of an uneven arrangement | The selection stops at the edge of the displays; any uncovered part is black, not transparent |PASS |
+
+**Note on item 4.** The first run (before D-017) passed for the external display only, because a drag could not cross displays (D-013). After D-017 the product owner reran it and it passed. Item 11 remains untested; see KI-018.
 
 ## Cross-milestone privacy matrix (M0 slice)
 

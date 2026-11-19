@@ -54,6 +54,7 @@ struct AppKitWindowFactory: WindowFactory {
     let settings: SettingsModel
     let navigation: SettingsNavigation
     let permissions: PermissionStore
+    let shortcuts: ShortcutRegistrar
 
     func makeWindow(for kind: WindowKind) -> any ManagedWindow {
         switch kind {
@@ -64,7 +65,7 @@ struct AppKitWindowFactory: WindowFactory {
                 size: NSSize(width: 720, height: 480),
                 minSize: NSSize(width: 640, height: 420),
                 autosaveName: "captAI.settingsWindow",
-                content: SettingsView(navigation: navigation, model: settings, permissions: permissions)
+                content: SettingsView(navigation: navigation, model: settings, permissions: permissions, shortcuts: shortcuts)
             )
         }
     }

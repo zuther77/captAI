@@ -50,6 +50,10 @@ final class SettingsModel {
     /// The most recent load or save problem, cleared by the next successful save.
     private(set) var lastError: AppError?
 
+    /// Called after every successful save, so shortcut registration follows the saved settings.
+    /// It is not called for the initial load; the owner reads `settings` when it starts.
+    var onSettingsSaved: (@MainActor (AppSettings) -> Void)?
+
     @ObservationIgnored private let store: any SettingsStore
     @ObservationIgnored private let diagnostics: Diagnostics
 
@@ -74,6 +78,7 @@ final class SettingsModel {
             try store.save(candidate)
             settings = candidate
             lastError = nil
+            onSettingsSaved?(candidate)
             return true
         } catch let error as AppError {
             lastError = error
@@ -94,3 +99,4 @@ final class SettingsModel {
         lastError = nil
     }
 }
+

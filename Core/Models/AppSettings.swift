@@ -93,6 +93,14 @@ struct AppSettings: Equatable, Codable, Sendable {
         }
     }
 
+    mutating func setShortcut(_ combo: KeyCombo, for mode: CaptureMode) {
+        switch mode {
+        case .screenshot: screenshotShortcut = combo
+        case .recording: recordingShortcut = combo
+        case .quickCopy: quickCopyShortcut = combo
+        }
+    }
+
     init() {}
 
     /// Decodes tolerantly: any missing key falls back to its default, so adding a field never invalidates old files.

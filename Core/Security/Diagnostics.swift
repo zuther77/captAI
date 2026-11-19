@@ -7,6 +7,8 @@ enum LogCategory: String, Sendable {
     case permissions
     case windows
     case settings
+    case capture
+    case shortcuts
 }
 
 /// A sink for diagnostic events. Injected so tests can capture events and assert nothing sensitive is recorded.

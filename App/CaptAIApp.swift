@@ -17,7 +17,11 @@ struct CaptAIApp: App {
         if UITestSupport.isActive {
             // The menu bar extra is not reliably automatable, so UI tests start with Settings open.
             DispatchQueue.main.async { environment.windows.showSettings(pane: .providers) }
+        } else if !UITestSupport.isHostingTests {
+            environment.startShortcuts()
         }
+        #else
+        environment.startShortcuts()
         #endif
     }
 
@@ -26,7 +30,10 @@ struct CaptAIApp: App {
             MenuBarContent(
                 settings: environment.settings,
                 permissions: environment.permissions,
-                openSettings: { pane in environment.windows.showSettings(pane: pane) }
+                capture: environment.capture,
+                shortcuts: environment.shortcuts,
+                openSettings: { pane in environment.windows.showSettings(pane: pane) },
+                startCapture: { Task { await environment.capture.startScreenshot() } }
             )
         }
         .menuBarExtraStyle(.menu)

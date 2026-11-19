@@ -43,3 +43,31 @@ The product owner's machine runs macOS 27 and cannot be downgraded, and macOS 27
 
 ## D-011 Screenshot default shortcut is ⌘⇧8 — Accepted (2026-11-18)
 The product owner chose ⌘⇧8 as the default screenshot shortcut, replacing the PRD's proposed ⌘⇧2. `AppSettings.screenshotShortcut` now uses `KeyCombo.keyCode8`. Apple's default screenshot shortcuts are ⌘⇧3, ⌘⇧4 and ⌘⇧5, so ⌘⇧8 is not expected to collide. This was checked against Apple's documented defaults, not by querying the live system; M1 conflict checking should still verify it at runtime. The recording (⌘⇧3) and Quick Copy (⌘⇧C) defaults are unchanged, and D-004 still applies to recording.
+
+*M1 update to D-004:* the shortcut validator now reports `⌘⇧3` as a system shortcut in Settings > Shortcuts. The recording shortcut is still not registered (recording arrives in M7), so nothing collides at runtime today. The product owner still needs to pick the recording default.
+
+## D-012 Screenshots are saved as PNG to `~/Pictures/captAI` — Accepted for M1 (2026-11-18)
+M1 has no clipboard, OCR or assistant yet, so a finished selection is written as a PNG named `captAI yyyy-MM-dd 'at' HH.mm.ss.png` (with ` 2`, ` 3` on collisions) in the `screenshotFolderPath` setting if set, else `~/Pictures/captAI`. Settings > Storage only displays the folder; it cannot be changed in the UI yet. Writes go to a temp file and are moved into place, so a failed save never leaves a partial image. The menu offers "Reveal Last Capture".
+*Open:* M6 replaces this with the library; whether files then stay in the folder is decided there.
+
+## D-013 Selection is limited to the display where the drag starts — Superseded by D-017 (2026-11-18)
+The plan (§9) allows constraining a selection to one display. Spanning displays would need stitching images of different scales. The drag is clamped to the starting display; stitching is not planned.
+*Superseded:* the product owner chose to allow selections across displays after the first manual run (D-017).
+
+## D-014 Capture uses ScreenCaptureKit with exclusion by window ID; overlay is also `sharingType = .none` — Accepted for M1
+The still is taken with `SCScreenshotManager` for one display and a pixel-aligned `sourceRect`, excluding the overlay windows by `windowID`. Cursor is not captured. Region math is a pure function (`DisplayLayout.captureRegion`) that floors the minimum edges and ceils the maximum edges, so the PNG always covers the selection and is never smaller by a pixel.
+*Unverified:* real exclusion and pixel alignment on mixed-scale displays (TEST_MATRIX M1 items 3 and 4).
+
+## D-015 Global shortcuts use Carbon `RegisterEventHotKey`; conflicts checked against live system shortcuts with a fallback — Accepted for M1
+`RegisterEventHotKey` needs no Accessibility or Input Monitoring permission and works while another app is frontmost. Before registering, `CopySymbolicHotKeys` is read for enabled system shortcuts; if that call fails (it does inside the agent sandbox), Apple's documented defaults are used and the issue text says it was not verified live. A shortcut without a modifier is rejected, a duplicate of another captAI shortcut is rejected, and registration failure is shown as "unavailable" rather than assumed to work. Only shortcuts for modes that have an action are registered (screenshot in M1).
+
+## D-016 Screen Recording granted at the prompt may need a relaunch — Accepted for M1 (resolves KI-005)
+When a request leaves the permission not granted, the coordinator reports `permissionPendingRelaunch`; the alert offers Open System Settings, **Relaunch captAI**, or Cancel. Relaunch starts a new instance through `NSWorkspace` and quits the current one.
+
+## D-017 Selections may span displays; output uses the highest scale involved — Accepted (2026-11-18, supersedes D-013)
+The product owner chose to allow selections across displays. A drag can start on any display and cross into others, bounded by the area covered by all displays. The selection is captured as one slice per display, each taken with ScreenCaptureKit at the output size, then composited into one image.
+*Output scale:* the highest backing scale among the displays touched, so no selected edge is lost. Lower-scale slices are upscaled, so text on a 1x display looks softer in a 2x output.
+*Gaps:* if the arrangement is not rectangular, area not covered by any display is filled with opaque black.
+*Metadata:* `CaptureMetadata.displayIDs` lists every display used.
+*Unverified:* seams, scale accuracy and timing between slices on real mixed-scale displays (TEST_MATRIX "Manual: M1" item 4).
+
