@@ -27,11 +27,11 @@ struct PanelPlacement: Equatable, Sendable {
 enum PanelPlacer {
     static let margin: CGFloat = 16
     static let gap: CGFloat = 12
-    static let preferredWidth: CGFloat = 400
+    static let preferredWidth: CGFloat = 340
     static let minimumWidth: CGFloat = 340
     static let maximumWidth: CGFloat = 600
     static let minimumHeight: CGFloat = 320
-    static let maximumPreferredHeight: CGFloat = 720
+    static let preferredHeight: CGFloat = 400
     /// The preferred height leaves this much of the visible height free.
     static let heightAllowance: CGFloat = 48
     /// A capture whose larger side is under this is "tiny": the panel goes to a screen edge instead of attaching
@@ -42,7 +42,7 @@ enum PanelPlacer {
     static func preferredSize(in visibleFrame: CGRect) -> CGSize {
         CGSize(
             width: preferredWidth,
-            height: min(maximumPreferredHeight, visibleFrame.height - heightAllowance)
+            height: min(preferredHeight, visibleFrame.height - heightAllowance)
         )
     }
 

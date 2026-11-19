@@ -97,10 +97,16 @@ struct PanelPlacementTests {
         #expect(low.frame.minY == Self.area.minY)
     }
 
-    @Test func theDefaultHeightFollowsTheVisibleHeight() {
-        #expect(PanelPlacer.preferredSize(in: Self.visible).height == 720)
-        let short = CGRect(x: 0, y: 0, width: 1024, height: 600)
-        #expect(PanelPlacer.preferredSize(in: short).height == 552)
+    @Test func theDefaultSizeIs340By400() {
+        let size = PanelPlacer.preferredSize(in: Self.visible)
+        #expect(size == CGSize(width: 340, height: 400))
+        let opened = place(CGRect(x: 100, y: 300, width: 300, height: 200))
+        #expect(opened.frame.size == CGSize(width: 340, height: 400))
+    }
+
+    @Test func theDefaultHeightShrinksOnAShortDisplay() {
+        let short = CGRect(x: 0, y: 0, width: 1024, height: 420)
+        #expect(PanelPlacer.preferredSize(in: short).height == 372)
     }
 
     @Test func requestedSizesAreHeldToTheAllowedRange() {

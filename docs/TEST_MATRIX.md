@@ -6,7 +6,7 @@ Status values: **PASS**, **FAIL**, **NOT PERFORMED** (no one has run it), **BLOC
 
 | Suite | Command | Result |
 |---|---|---|
-| Unit (231 tests, 24 suites) | `scripts/test.sh unit` | PASS (2026-11-19, M3 branch; run through `xcrun xctest` because the scheme `test` action cannot run in the agent sandbox) |
+| Unit (232 tests, 24 suites) | `scripts/test.sh unit` | PASS (2026-11-19, M3 branch; run through `xcrun xctest` because the scheme `test` action cannot run in the agent sandbox) |
 | Integration (17 tests, 3 suites) | `scripts/test.sh integration` | PASS (2026-11-19, M3 branch; same note) |
 | UI (6 tests) | `scripts/test.sh ui` | PASS on M0 and M1 (2026-11-18) and on M2 (2026-11-19, product owner's Mac). Not yet re-run on M3. |
 | Debug build, warnings as errors | `scripts/build.sh Debug` | PASS (2026-11-19, M3 branch) |
@@ -72,11 +72,11 @@ A screenshot (⌘⇧8 or Menu > Capture Screenshot) now saves the PNG as before 
 
 | # | Step | Expected | Status |
 |---|---|---|---|
-| 1 | Take a screenshot of a region in the middle of the screen | Dimming clears; the frozen capture sits exactly where you dragged, with a thin accent outline; the assistant opens to its right, about 400 pt wide, fully on screen; the PNG is still saved (Reveal Last Capture works) | NOT PERFORMED |
-| 2 | Take a screenshot hugging the right edge of the screen | The assistant flips to the left of the capture and stays fully visible | NOT PERFORMED |
-| 3 | Take a very small screenshot (about 60 × 40 pt), then a wide thin strip across the screen | Small: the assistant sits at a screen edge, not attached to the capture. Strip: the assistant opens above or below it | NOT PERFORMED |
-| 4 | Look at the assistant | Header, "Mock analysis. No AI model is connected yet." banner, text streaming in after "Analyzing…", "Copy Text" button, composer, footer "Mock analysis · No model connected" with a green "Local" badge; text is readable | NOT PERFORMED |
-| 5 | Drag the assistant by its header and by its background; resize it from an edge and a corner | It moves and resizes freely; width stays between about 340 and 600 pt; it can be dragged onto another display | NOT PERFORMED |
+| 1 | Take a screenshot of a region in the middle of the screen | Dimming clears; the frozen capture sits exactly where you dragged, with a thin accent outline; the assistant opens to its right at 340 × 400 pt, fully on screen; the PNG is still saved (Reveal Last Capture works) | PASS |
+| 2 | Take a screenshot hugging the right edge of the screen | The assistant flips to the left of the capture and stays fully visible | PASS |
+| 3 | Take a very small screenshot (about 60 × 40 pt), then a wide thin strip across the screen | Small: the assistant sits at a screen edge, not attached to the capture. Strip: the assistant opens above or below it | Pass |
+| 4 | Look at the assistant | Header, "Mock analysis. No AI model is connected yet." banner, text streaming in after "Analyzing…", "Copy Text" button, composer, footer "Mock analysis · No model connected" with a green "Local" badge; text is readable | Pass |
+| 5 | Drag the assistant by its header, by the empty space beside the title, and by the footer or the border around the cards; resize it from an edge and a corner | It moves and resizes freely; width stays between about 340 and 600 pt; it can be dragged onto another display | NOT PERFORMED |
 | 6 | Click Pin to turn it off, then open another app's window over the capture; turn Pin back on | Unpinned: other windows can cover the capture and assistant. Pinned: both stay on top | NOT PERFORMED |
 | 7 | Click "Hide capture", then "Show capture" | The frozen capture disappears and returns; the assistant stays | NOT PERFORMED |
 | 8 | Change what is on screen under the capture (play a video, type in a document), then compare | The frozen capture does not change | NOT PERFORMED |

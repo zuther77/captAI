@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// The floating assistant (Design Spec S2): one semi-transparent Liquid Glass window holding a header, a reading
@@ -24,6 +25,8 @@ struct AssistantView: View {
             footer
         }
         .padding(10)
+        // Behind everything: any part of the window that is not a control or the reading card drags the window.
+        .background(WindowDragHandle())
         .glassEffect(.regular, in: .rect(cornerRadius: Self.windowRadius))
         .overlay(RoundedRectangle(cornerRadius: Self.windowRadius).strokeBorder(.separator))
         .onExitCommand { model.requestClose() }
@@ -72,7 +75,6 @@ struct AssistantView: View {
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 2)
-        .gesture(WindowDragGesture())
     }
 
     // MARK: Reading card
@@ -312,5 +314,23 @@ private struct MessageView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
+    }
+}
+
+/// A transparent AppKit view that moves the window when it is dragged.
+///
+/// SwiftUI's own window-drag gesture only reacts where a view draws something, and the header and footer draw
+/// nothing behind their text. This view sits behind the whole assistant, so every empty part of it drags the
+/// window, while buttons, the text field and the reading card keep their own clicks.
+private struct WindowDragHandle: NSViewRepresentable {
+    func makeNSView(context: Context) -> DragView { DragView() }
+    func updateNSView(_ view: DragView, context: Context) {}
+
+    final class DragView: NSView {
+        override var mouseDownCanMoveWindow: Bool { true }
+        override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+        override func mouseDown(with event: NSEvent) {
+            window?.performDrag(with: event)
+        }
     }
 }
