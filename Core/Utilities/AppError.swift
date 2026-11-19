@@ -20,6 +20,8 @@ enum AppError: Error, Equatable, Sendable {
     case captureSaveFailed
     /// Vision could not read the image. Not the same as an image with no text.
     case ocrFailed
+    /// The assistant's analysis or reply could not be produced.
+    case analysisFailed
 
     /// Stable machine-readable code for diagnostics and tests.
     var code: String {
@@ -36,6 +38,7 @@ enum AppError: Error, Equatable, Sendable {
         case .captureDisplayChanged: "capture.displayChanged"
         case .captureSaveFailed: "capture.saveFailed"
         case .ocrFailed: "ocr.failed"
+        case .analysisFailed: "analysis.failed"
         }
     }
 
@@ -78,6 +81,8 @@ extension AppError: LocalizedError {
             "The screenshot was captured but could not be saved."
         case .ocrFailed:
             "The text in the screenshot could not be read."
+        case .analysisFailed:
+            "The analysis could not be completed."
         }
     }
 
@@ -105,6 +110,8 @@ extension AppError: LocalizedError {
             "Check that the screenshot folder exists and that your disk has free space."
         case .ocrFailed:
             "Try again. Quick Copy runs on this Mac and needs no account or network connection."
+        case .analysisFailed:
+            "Try again."
         }
     }
 }
