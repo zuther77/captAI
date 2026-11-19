@@ -10,6 +10,7 @@ struct MenuBarContent: View {
     let shortcuts: ShortcutRegistrar
     let openSettings: (SettingsPane) -> Void
     let startCapture: () -> Void
+    let startQuickCopy: () -> Void
 
     var body: some View {
         Group {
@@ -18,8 +19,11 @@ struct MenuBarContent: View {
             if let issue = shortcuts.issues[.screenshot] {
                 Button("Shortcut unavailable: \(issue.message)") { openSettings(.shortcuts) }
             }
-            Button("Quick Copy Text — Coming Soon") {}
-                .disabled(true)
+            Button("Quick Copy Text  \(settings.settings.quickCopyShortcut.displayString)") { startQuickCopy() }
+                .disabled(capture.isBusy)
+            if let issue = shortcuts.issues[.quickCopy] {
+                Button("Quick Copy shortcut unavailable: \(issue.message)") { openSettings(.shortcuts) }
+            }
             Button("Record Screen — Coming Soon") {}
                 .disabled(true)
 

@@ -2,7 +2,16 @@ import CoreGraphics
 import Foundation
 import Observation
 
-/// Runs one screenshot capture end to end: permission check, region selection, still capture, save.
+/// What a selection is used for once it has been captured.
+enum CapturePurpose: Equatable, Sendable {
+    /// Save a PNG and remember it for "Reveal Last Capture" (Journey A).
+    case screenshot
+    /// Read the text and copy it. Nothing is saved and no history is kept (Journey B, PRD FR-O04).
+    case quickCopy
+}
+
+/// Runs one capture end to end: permission check, region selection, still capture, then either save or
+/// copy the text.
 ///
 /// Only one capture runs at a time and triggers closer together than `minimumTriggerInterval` are dropped,
 /// so a held or repeated shortcut can never stack overlays. Whatever happens, the overlay is dismissed
@@ -15,6 +24,7 @@ final class CaptureCoordinator {
         case checkingPermission
         case selecting
         case capturing
+        case recognizing
     }
 
     private(set) var state: State = .idle
@@ -25,6 +35,7 @@ final class CaptureCoordinator {
     @ObservationIgnored private let capturer: any ScreenCapturing
     @ObservationIgnored private let store: any ScreenshotStoring
     @ObservationIgnored private let feedback: any CaptureFeedback
+    @ObservationIgnored private let textCopier: any TextCopying
     @ObservationIgnored private let diagnostics: Diagnostics
     @ObservationIgnored private let settings: @MainActor () -> AppSettings
     @ObservationIgnored private let layout: @MainActor () -> DisplayLayout
@@ -39,6 +50,7 @@ final class CaptureCoordinator {
         capturer: any ScreenCapturing,
         store: any ScreenshotStoring,
         feedback: any CaptureFeedback,
+        textCopier: any TextCopying,
         diagnostics: Diagnostics,
         settings: @escaping @MainActor () -> AppSettings,
         layout: @escaping @MainActor () -> DisplayLayout,
@@ -51,6 +63,7 @@ final class CaptureCoordinator {
         self.capturer = capturer
         self.store = store
         self.feedback = feedback
+        self.textCopier = textCopier
         self.diagnostics = diagnostics
         self.settings = settings
         self.layout = layout
@@ -64,6 +77,15 @@ final class CaptureCoordinator {
     /// Starts a screenshot capture. Safe to call from a hotkey or the menu at any time: a call while a capture
     /// is running, or right after the previous trigger, does nothing.
     func startScreenshot() async {
+        await start(.screenshot)
+    }
+
+    /// Starts a Quick Copy: select, read the text, copy it. Same guards as `startScreenshot`.
+    func startQuickCopy() async {
+        await start(.quickCopy)
+    }
+
+    private func start(_ purpose: CapturePurpose) async {
         guard state == .idle else {
             diagnostics.debug(.capture, "capture.ignored.busy")
             return
@@ -74,7 +96,7 @@ final class CaptureCoordinator {
             return
         }
         lastTrigger = trigger
-        diagnostics.info(.capture, "capture.started")
+        diagnostics.info(.capture, "capture.started", ["purpose": purpose == .screenshot ? "screenshot" : "quickCopy"])
 
         state = .checkingPermission
         if let problem = await ensureScreenCapturePermission() {
@@ -105,13 +127,13 @@ final class CaptureCoordinator {
             let result = await capture(selection, excluding: excluded)
             // The overlay was up for the capture so its windows could be excluded; it always goes away now.
             overlay.dismiss()
-            state = .idle
             switch result {
             case .success(let capture):
-                finish(capture)
+                await complete(capture, for: purpose)
             case .failure(let error):
+                state = .idle
                 diagnostics.error(.capture, "capture.failed", error: error)
-                feedback.present(error)
+                present(error, for: purpose)
             }
         }
     }
@@ -146,6 +168,19 @@ final class CaptureCoordinator {
         }
     }
 
+    private func complete(_ capture: CapturedImage, for purpose: CapturePurpose) async {
+        switch purpose {
+        case .screenshot:
+            state = .idle
+            finish(capture)
+        case .quickCopy:
+            state = .recognizing
+            let outcome = await textCopier.copyText(from: capture, settings: settings())
+            state = .idle
+            feedback.showToast(outcome.toast)
+        }
+    }
+
     private func finish(_ capture: CapturedImage) {
         let configured = settings().screenshotFolderPath.map { URL(fileURLWithPath: $0, isDirectory: true) }
         do throws(AppError) {
@@ -160,6 +195,14 @@ final class CaptureCoordinator {
         } catch {
             diagnostics.error(.capture, "capture.saveFailed", error: error)
             feedback.present(error)
+        }
+    }
+
+    /// Quick Copy reports failures as a toast, so a failed copy does not interrupt the user with a dialog.
+    private func present(_ error: AppError, for purpose: CapturePurpose) {
+        switch purpose {
+        case .screenshot: feedback.present(error)
+        case .quickCopy: feedback.showToast(QuickCopyService.Outcome.failed(error).toast)
         }
     }
 }

@@ -180,7 +180,20 @@ final class FakeStore: ScreenshotStoring, @unchecked Sendable {
 @MainActor
 final class FakeFeedback: CaptureFeedback {
     private(set) var errors: [AppError] = []
+    private(set) var toasts: [ToastMessage] = []
     func present(_ error: AppError) { errors.append(error) }
+    func showToast(_ message: ToastMessage) { toasts.append(message) }
+}
+
+/// Stands in for the OCR service. Records each call and returns a fixed outcome.
+@MainActor
+final class FakeTextCopier: TextCopying {
+    var outcome: QuickCopyService.Outcome = .noText
+    private(set) var calls = 0
+    func copyText(from capture: CapturedImage, settings: AppSettings) async -> QuickCopyService.Outcome {
+        calls += 1
+        return outcome
+    }
 }
 
 /// A clock the test advances by hand.

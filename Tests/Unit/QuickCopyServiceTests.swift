@@ -68,6 +68,14 @@ struct QuickCopyServiceTests {
         #expect(clipboard.writes.isEmpty)
     }
 
+    @Test func toastWordingCountsLinesAndNeverShowsText() {
+        #expect(QuickCopyService.Outcome.copied(characters: 4, lines: 1).toast == ToastMessage(text: "Copied 1 line", style: .success))
+        #expect(QuickCopyService.Outcome.copied(characters: 9, lines: 3).toast == ToastMessage(text: "Copied 3 lines", style: .success))
+        #expect(QuickCopyService.Outcome.noText.toast == ToastMessage(text: "No text found in the selection", style: .neutral))
+        #expect(QuickCopyService.Outcome.failed(.ocrFailed).toast.style == .failure)
+        #expect(QuickCopyService.Outcome.failed(.ocrFailed).toast.text == AppError.ocrFailed.errorDescription)
+    }
+
     @Test func aRefusedClipboardWriteIsReportedAsAFailure() async {
         recognizer.result = .success([TextObservation(text: "a", normalizedBox: CGRect(x: 0, y: 0.5, width: 0.5, height: 0.5), confidence: 1)])
         clipboard.accept = false

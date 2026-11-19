@@ -4,13 +4,31 @@ import Foundation
 ///
 /// The clipboard is written only when there is text to write. An empty image, a blank capture or a failed
 /// recognition leaves whatever the user copied before exactly as it was.
+/// Reads a capture's text and copies it. The coordinator depends on this protocol so its tests can use a fake.
 @MainActor
-final class QuickCopyService {
+protocol TextCopying: AnyObject {
+    func copyText(from capture: CapturedImage, settings: AppSettings) async -> QuickCopyService.Outcome
+}
+
+@MainActor
+final class QuickCopyService: TextCopying {
     enum Outcome: Equatable, Sendable {
         case copied(characters: Int, lines: Int)
         /// Recognition ran but found no text, or the image is blank.
         case noText
         case failed(AppError)
+
+        /// The message the user sees. Says nothing about the text itself, so the toast never repeats captured content.
+        var toast: ToastMessage {
+            switch self {
+            case .copied(_, let lines):
+                ToastMessage(text: lines == 1 ? "Copied 1 line" : "Copied \(lines) lines", style: .success)
+            case .noText:
+                ToastMessage(text: "No text found in the selection", style: .neutral)
+            case .failed(let error):
+                ToastMessage(text: error.errorDescription ?? "Text could not be copied.", style: .failure)
+            }
+        }
     }
 
     private let recognizer: any TextRecognizing

@@ -41,12 +41,18 @@ final class AppEnvironment {
         let permissions = PermissionStore(provider: permissionProvider, opener: opener, diagnostics: diagnostics)
 
         let displays = DisplayLayoutProvider()
+        let textCopier = QuickCopyService(
+            recognizer: VisionTextRecognizer(),
+            clipboard: PasteboardTextClipboard(),
+            diagnostics: diagnostics
+        )
         let capture = CaptureCoordinator(
             permissions: permissions,
             overlay: SelectionOverlayController(),
             capturer: ScreenCaptureKitCapturer(),
             store: PNGScreenshotStore(),
             feedback: AlertCaptureFeedback(opener: opener),
+            textCopier: textCopier,
             diagnostics: diagnostics,
             settings: { settings.settings },
             layout: { displays.currentLayout() }
@@ -56,7 +62,10 @@ final class AppEnvironment {
             service: shortcutService,
             validator: ShortcutValidator(system: systemShortcuts),
             diagnostics: diagnostics,
-            actions: [.screenshot: { Task { await capture.startScreenshot() } }]
+            actions: [
+                .screenshot: { Task { await capture.startScreenshot() } },
+                .quickCopy: { Task { await capture.startQuickCopy() } }
+            ]
         )
 
         let navigation = SettingsNavigation()
