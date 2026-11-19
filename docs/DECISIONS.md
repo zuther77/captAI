@@ -83,3 +83,19 @@ The product owner chose ⇧⌘H as the default Quick Copy shortcut, replacing th
 ## D-020 No OCR language picker; recognition detects the language automatically — Accepted (2026-11-19)
 The product owner decided a language picker is not needed because `automaticallyDetectsLanguage` is on when no languages are chosen (D-018). PRD FR-O01 asks for language choices only "where practical", so this is treated as met. The stored `ocrLanguages` setting stays as a hidden override. Fast mode still reads only six Latin-script languages, so other languages need Accurate.
 
+## D-021 A screenshot saves its PNG and opens a workspace; one workspace at a time — Accepted for M3 (2026-11-19)
+After the drag, the capture is saved exactly as in M1 (D-012) and then shown frozen at the screen rectangle it came from, with the assistant panel beside it (PRD Journey A). Dimming has already cleared. Quick Copy is unchanged and never opens a workspace. Only one workspace exists: a new screenshot replaces the previous one when it completes, and a cancelled screenshot leaves the old one open. Both workspace windows are kept out of other apps' captures (`sharingType = .none`) and are also excluded by window number from every later screenshot and Quick Copy, so the assistant's text is never read back by OCR. The frozen image is a copy, so changes in the original app never alter it, and the workspace never captures the live screen again.
+*Display changes:* the workspace closes when the display arrangement changes, like the selection overlay, because its saved geometry would no longer match.
+*Unverified:* behavior over full-screen Spaces, and window ordering and focus (TEST_MATRIX "Manual: M3").
+
+## D-022 Assistant panel design and behavior — Accepted for M3 (2026-11-19)
+*Window:* a borderless, resizable `NSPanel` hosting SwiftUI, movable by its background and header. Width 340 to 600 pt (400 by default), height up to the visible height minus 48 pt, always at least 16 pt inside the visible frame (Design Spec section 3).
+*Placement* (`PanelPlacer`): right of the capture with a 12 pt gap, then left, then above or below (shortened if needed, never under 320 pt tall), then a screen edge. A capture whose larger side is under 150 pt gets an edge placement instead of attaching to it. If nothing fits, as with a full-screen capture, the panel covers part of the capture rather than leave the screen.
+*Look:* Liquid Glass (`glassEffect`, `GlassEffectContainer`, `.glass` buttons) for the header, composer, footer and buttons only. The analysis and conversation sit on an opaque card, so text stays readable and Reduce Transparency is respected.
+*Pin* means "stay on top": pinned (the default) puts both windows at floating level; unpinned makes them ordinary windows that other apps can cover.
+*Focus:* the assistant activates the app and takes keyboard focus so the composer works at once; closing restores the app that was frontmost. Esc closes. Return sends and Shift+Return adds a line.
+*Not done:* minimize, zoom/fit and detach of the capture (optional in the plan), and a stored panel position (nothing is reopened yet, so the panel keeps its own position for the life of the session).
+
+## D-023 Analysis is a labelled mock behind a small seam — Accepted for M3 (2026-11-19)
+`AnalysisSource` streams text chunks for a request and describes itself (name, detail, mock or not, local or cloud). `MockAnalysisSource` is the only implementation: it streams fixed text, never touches the network, and the assistant labels its output "Mock analysis" with a "Local" badge so it is never mistaken for a model. Errors cross the seam as `AppError`; any other error is shown as `analysisFailed`. M4 replaces this with the real provider protocol (images, cancellation, consent), so this seam is deliberately minimal and will change. A blank capture is never sent for analysis.
+

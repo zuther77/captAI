@@ -6,11 +6,11 @@ Status values: **PASS**, **FAIL**, **NOT PERFORMED** (no one has run it), **BLOC
 
 | Suite | Command | Result |
 |---|---|---|
-| Unit (156 tests, 20 suites) | `scripts/test.sh unit` | PASS (2026-11-18, M1 branch, after cross-display support; run through `xcrun xctest` because the scheme `test` action cannot run in the agent sandbox) |
-| Integration (17 tests, 3 suites) | `scripts/test.sh integration` | PASS (2026-11-18, M1 branch, after cross-display support; same note) |
-| UI (6 tests) | `scripts/test.sh ui` | PASS on M0 (2026-11-18) and on M1 (2026-11-18, product owner's Mac, after the Shortcuts pane rewrite) |
-| Debug build, warnings as errors | `scripts/build.sh Debug` | PASS (2026-11-18, M1 branch) |
-| Release build, warnings as errors | `scripts/build.sh Release` | PASS (2026-11-18, M1 branch) |
+| Unit (224 tests, 24 suites) | `scripts/test.sh unit` | PASS (2026-11-19, M3 branch; run through `xcrun xctest` because the scheme `test` action cannot run in the agent sandbox) |
+| Integration (17 tests, 3 suites) | `scripts/test.sh integration` | PASS (2026-11-19, M3 branch; same note) |
+| UI (6 tests) | `scripts/test.sh ui` | PASS on M0 and M1 (2026-11-18) and on M2 (2026-11-19, product owner's Mac). Not yet re-run on M3. |
+| Debug build, warnings as errors | `scripts/build.sh Debug` | PASS (2026-11-19, M3 branch) |
+| Release build, warnings as errors | `scripts/build.sh Release` | PASS (2026-11-19, M3 branch) |
 
 ## Manual: M0 (real Mac)
 
@@ -51,7 +51,7 @@ The product owner ran this list on a real Mac on 2026-11-18 with an external dis
 
 ## Manual: M2 (real Mac, no AI provider, no network)
 
-Quick Copy is wired to the ⇧⌘H shortcut and the menu, with toast feedback. Not yet performed on a real Mac.
+Quick Copy is wired to the ⇧⌘H shortcut and the menu, with toast feedback. The product owner ran this list on a real Mac on 2026-11-19; item 4 was skipped.
 
 | # | Step | Expected | Status |
 |---|---|---|---|
@@ -65,6 +65,31 @@ Quick Copy is wired to the ⇧⌘H shortcut and the menu, with toast feedback. N
 | 8 | Deny Screen Recording, then Quick Copy | Permission alert (not a toast) with Open System Settings / Relaunch / Cancel | PASS |
 | 9 | Menu shows "Quick Copy Text ⇧⌘H"; it is disabled while a capture is running | Item enabled when idle, disabled during a capture | PASS |
 | 10 | Quick Copy a large selection, or text in a slow language (for example Japanese or Chinese), ideally while the Mac is busy | A "Copying text…" toast with a spinner appears as soon as the selection is released and stays until the result toast replaces it; it never lingers after the result | PASS |
+
+## Manual: M3 (real Mac, no AI provider, no network)
+
+A screenshot (⌘⇧8 or Menu > Capture Screenshot) now saves the PNG as before and then opens the capture frozen where it was taken, with the assistant beside it. The assistant's analysis is a labelled mock. None of these have been performed: the agent cannot observe a screen, and Liquid Glass rendering, window levels, Spaces and focus can only be judged on a real Mac. Run `scripts/run.sh`.
+
+| # | Step | Expected | Status |
+|---|---|---|---|
+| 1 | Take a screenshot of a region in the middle of the screen | Dimming clears; the frozen capture sits exactly where you dragged, with a thin accent outline; the assistant opens to its right, about 400 pt wide, fully on screen; the PNG is still saved (Reveal Last Capture works) | NOT PERFORMED |
+| 2 | Take a screenshot hugging the right edge of the screen | The assistant flips to the left of the capture and stays fully visible | NOT PERFORMED |
+| 3 | Take a very small screenshot (about 60 × 40 pt), then a wide thin strip across the screen | Small: the assistant sits at a screen edge, not attached to the capture. Strip: the assistant opens above or below it | NOT PERFORMED |
+| 4 | Look at the assistant | Header, "Mock analysis. No AI model is connected yet." banner, text streaming in after "Analyzing…", "Copy Text" button, composer, footer "Mock analysis · No model connected" with a green "Local" badge; text is readable | NOT PERFORMED |
+| 5 | Drag the assistant by its header and by its background; resize it from an edge and a corner | It moves and resizes freely; width stays between about 340 and 600 pt; it can be dragged onto another display | NOT PERFORMED |
+| 6 | Click Pin to turn it off, then open another app's window over the capture; turn Pin back on | Unpinned: other windows can cover the capture and assistant. Pinned: both stay on top | NOT PERFORMED |
+| 7 | Click "Hide capture", then "Show capture" | The frozen capture disappears and returns; the assistant stays | NOT PERFORMED |
+| 8 | Change what is on screen under the capture (play a video, type in a document), then compare | The frozen capture does not change | NOT PERFORMED |
+| 9 | Click Copy Text on a capture containing text | "Copying text…" then "Copied N lines" toast; the text is on the clipboard | NOT PERFORMED |
+| 10 | Type a question in the composer; press Return, then Shift+Return | Return sends and a mock reply streams in; Shift+Return adds a new line; the Send button is disabled while the box is empty or a reply is streaming | NOT PERFORMED |
+| 11 | Press Esc with the assistant focused; click the close button on another one | The capture and assistant both close; focus returns to the app you were using | NOT PERFORMED |
+| 12 | Click the footer "Mock analysis · No model connected" | Settings opens on the Providers pane | NOT PERFORMED |
+| 13 | With a workspace open, take another screenshot, then try Quick Copy over the old workspace | The new screenshot replaces the old workspace; neither capture shows the old capture or assistant in its image; Quick Copy does not read the assistant's text | NOT PERFORMED |
+| 14 | Take a screenshot while a full-screen app is active | The capture and assistant appear over the full-screen app without switching Spaces | NOT PERFORMED |
+| 15 | Unplug or reconfigure a display while a workspace is open | The workspace closes cleanly; a new screenshot works afterwards | NOT PERFORMED |
+| 16 | Turn on System Settings > Accessibility > Display > Reduce transparency, then switch between Light and Dark | The assistant stays legible; the analysis and conversation sit on an opaque surface | NOT PERFORMED |
+| 17 | Use Tab and Shift+Tab, then VoiceOver | Focus moves through Pin, Close, Hide capture, Copy Text, the composer, Send and the footer; each control has a spoken label | NOT PERFORMED |
+| 18 | Capture a protected (DRM) window, if you have a source | The capture is black and the assistant shows "This capture looks blank…" and does not run the analysis | NOT PERFORMED (a DRM source was not available in M1 either, KI-018) |
 
 ## Cross-milestone privacy matrix (M0 slice)
 
