@@ -76,6 +76,10 @@ struct QuickCopyServiceTests {
         #expect(QuickCopyService.Outcome.failed(.ocrFailed).toast.text == AppError.ocrFailed.errorDescription)
     }
 
+    @Test func theCopyingToastIsAProgressMessage() {
+        #expect(QuickCopyService.progressToast == ToastMessage(text: "Copying text…", style: .progress))
+    }
+
     @Test func aRefusedClipboardWriteIsReportedAsAFailure() async {
         recognizer.result = .success([TextObservation(text: "a", normalizedBox: CGRect(x: 0, y: 0.5, width: 0.5, height: 0.5), confidence: 1)])
         clipboard.accept = false

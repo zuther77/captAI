@@ -2,16 +2,22 @@ import AppKit
 
 /// Shows a short message near the top of the screen the pointer is on, then hides it.
 ///
+/// A progress toast (spinner) stays up until the next toast replaces it, so slow work such as text recognition
+/// is visibly in progress. Other toasts hide after `displayDuration`.
+///
 /// The panel never takes focus, never receives clicks, and does not appear in other apps' captures (sharing is
 /// off). The text is also announced to VoiceOver, because a toast that disappears would otherwise be missed.
 @MainActor
 final class ToastPresenter {
     static let displayDuration: Duration = .seconds(2)
+    /// Safety limit for a progress toast, in case the work it describes never reports back.
+    static let progressTimeout: Duration = .seconds(30)
 
     private let diagnostics: Diagnostics
     private var panel: NSPanel?
     private var label: NSTextField?
     private var icon: NSImageView?
+    private var spinner: NSProgressIndicator?
     private var hideTask: Task<Void, Never>?
 
     init(diagnostics: Diagnostics = Diagnostics()) {
@@ -22,8 +28,18 @@ final class ToastPresenter {
         let panel = panel ?? makePanel()
         self.panel = panel
         label?.stringValue = message.text
-        icon?.image = NSImage(systemSymbolName: Self.symbolName(for: message.style), accessibilityDescription: nil)
-        icon?.contentTintColor = Self.tint(for: message.style)
+        let isProgress = message.style == .progress
+        icon?.isHidden = isProgress
+        spinner?.isHidden = !isProgress
+        if isProgress {
+            spinner?.startAnimation(nil)
+        } else {
+            spinner?.stopAnimation(nil)
+            icon?.image = Self.symbolName(for: message.style).flatMap {
+                NSImage(systemSymbolName: $0, accessibilityDescription: nil)
+            }
+            icon?.contentTintColor = Self.tint(for: message.style)
+        }
 
         guard let content = panel.contentView else { return }
         content.layoutSubtreeIfNeeded()
@@ -40,8 +56,9 @@ final class ToastPresenter {
         )
 
         hideTask?.cancel()
+        let duration = isProgress ? Self.progressTimeout : Self.displayDuration
         hideTask = Task { [weak self] in
-            try? await Task.sleep(for: Self.displayDuration)
+            try? await Task.sleep(for: duration)
             guard !Task.isCancelled else { return }
             self?.hide()
         }
@@ -50,6 +67,7 @@ final class ToastPresenter {
     func hide() {
         hideTask?.cancel()
         hideTask = nil
+        spinner?.stopAnimation(nil)
         panel?.orderOut(nil)
     }
 
@@ -106,13 +124,23 @@ final class ToastPresenter {
         icon.widthAnchor.constraint(equalToConstant: 18).isActive = true
         icon.heightAnchor.constraint(equalToConstant: 18).isActive = true
 
+        let spinner = NSProgressIndicator()
+        spinner.style = .spinning
+        spinner.controlSize = .small
+        spinner.isIndeterminate = true
+        spinner.isDisplayedWhenStopped = true
+        spinner.isHidden = true
+        spinner.setContentHuggingPriority(.required, for: .horizontal)
+        spinner.widthAnchor.constraint(equalToConstant: 16).isActive = true
+        spinner.heightAnchor.constraint(equalToConstant: 16).isActive = true
+
         let label = NSTextField(labelWithString: "")
         label.font = .systemFont(ofSize: 13, weight: .medium)
         label.textColor = .labelColor
         label.lineBreakMode = .byTruncatingTail
         label.maximumNumberOfLines = 2
 
-        let stack = NSStackView(views: [icon, label])
+        let stack = NSStackView(views: [icon, spinner, label])
         stack.orientation = .horizontal
         stack.alignment = .centerY
         stack.spacing = 8
@@ -136,6 +164,7 @@ final class ToastPresenter {
         panel.contentView = background
         self.label = label
         self.icon = icon
+        self.spinner = spinner
         return panel
     }
 
@@ -149,18 +178,20 @@ final class ToastPresenter {
         return NSPoint(x: area.midX - size.width / 2, y: area.maxY - size.height - 12)
     }
 
-    private static func symbolName(for style: ToastMessage.Style) -> String {
+    /// The icon for a style, or nil when the style shows a spinner instead.
+    private static func symbolName(for style: ToastMessage.Style) -> String? {
         switch style {
         case .success: "checkmark.circle.fill"
         case .neutral: "text.magnifyingglass"
         case .failure: "exclamationmark.triangle.fill"
+        case .progress: nil
         }
     }
 
     private static func tint(for style: ToastMessage.Style) -> NSColor {
         switch style {
         case .success: .systemGreen
-        case .neutral: .secondaryLabelColor
+        case .neutral, .progress: .secondaryLabelColor
         case .failure: .systemOrange
         }
     }

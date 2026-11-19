@@ -12,6 +12,10 @@ protocol TextCopying: AnyObject {
 
 @MainActor
 final class QuickCopyService: TextCopying {
+    /// Shown while recognition runs, which can take a few seconds for some languages or on a busy Mac. The
+    /// outcome toast replaces it.
+    static let progressToast = ToastMessage(text: "Copying text…", style: .progress)
+
     enum Outcome: Equatable, Sendable {
         case copied(characters: Int, lines: Int)
         /// Recognition ran but found no text, or the image is blank.

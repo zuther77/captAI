@@ -175,6 +175,7 @@ final class CaptureCoordinator {
             finish(capture)
         case .quickCopy:
             state = .recognizing
+            feedback.showToast(QuickCopyService.progressToast)
             let outcome = await textCopier.copyText(from: capture, settings: settings())
             state = .idle
             feedback.showToast(outcome.toast)

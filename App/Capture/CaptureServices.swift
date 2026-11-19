@@ -37,6 +37,8 @@ struct ToastMessage: Equatable, Sendable {
         case success
         case neutral
         case failure
+        /// Work is in progress. Shows a spinner and stays up until the next toast replaces it.
+        case progress
     }
 
     let text: String

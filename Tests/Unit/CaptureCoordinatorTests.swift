@@ -272,7 +272,7 @@ struct CaptureCoordinatorTests {
         await h.coordinator.startQuickCopy()
 
         #expect(h.textCopier.calls == 1)
-        #expect(h.feedback.toasts == [QuickCopyService.Outcome.copied(characters: 5, lines: 1).toast])
+        #expect(h.feedback.toasts == [QuickCopyService.progressToast, QuickCopyService.Outcome.copied(characters: 5, lines: 1).toast])
         #expect(h.store.recordedSaves.isEmpty)
         #expect(h.coordinator.lastCapture == nil)
         #expect(h.overlay.dismissCount >= 1)
@@ -283,7 +283,7 @@ struct CaptureCoordinatorTests {
         let h = makeHarness()
         h.textCopier.outcome = .noText
         await h.coordinator.startQuickCopy()
-        #expect(h.feedback.toasts == [QuickCopyService.Outcome.noText.toast])
+        #expect(h.feedback.toasts == [QuickCopyService.progressToast, QuickCopyService.Outcome.noText.toast])
         #expect(h.store.recordedSaves.isEmpty)
     }
 
@@ -291,8 +291,25 @@ struct CaptureCoordinatorTests {
         let h = makeHarness()
         h.textCopier.outcome = .failed(.ocrFailed)
         await h.coordinator.startQuickCopy()
-        #expect(h.feedback.toasts == [QuickCopyService.Outcome.failed(.ocrFailed).toast])
+        #expect(h.feedback.toasts == [QuickCopyService.progressToast, QuickCopyService.Outcome.failed(.ocrFailed).toast])
         #expect(h.feedback.errors.isEmpty)
+    }
+
+    @Test func aCopyingToastIsShownWhileTheTextIsBeingRead() async {
+        let h = makeHarness()
+        h.textCopier.outcome = .copied(characters: 5, lines: 1)
+        var shownDuringCopy: [ToastMessage] = []
+        h.textCopier.duringCopy = { shownDuringCopy = h.feedback.toasts }
+        await h.coordinator.startQuickCopy()
+
+        #expect(shownDuringCopy == [QuickCopyService.progressToast])
+        #expect(h.feedback.toasts.last == QuickCopyService.Outcome.copied(characters: 5, lines: 1).toast)
+    }
+
+    @Test func aScreenshotNeverShowsTheCopyingToast() async {
+        let h = makeHarness()
+        await h.coordinator.startScreenshot()
+        #expect(h.feedback.toasts.isEmpty)
     }
 
     @Test func aCancelledQuickCopyDoesNothing() async {
