@@ -55,15 +55,15 @@ Quick Copy is wired to the ⇧⌘H shortcut and the menu, with toast feedback. N
 
 | # | Step | Expected | Status |
 |---|---|---|---|
-| 1 | Fresh settings, no API key, Ollama, or internet. Select terminal text on screen and run Quick Copy; paste into TextEdit and compare | Pasted text matches the screen in reading order | NOT PERFORMED |
-| 2 | Copy code with indentation, a paragraph, multilingual text, and an image with no text | Indentation and line breaks kept; the no-text image shows the "no text" feedback and leaves the clipboard unchanged | NOT PERFORMED |
-| 3 | Check that no AI panel, provider call, media file, or history record was created | None | NOT PERFORMED |
-| 4 | Benchmark OCR on reference hardware (Fast and Accurate) | p50 and p95 recorded against the ~2 s aspiration | NOT PERFORMED |
-| 5 | Press ⇧⌘H (or Menu > Quick Copy Text), select text, then wait | Toast appears top-centre on the pointer's display, says "Copied N lines", disappears after about 2 s; VoiceOver announces it | NOT PERFORMED |
-| 6 | Quick Copy a blank or text-free area | Toast says "No text found in the selection"; clipboard unchanged from before | NOT PERFORMED |
-| 7 | Press Esc during the Quick Copy selection | Overlay closes, no toast, clipboard unchanged | NOT PERFORMED |
-| 8 | Deny Screen Recording, then Quick Copy | Permission alert (not a toast) with Open System Settings / Relaunch / Cancel | NOT PERFORMED |
-| 9 | Menu shows "Quick Copy Text ⇧⌘H"; it is disabled while a capture is running | Item enabled when idle, disabled during a capture | NOT PERFORMED |
+| 1 | Fresh settings, no API key, Ollama, or internet. Select terminal text on screen and run Quick Copy; paste into TextEdit and compare | Pasted text matches the screen in reading order | PASS |
+| 2 | Copy code with indentation, a paragraph, multilingual text, and an image with no text | Indentation and line breaks kept; the no-text image shows the "no text" feedback and leaves the clipboard unchanged | PASS |
+| 3 | Check that no AI panel, provider call, media file, or history record was created | None | PASS |
+| 4 | Benchmark OCR on reference hardware (Fast and Accurate) | p50 and p95 recorded against the ~2 s aspiration | SKIPPED |
+| 5 | Press ⇧⌘H (or Menu > Quick Copy Text), select text, then wait | Toast appears top-centre on the pointer's display, says "Copied N lines", disappears after about 2 s; VoiceOver announces it | PASS |
+| 6 | Quick Copy a blank or text-free area | Toast says "No text found in the selection"; clipboard unchanged from before | PASS |
+| 7 | Press Esc during the Quick Copy selection | Overlay closes, no toast, clipboard unchanged | PASS |
+| 8 | Deny Screen Recording, then Quick Copy | Permission alert (not a toast) with Open System Settings / Relaunch / Cancel | PASS |
+| 9 | Menu shows "Quick Copy Text ⇧⌘H"; it is disabled while a capture is running | Item enabled when idle, disabled during a capture | PASS |
 
 ## Cross-milestone privacy matrix (M0 slice)
 
