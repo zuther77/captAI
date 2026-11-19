@@ -17,3 +17,5 @@
 | KI-013 | M1 | Low | The shortcut recorder uses a fixed US-layout key-name table, and the screenshot folder cannot be changed in the UI (Storage pane is read-only). | Open. |
 | KI-014 | M1 | Low | Protected (DRM) content captures as black by design of macOS. captAI only warns when the whole image is blank; a partly black protected region is not detected. | Accepted. |
 | KI-015 | M1 | Low | UI tests (`scripts/test.sh ui`) were not re-run after the Shortcuts pane was rewritten. | Open: run on a real Mac. |
+| KI-016 | M1 | Low | A selection across a 1x and a 2x display is captured at 2x, so the 1x part is upscaled and looks softer (D-017). Slices are captured one display at a time, so a moving window can appear in one slice and not the next. | Accepted; verify on a real Mac (TEST_MATRIX item 4). |
+| KI-017 | M1 | Low | Non-rectangular display arrangements leave black gaps in a spanning selection (D-017). | Accepted; document in the release notes. |
