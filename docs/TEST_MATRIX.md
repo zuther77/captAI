@@ -8,7 +8,7 @@ Status values: **PASS**, **FAIL**, **NOT PERFORMED** (no one has run it), **BLOC
 |---|---|---|
 | Unit (156 tests, 20 suites) | `scripts/test.sh unit` | PASS (2026-11-18, M1 branch, after cross-display support; run through `xcrun xctest` because the scheme `test` action cannot run in the agent sandbox) |
 | Integration (17 tests, 3 suites) | `scripts/test.sh integration` | PASS (2026-11-18, M1 branch, after cross-display support; same note) |
-| UI (6 tests) | `scripts/test.sh ui` | PASS on M0 (2026-11-18, run by the product owner on a real Mac: 6 tests, 0 failures). The first run had 4 failures: the tests located the Settings window by title, but the SwiftUI `navigationTitle` renames it to the selected pane. The window now has the identifier `settings.window` (KI-001). **Not re-run on the M1 branch**: the Shortcuts pane was rewritten, so run `scripts/test.sh ui` again. |
+| UI (6 tests) | `scripts/test.sh ui` | PASS on M0 (2026-11-18) and on M1 (2026-11-18, product owner's Mac, after the Shortcuts pane rewrite) |
 | Debug build, warnings as errors | `scripts/build.sh Debug` | PASS (2026-11-18, M1 branch) |
 | Release build, warnings as errors | `scripts/build.sh Release` | PASS (2026-11-18, M1 branch) |
 

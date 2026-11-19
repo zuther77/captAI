@@ -16,7 +16,7 @@
 | KI-012 | M1 | Low | Only the screenshot shortcut is registered. Quick Copy and Recording shortcuts can be edited and validated but do nothing until M2 and M7. | Expected. |
 | KI-013 | M1 | Low | The shortcut recorder uses a fixed US-layout key-name table, and the screenshot folder cannot be changed in the UI (Storage pane is read-only). | Open. |
 | KI-014 | M1 | Low | Protected (DRM) content captures as black by design of macOS. captAI only warns when the whole image is blank; a partly black protected region is not detected. | Accepted. |
-| KI-015 | M1 | Low | UI tests (`scripts/test.sh ui`) were not re-run after the Shortcuts pane was rewritten. | Open: run on a real Mac. |
+| KI-015 | M1 | Low | UI tests (`scripts/test.sh ui`) were not re-run after the Shortcuts pane was rewritten. | Resolved 2026-11-18: the product owner ran `scripts/test.sh ui` on a real Mac and all 6 passed. |
 | KI-016 | M1 | Low | A selection across a 1x and a 2x display is captured at 2x, so the 1x part is upscaled and looks softer (D-017). Slices are captured one display at a time, so a moving window can appear in one slice and not the next. | Resolved 2026-11-18: the product owner's mixed-scale spanning check (TEST_MATRIX item 14) passed. |
 | KI-017 | M1 | Low | Non-rectangular display arrangements leave black gaps in a spanning selection (D-017). | Accepted; document in the release notes. |
 | KI-018 | M1 | Low | DRM or protected-video capture (TEST_MATRIX item 11) was not tested because no protected-content source was available. The app's blank-capture warning therefore has not been seen on a real protected window. | Open: test with a protected video source, or accept the warning as untested. |
