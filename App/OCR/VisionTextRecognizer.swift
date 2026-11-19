@@ -10,9 +10,7 @@ struct VisionTextRecognizer: TextRecognizing {
             let request = VNRecognizeTextRequest()
             request.recognitionLevel = level == .fast ? .fast : .accurate
             request.usesLanguageCorrection = level == .accurate
-            if !languages.isEmpty {
-                request.recognitionLanguages = languages
-            }
+            Self.configureLanguages(of: request, languages: languages)
             let handler = VNImageRequestHandler(cgImage: capture.image, options: [:])
             do {
                 try handler.perform([request])
@@ -33,6 +31,17 @@ struct VisionTextRecognizer: TextRecognizing {
         switch result {
         case .success(let observations): return observations
         case .failure(let error): throw error
+        }
+    }
+
+    /// With no languages chosen, Vision must detect the language itself. It does not do this by default, so
+    /// Japanese and Chinese text was read as nothing. A chosen list is used as given.
+    static func configureLanguages(of request: VNRecognizeTextRequest, languages: [String]) {
+        if languages.isEmpty {
+            request.automaticallyDetectsLanguage = true
+        } else {
+            request.automaticallyDetectsLanguage = false
+            request.recognitionLanguages = languages
         }
     }
 }

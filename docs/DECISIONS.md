@@ -72,7 +72,7 @@ The product owner chose to allow selections across displays. A drag can start on
 *Unverified:* seams, scale accuracy and timing between slices on real mixed-scale displays (TEST_MATRIX "Manual: M1" item 4).
 
 ## D-018 Quick Copy reads text with Vision and lays it out in reading order, offline — Accepted for M2 (2026-11-18)
-Recognition runs through `VNRecognizeTextRequest` on the Mac (Fast or Accurate per settings; language list empty means automatic). Fragments are converted to image pixels with a top-left origin, then grouped into lines by vertical overlap, sorted left to right, and joined with spaces, or tabs across wide gaps. Indentation is approximated from horizontal position. Identical text in the same place is treated as a duplicate and dropped.
+Recognition runs through `VNRecognizeTextRequest` on the Mac (Fast or Accurate per settings). With no languages chosen, `automaticallyDetectsLanguage` is on, because Vision does not detect the language by default (found in testing: Japanese and Chinese came back empty without it). Fast mode supports only English, French, Italian, German, Spanish and Portuguese, so CJK text needs Accurate. Fragments are converted to image pixels with a top-left origin, then grouped into lines by vertical overlap, sorted left to right, and joined with spaces, or tabs across wide gaps. Indentation is approximated from horizontal position. Identical text in the same place is treated as a duplicate and dropped.
 *Clipboard rule:* the pasteboard is written only when there is text. A blank capture, no text, or a failed recognition leaves the previous clipboard contents unchanged.
 *Unverified:* accuracy of reading order on real content and OCR speed (TEST_MATRIX "Manual: M2").
 

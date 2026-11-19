@@ -1,5 +1,6 @@
 import CoreGraphics
 import Testing
+import Vision
 
 /// Reading-order rules for OCR output: line order, spacing, indentation, duplicates and Unicode. Coordinates are
 /// image pixels with a top-left origin.
@@ -83,5 +84,18 @@ struct OCRLayoutTests {
     @Test func aNonSquareImageConvertsEachAxisWithItsOwnSize() {
         let observation = TextObservation(text: "x", normalizedBox: CGRect(x: 0.5, y: 0.5, width: 0.5, height: 0.5), confidence: 1)
         #expect(observation.pixelBox(in: CGSize(width: 200, height: 100)) == CGRect(x: 100, y: 0, width: 100, height: 50))
+    }
+
+    @Test func noChosenLanguagesMeansVisionDetectsTheLanguage() {
+        let request = VNRecognizeTextRequest()
+        VisionTextRecognizer.configureLanguages(of: request, languages: [])
+        #expect(request.automaticallyDetectsLanguage)
+    }
+
+    @Test func aChosenLanguageListIsUsedAsGiven() {
+        let request = VNRecognizeTextRequest()
+        VisionTextRecognizer.configureLanguages(of: request, languages: ["ja-JP", "en-US"])
+        #expect(!request.automaticallyDetectsLanguage)
+        #expect(request.recognitionLanguages == ["ja-JP", "en-US"])
     }
 }
