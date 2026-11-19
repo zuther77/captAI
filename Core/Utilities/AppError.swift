@@ -18,6 +18,8 @@ enum AppError: Error, Equatable, Sendable {
     /// A display was added, removed or changed while the selection overlay was up.
     case captureDisplayChanged
     case captureSaveFailed
+    /// Vision could not read the image. Not the same as an image with no text.
+    case ocrFailed
 
     /// Stable machine-readable code for diagnostics and tests.
     var code: String {
@@ -33,6 +35,7 @@ enum AppError: Error, Equatable, Sendable {
         case .captureFailed: "capture.failed"
         case .captureDisplayChanged: "capture.displayChanged"
         case .captureSaveFailed: "capture.saveFailed"
+        case .ocrFailed: "ocr.failed"
         }
     }
 
@@ -73,6 +76,8 @@ extension AppError: LocalizedError {
             "Your displays changed during the selection, so the capture was cancelled."
         case .captureSaveFailed:
             "The screenshot was captured but could not be saved."
+        case .ocrFailed:
+            "The text in the screenshot could not be read."
         }
     }
 
@@ -98,6 +103,8 @@ extension AppError: LocalizedError {
             "Press the shortcut again."
         case .captureSaveFailed:
             "Check that the screenshot folder exists and that your disk has free space."
+        case .ocrFailed:
+            "Try again. Quick Copy runs on this Mac and needs no account or network connection."
         }
     }
 }

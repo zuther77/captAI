@@ -49,6 +49,17 @@ The product owner ran this list on a real Mac on 2026-11-18 with an external dis
 
 **Note on item 4.** The first run (before D-017) passed for the external display only, because a drag could not cross displays (D-013). After D-017 the product owner reran it and it passed. Item 11 remains untested; see KI-018.
 
+## Manual: M2 (real Mac, no AI provider, no network)
+
+Not yet performed. The Quick Copy shortcut and feedback are not wired up yet (M2 in progress), so these rows cannot be run until that slice lands.
+
+| # | Step | Expected | Status |
+|---|---|---|---|
+| 1 | Fresh settings, no API key, Ollama, or internet. Select terminal text on screen and run Quick Copy; paste into TextEdit and compare | Pasted text matches the screen in reading order | NOT PERFORMED |
+| 2 | Copy code with indentation, a paragraph, multilingual text, and an image with no text | Indentation and line breaks kept; the no-text image shows the "no text" feedback and leaves the clipboard unchanged | NOT PERFORMED |
+| 3 | Check that no AI panel, provider call, media file, or history record was created | None | NOT PERFORMED |
+| 4 | Benchmark OCR on reference hardware (Fast and Accurate) | p50 and p95 recorded against the ~2 s aspiration | NOT PERFORMED |
+
 ## Cross-milestone privacy matrix (M0 slice)
 
 | Scenario | M0 evidence |

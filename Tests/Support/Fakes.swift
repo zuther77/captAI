@@ -226,3 +226,33 @@ final class FakeShortcutService: ShortcutService {
         for entry in registered.values where entry.combo == combo { entry.handler() }
     }
 }
+
+/// Recognizer that returns a fixed result and records what it was asked to do.
+final class FakeTextRecognizer: TextRecognizing, @unchecked Sendable {
+    private let lock = NSLock()
+    private var calls: [(level: OCRRecognitionLevel, languages: [String])] = []
+    var result: Result<[TextObservation], AppError> = .success([])
+
+    var recordedCalls: [(level: OCRRecognitionLevel, languages: [String])] { lock.withLock { calls } }
+
+    func recognize(in capture: CapturedImage, level: OCRRecognitionLevel, languages: [String]) async throws(AppError) -> [TextObservation] {
+        lock.withLock { calls.append((level, languages)) }
+        switch result {
+        case .success(let observations): return observations
+        case .failure(let error): throw error
+        }
+    }
+}
+
+/// Clipboard that records every write. `accept = false` makes the pasteboard refuse writes.
+@MainActor
+final class FakeTextClipboard: TextClipboard {
+    private(set) var writes: [String] = []
+    var accept = true
+
+    func replaceContents(with text: String) -> Bool {
+        guard accept else { return false }
+        writes.append(text)
+        return true
+    }
+}
