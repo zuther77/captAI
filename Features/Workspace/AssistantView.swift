@@ -228,6 +228,7 @@ struct AssistantView: View {
         HStack(alignment: .bottom, spacing: 8) {
             TextField("Ask about this screenshot", text: Binding(get: { model.draft }, set: { model.draft = $0 }), axis: .vertical)
                 .textFieldStyle(.plain)
+                .focusEffectDisabled()
                 .lineLimit(1...5)
                 .focused($composerFocused)
                 .onKeyPress(.return, phases: .down) { press in

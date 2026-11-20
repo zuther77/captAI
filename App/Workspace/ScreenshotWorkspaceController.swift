@@ -212,6 +212,8 @@ final class AssistantPanel: NSPanel {
         let host = NSHostingView(rootView: AssistantView(model: model))
         // The window, not the SwiftUI content, decides the size, so the user can resize freely.
         host.sizingOptions = []
+        // Focusing the composer would otherwise draw AppKit's square focus ring around the whole window.
+        host.focusRingType = .none
         contentView = host
         setFrame(frame, display: false)
     }
