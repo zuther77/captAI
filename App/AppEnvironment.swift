@@ -41,9 +41,17 @@ final class AppEnvironment {
         let permissions = PermissionStore(provider: permissionProvider, opener: opener, diagnostics: diagnostics)
 
         let displays = DisplayLayoutProvider()
+        let feedback = AlertCaptureFeedback(opener: opener)
         let textCopier = QuickCopyService(
             recognizer: VisionTextRecognizer(),
             clipboard: PasteboardTextClipboard(),
+            diagnostics: diagnostics
+        )
+        let workspace = ScreenshotWorkspaceController(
+            analysis: MockAnalysisSource(),
+            textCopier: textCopier,
+            feedback: feedback,
+            settings: { settings.settings },
             diagnostics: diagnostics
         )
         let capture = CaptureCoordinator(
@@ -51,8 +59,9 @@ final class AppEnvironment {
             overlay: SelectionOverlayController(),
             capturer: ScreenCaptureKitCapturer(),
             store: PNGScreenshotStore(),
-            feedback: AlertCaptureFeedback(opener: opener),
+            feedback: feedback,
             textCopier: textCopier,
+            workspace: workspace,
             diagnostics: diagnostics,
             settings: { settings.settings },
             layout: { displays.currentLayout() }
@@ -71,6 +80,7 @@ final class AppEnvironment {
         let navigation = SettingsNavigation()
         let factory = AppKitWindowFactory(settings: settings, navigation: navigation, permissions: permissions, shortcuts: shortcuts)
         let windows = WindowCoordinator(factory: factory, navigation: navigation, diagnostics: diagnostics)
+        workspace.openProviders = { windows.showSettings(pane: .providers) }
         return AppEnvironment(
             diagnostics: diagnostics,
             settings: settings,

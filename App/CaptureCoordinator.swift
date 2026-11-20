@@ -36,6 +36,7 @@ final class CaptureCoordinator {
     @ObservationIgnored private let store: any ScreenshotStoring
     @ObservationIgnored private let feedback: any CaptureFeedback
     @ObservationIgnored private let textCopier: any TextCopying
+    @ObservationIgnored private let workspace: any ScreenshotWorkspacePresenting
     @ObservationIgnored private let diagnostics: Diagnostics
     @ObservationIgnored private let settings: @MainActor () -> AppSettings
     @ObservationIgnored private let layout: @MainActor () -> DisplayLayout
@@ -51,6 +52,7 @@ final class CaptureCoordinator {
         store: any ScreenshotStoring,
         feedback: any CaptureFeedback,
         textCopier: any TextCopying,
+        workspace: any ScreenshotWorkspacePresenting,
         diagnostics: Diagnostics,
         settings: @escaping @MainActor () -> AppSettings,
         layout: @escaping @MainActor () -> DisplayLayout,
@@ -64,6 +66,7 @@ final class CaptureCoordinator {
         self.store = store
         self.feedback = feedback
         self.textCopier = textCopier
+        self.workspace = workspace
         self.diagnostics = diagnostics
         self.settings = settings
         self.layout = layout
@@ -123,7 +126,8 @@ final class CaptureCoordinator {
 
         case .committed(let selection):
             state = .capturing
-            let excluded = overlay.overlayWindowIDs
+            // The overlay and any open workspace must stay out of the picture, so a new capture never sees them.
+            let excluded = overlay.overlayWindowIDs + workspace.windowIDs
             let result = await capture(selection, excluding: excluded)
             // The overlay was up for the capture so its windows could be excluded; it always goes away now.
             overlay.dismiss()
@@ -172,7 +176,9 @@ final class CaptureCoordinator {
         switch purpose {
         case .screenshot:
             state = .idle
-            finish(capture)
+            let blank = ImageBlankDetector.isBlank(capture.image)
+            let savedURL = finish(capture, blank: blank)
+            workspace.present(capture, savedAt: savedURL, appearsBlank: blank)
         case .quickCopy:
             state = .recognizing
             feedback.showToast(QuickCopyService.progressToast)
@@ -182,20 +188,22 @@ final class CaptureCoordinator {
         }
     }
 
-    private func finish(_ capture: CapturedImage) {
+    /// Saves the capture and returns where it went, or nil if saving failed (the user has been told).
+    private func finish(_ capture: CapturedImage, blank: Bool) -> URL? {
         let configured = settings().screenshotFolderPath.map { URL(fileURLWithPath: $0, isDirectory: true) }
         do throws(AppError) {
             let url = try store.save(capture, in: configured ?? defaultFolder)
-            let blank = ImageBlankDetector.isBlank(capture.image)
             lastCapture = LastCapture(fileURL: url, metadata: capture.metadata, appearsBlank: blank)
             diagnostics.info(.capture, "capture.saved", [
                 "width": String(capture.metadata.widthPx),
                 "height": String(capture.metadata.heightPx),
                 "blank": blank ? "yes" : "no"
             ])
+            return url
         } catch {
             diagnostics.error(.capture, "capture.saveFailed", error: error)
             feedback.present(error)
+            return nil
         }
     }
 

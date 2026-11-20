@@ -199,6 +199,80 @@ final class FakeTextCopier: TextCopying {
     }
 }
 
+/// Stands in for the screenshot workspace. Records what the coordinator asked it to show.
+@MainActor
+final class FakeWorkspace: ScreenshotWorkspacePresenting {
+    private(set) var presented: [(capture: CapturedImage, savedAt: URL?, appearsBlank: Bool)] = []
+    private(set) var dismissCount = 0
+    var windowIDs: [CGWindowID] = []
+
+    func present(_ capture: CapturedImage, savedAt: URL?, appearsBlank: Bool) {
+        presented.append((capture, savedAt, appearsBlank))
+    }
+
+    func dismiss() { dismissCount += 1 }
+}
+
+/// An analysis source the test controls. By default it streams `chunks` at once and then finishes (or fails with
+/// `failure`). With `holdsOpen` the stream stays open until the test calls `push` and `finishHeld`, so a test can
+/// look at the state in between.
+final class FakeAnalysisSource: AnalysisSource, @unchecked Sendable {
+    typealias Continuation = AsyncThrowingStream<String, any Error>.Continuation
+
+    private let lock = NSLock()
+    private var prompts: [String?] = []
+    private var held: [Continuation] = []
+    private var storedChunks = ["Hello ", "world"]
+    private var storedFailure: AppError?
+    private var storedHoldsOpen = false
+
+    let identity = AnalysisSourceIdentity(name: "Test source", detail: "Scripted", isMock: true, locality: .local)
+
+    var chunks: [String] {
+        get { lock.withLock { storedChunks } }
+        set { lock.withLock { storedChunks = newValue } }
+    }
+    var failure: AppError? {
+        get { lock.withLock { storedFailure } }
+        set { lock.withLock { storedFailure = newValue } }
+    }
+    var holdsOpen: Bool {
+        get { lock.withLock { storedHoldsOpen } }
+        set { lock.withLock { storedHoldsOpen = newValue } }
+    }
+    var recordedPrompts: [String?] { lock.withLock { prompts } }
+
+    func analyze(_ request: AnalysisRequest) -> AsyncThrowingStream<String, any Error> {
+        lock.withLock { prompts.append(request.prompt) }
+        return AsyncThrowingStream { continuation in
+            let (hold, script, error) = lock.withLock { (storedHoldsOpen, storedChunks, storedFailure) }
+            if hold {
+                lock.withLock { held.append(continuation) }
+                return
+            }
+            for chunk in script { continuation.yield(chunk) }
+            if let error { continuation.finish(throwing: error) } else { continuation.finish() }
+        }
+    }
+
+    /// Sends a chunk on the most recent held stream.
+    func push(_ chunk: String) {
+        lock.withLock { held.last }?.yield(chunk)
+    }
+
+    /// Ends the most recent held stream.
+    func finishHeld(throwing error: AppError? = nil) {
+        let continuation = lock.withLock { held.last }
+        if let error { continuation?.finish(throwing: error) } else { continuation?.finish() }
+    }
+}
+
+/// Lets queued main-actor work run until `condition` holds, with a bound so a bug fails instead of hanging.
+@MainActor
+func settle(_ condition: @MainActor () -> Bool) async {
+    for _ in 0..<500 where !condition() { await Task.yield() }
+}
+
 /// A clock the test advances by hand.
 @MainActor
 final class TestClock {

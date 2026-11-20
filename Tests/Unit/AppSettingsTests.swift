@@ -27,6 +27,8 @@ struct AppSettingsTests {
         settings.screenshotFolderPath = "/tmp/shots"
         settings.recordingFolderPath = "/tmp/videos"
         settings.overlayDimOpacity = 0.4
+        settings.captureBorderColor = RGBColor(red: 1, green: 0.5, blue: 0.25)
+        settings.captureBorderWidth = 3.5
         settings.defaultRecordingTarget = .display
         settings.recordSystemAudio = true
         settings.recordMicrophone = true
@@ -64,6 +66,32 @@ struct AppSettingsTests {
         var settings = AppSettings()
         settings.overlayDimOpacity = input
         #expect(settings.clampedOverlayDimOpacity == expected)
+    }
+
+    // MARK: Screenshot border
+
+    @Test func theBorderDefaultsToTheAccentColorAtOnePoint() {
+        let settings = AppSettings()
+        #expect(settings.captureBorderColor == nil)
+        #expect(settings.captureBorderWidth == 1)
+    }
+
+    @Test(arguments: [(-3.0, 0.0), (0.0, 0.0), (2.5, 2.5), (8.0, 8.0), (20.0, 8.0), (Double.nan, 0.0)])
+    func borderWidthIsClamped(input: Double, expected: Double) {
+        var settings = AppSettings()
+        settings.captureBorderWidth = input
+        #expect(settings.clampedCaptureBorderWidth == expected)
+    }
+
+    @Test func colorComponentsAreClampedToTheValidRange() {
+        let color = RGBColor(red: -1, green: 2, blue: .nan)
+        #expect(color == RGBColor(red: 0, green: 1, blue: 0))
+    }
+
+    @Test func aSettingsFileWithoutBorderKeysKeepsTheDefaults() throws {
+        let decoded = try JSONDecoder().decode(AppSettings.self, from: Data(#"{"overlayDimOpacity":0.3}"#.utf8))
+        #expect(decoded.captureBorderColor == nil)
+        #expect(decoded.captureBorderWidth == 1)
     }
 
     @Test func shortcutLookupMatchesCaptureMode() {

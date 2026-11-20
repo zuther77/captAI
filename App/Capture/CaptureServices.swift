@@ -31,6 +31,19 @@ protocol ScreenshotStoring: Sendable {
     func save(_ capture: CapturedImage, in folder: URL) throws(AppError) -> URL
 }
 
+/// Shows what a screenshot becomes: the frozen capture and the assistant beside it.
+/// The AppKit implementation is `ScreenshotWorkspaceController`; tests use a fake.
+@MainActor
+protocol ScreenshotWorkspacePresenting: AnyObject {
+    /// Shows the frozen capture and the assistant, replacing any workspace already open.
+    /// `savedAt` is where the PNG was written, or nil when saving failed.
+    func present(_ capture: CapturedImage, savedAt: URL?, appearsBlank: Bool)
+    /// Closes the workspace if one is open. Safe to call when none is.
+    func dismiss()
+    /// Window numbers of the workspace windows on screen, so a new capture can exclude them.
+    var windowIDs: [CGWindowID] { get }
+}
+
 /// A short, transient message. Shown in a toast, read aloud through accessibility, and never persisted.
 struct ToastMessage: Equatable, Sendable {
     enum Style: Equatable, Sendable {

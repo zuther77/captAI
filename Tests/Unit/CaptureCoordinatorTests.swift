@@ -19,6 +19,7 @@ struct CaptureCoordinatorTests {
         let store: FakeStore
         let feedback: FakeFeedback
         let textCopier: FakeTextCopier
+        let workspace: FakeWorkspace
         let clock: TestClock
         let sink: RecordingDiagnosticsSink
     }
@@ -41,6 +42,7 @@ struct CaptureCoordinatorTests {
         let store = FakeStore()
         let feedback = FakeFeedback()
         let textCopier = FakeTextCopier()
+        let workspace = FakeWorkspace()
         let clock = TestClock()
         let coordinator = CaptureCoordinator(
             permissions: permissions,
@@ -49,6 +51,7 @@ struct CaptureCoordinatorTests {
             store: store,
             feedback: feedback,
             textCopier: textCopier,
+            workspace: workspace,
             diagnostics: diagnostics,
             settings: { settings },
             layout: { Self.layout },
@@ -58,7 +61,7 @@ struct CaptureCoordinatorTests {
         )
         return Harness(
             coordinator: coordinator, permissions: permissions, provider: provider, overlay: overlay,
-            capturer: capturer, store: store, feedback: feedback, textCopier: textCopier, clock: clock, sink: sink
+            capturer: capturer, store: store, feedback: feedback, textCopier: textCopier, workspace: workspace, clock: clock, sink: sink
         )
     }
 
@@ -338,6 +341,75 @@ struct CaptureCoordinatorTests {
         #expect(h.feedback.errors == [.permissionDenied(.screenCapture)])
         #expect(h.textCopier.calls == 0)
         #expect(h.feedback.toasts.isEmpty)
+    }
+    // MARK: Screenshot workspace
+
+    @Test func aScreenshotOpensTheWorkspaceWithTheCapture() async throws {
+        let h = makeHarness()
+        await h.coordinator.startScreenshot()
+
+        let shown = try #require(h.workspace.presented.first)
+        #expect(h.workspace.presented.count == 1)
+        #expect(shown.capture.metadata.captureBoundsPoints == Self.selection.appKitRect)
+        #expect(shown.appearsBlank == false)
+        #expect(shown.savedAt == Self.defaultFolder.appendingPathComponent("capture-1.png"))
+        #expect(h.coordinator.state == .idle)
+    }
+
+    @Test func aBlankScreenshotIsFlaggedToTheWorkspace() async throws {
+        let h = makeHarness()
+        let black = makeTestImage(width: Self.selection.pixelWidth, height: Self.selection.pixelHeight, red: 0, green: 0, blue: 0)
+        h.capturer.result = .success(makeTestCapture(selection: Self.selection, image: black))
+        await h.coordinator.startScreenshot()
+        #expect(try #require(h.workspace.presented.first).appearsBlank)
+    }
+
+    @Test func theWorkspaceStillOpensWhenTheSaveFails() async {
+        let h = makeHarness()
+        h.store.failure = .captureSaveFailed
+        await h.coordinator.startScreenshot()
+        #expect(h.feedback.errors == [.captureSaveFailed])
+        #expect(h.workspace.presented.count == 1)
+        #expect(h.workspace.presented.first?.savedAt == nil)
+    }
+
+    @Test func openingTheWorkspaceNeverCapturesTheScreenAgain() async {
+        let h = makeHarness()
+        await h.coordinator.startScreenshot()
+        #expect(h.capturer.recordedCalls.count == 1)
+    }
+
+    @Test func aCancelledOrFailedScreenshotLeavesTheWorkspaceAlone() async {
+        let cancelled = makeHarness()
+        cancelled.overlay.outcome = .cancelled
+        await cancelled.coordinator.startScreenshot()
+        #expect(cancelled.workspace.presented.isEmpty)
+        #expect(cancelled.workspace.dismissCount == 0)
+
+        let failed = makeHarness()
+        failed.capturer.result = .failure(.captureFailed)
+        await failed.coordinator.startScreenshot()
+        #expect(failed.workspace.presented.isEmpty)
+        #expect(failed.workspace.dismissCount == 0)
+    }
+
+    @Test func quickCopyNeverOpensTheWorkspace() async {
+        let h = makeHarness()
+        h.textCopier.outcome = .copied(characters: 3, lines: 1)
+        await h.coordinator.startQuickCopy()
+        #expect(h.workspace.presented.isEmpty)
+    }
+
+    @Test func workspaceWindowsAreExcludedFromEveryNewCapture() async throws {
+        let screenshot = makeHarness()
+        screenshot.workspace.windowIDs = [21, 22]
+        await screenshot.coordinator.startScreenshot()
+        #expect(try #require(screenshot.capturer.recordedCalls.first).excluded == [11, 12, 21, 22])
+
+        let quickCopy = makeHarness()
+        quickCopy.workspace.windowIDs = [21, 22]
+        await quickCopy.coordinator.startQuickCopy()
+        #expect(try #require(quickCopy.capturer.recordedCalls.first).excluded == [11, 12, 21, 22])
     }
 }
 
