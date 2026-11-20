@@ -6,7 +6,7 @@ Status values: **PASS**, **FAIL**, **NOT PERFORMED** (no one has run it), **BLOC
 
 | Suite | Command | Result |
 |---|---|---|
-| Unit (232 tests, 24 suites) | `scripts/test.sh unit` | PASS (2026-11-19, M3 branch; run through `xcrun xctest` because the scheme `test` action cannot run in the agent sandbox) |
+| Unit (234 tests, 24 suites) | `scripts/test.sh unit` | PASS (2026-11-19, M3 branch; run through `xcrun xctest` because the scheme `test` action cannot run in the agent sandbox) |
 | Integration (17 tests, 3 suites) | `scripts/test.sh integration` | PASS (2026-11-19, M3 branch; same note) |
 | UI (6 tests) | `scripts/test.sh ui` | PASS on M0 and M1 (2026-11-18) and on M2 (2026-11-19, product owner's Mac). Not yet re-run on M3. |
 | Debug build, warnings as errors | `scripts/build.sh Debug` | PASS (2026-11-19, M3 branch) |
@@ -79,15 +79,15 @@ A screenshot (⌘⇧8 or Menu > Capture Screenshot) now saves the PNG as before 
 | 5 | Drag the assistant by its header, by the empty space beside the title, and by the footer or the border around the cards; resize it from an edge and a corner | It moves and resizes freely; width stays between about 340 and 600 pt; it can be dragged onto another display | PASS |
 | 6 | Click Pin to turn it off, then open another app's window over the capture; turn Pin back on | Unpinned: other windows can cover the capture and assistant. Pinned: both stay on top | PASS |
 | 7 | Click "Hide capture", then "Show capture" | The frozen capture disappears and returns; the assistant stays | PASS |
-| 8 | Change what is on screen under the capture (play a video, type in a document), then compare | The frozen capture does not change | NOT PERFORMED |
-| 9 | Click Copy Text on a capture containing text | "Copying text…" then "Copied N lines" toast; the text is on the clipboard | NOT PERFORMED |
+| 8 | Change what is on screen under the capture (play a video, type in a document), then compare | The frozen capture does not change | PASS |
+| 9 | Click Copy Text on a capture containing text | "Copying text…" then "Copied N lines" toast; the text is on the clipboard | PASS |
 | 10 | Type a question in the composer; press Return, then Shift+Return | Return sends and a mock reply streams in; Shift+Return adds a new line; the Send button is disabled while the box is empty or a reply is streaming | NOT PERFORMED |
-| 11 | Press Esc with the assistant focused; click the close button on another one | The capture and assistant both close; focus returns to the app you were using | NOT PERFORMED |
-| 12 | Click the footer "Mock analysis · No model connected" | Settings opens on the Providers pane | NOT PERFORMED |
-| 13 | With a workspace open, take another screenshot, then try Quick Copy over the old workspace | The new screenshot replaces the old workspace; neither capture shows the old capture or assistant in its image; Quick Copy does not read the assistant's text | NOT PERFORMED |
-| 14 | Take a screenshot while a full-screen app is active | The capture and assistant appear over the full-screen app without switching Spaces | NOT PERFORMED |
-| 15 | Unplug or reconfigure a display while a workspace is open | The workspace closes cleanly; a new screenshot works afterwards | NOT PERFORMED |
-| 16 | Turn on System Settings > Accessibility > Display > Reduce transparency, then switch between Light and Dark | The assistant stays legible; the analysis and conversation sit on an opaque surface | NOT PERFORMED |
+| 11 | Press Esc with the assistant focused; click the close button on another one | The capture and assistant both close; focus returns to the app you were using | PASS |
+| 12 | Click the footer "Mock analysis · No model connected" | Settings opens on the Providers pane | PASS |
+| 13 | With a workspace open, take another screenshot, then try Quick Copy over the old workspace | The new screenshot replaces the old workspace; neither capture shows the old capture or assistant in its image; Quick Copy does not read the assistant's text | PASS |
+| 14 | Take a screenshot while a full-screen app is active | The capture and assistant appear over the full-screen app without switching Spaces | PASSS |
+| 15 | Unplug or reconfigure a display while a workspace is open | The workspace closes cleanly; a new screenshot works afterwards | PASS |
+| 16 | Turn on System Settings > Accessibility > Display > Reduce transparency, then switch between Light and Dark | The assistant stays legible; the analysis and conversation sit on an opaque surface | PASS |
 | 17 | Use Tab and Shift+Tab, then VoiceOver | Focus moves through Pin, Close, Hide capture, Copy Text, the composer, Send and the footer; each control has a spoken label | NOT PERFORMED |
 | 18 | Capture a protected (DRM) window, if you have a source | The capture is black and the assistant shows "This capture looks blank…" and does not run the analysis | NOT PERFORMED (a DRM source was not available in M1 either, KI-018) |
 | 19 | Unpin, open other apps so one sits under the assistant, then click the app under the assistant, then click the capture, then click the assistant | Clicking the app raises it over both. Clicking the capture raises the capture and the assistant together, with the assistant on top and ready for typing. Clicking the assistant raises both | NOT PERFORMED |

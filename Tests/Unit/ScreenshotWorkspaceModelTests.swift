@@ -132,6 +132,23 @@ struct ScreenshotWorkspaceModelTests {
 
     // MARK: Conversation
 
+    @Test func shiftReturnAddsALineBreakToTheDraft() {
+        let model = makeModel()
+        model.draft = "first"
+        model.insertLineBreak()
+        model.draft += "second"
+        #expect(model.draft == "first\nsecond")
+        #expect(model.messages.isEmpty)
+    }
+
+    @Test func aLineBreakIsIgnoredAfterClosing() {
+        let model = makeModel()
+        model.draft = "kept"
+        model.close()
+        model.insertLineBreak()
+        #expect(model.draft == "kept")
+    }
+
     @Test func sendingAMessageShowsItAndStreamsTheReply() async {
         let source = FakeAnalysisSource()
         let model = makeModel(source: source)

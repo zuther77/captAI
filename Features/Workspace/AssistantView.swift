@@ -232,9 +232,12 @@ struct AssistantView: View {
                 .lineLimit(1...5)
                 .focused($composerFocused)
                 .onKeyPress(.return, phases: .down) { press in
-                    // Return sends; Shift+Return keeps its normal meaning, a new line.
-                    guard !press.modifiers.contains(.shift) else { return .ignored }
-                    model.send()
+                    // Return sends. Shift+Return adds a line here rather than in the text view, which would select all.
+                    if press.modifiers.contains(.shift) {
+                        model.insertLineBreak()
+                    } else {
+                        model.send()
+                    }
                     return .handled
                 }
                 .accessibilityLabel("Message")

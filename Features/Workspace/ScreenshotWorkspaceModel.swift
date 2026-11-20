@@ -131,6 +131,13 @@ final class ScreenshotWorkspaceModel {
     // MARK: Conversation
 
     /// Sends the draft as a follow-up and streams the reply into the conversation.
+    /// Adds a line break to the draft. The composer calls this for Shift+Return, because letting the text view
+    /// handle that key selects all of the text instead of adding a line.
+    func insertLineBreak() {
+        guard !isClosed else { return }
+        draft += "\n"
+    }
+
     func send() {
         let prompt = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard canSend else { return }
