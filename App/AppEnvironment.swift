@@ -48,7 +48,7 @@ final class AppEnvironment {
             diagnostics: diagnostics
         )
         let workspace = ScreenshotWorkspaceController(
-            analysis: MockAnalysisSource(),
+            analysisProvider: { AnalysisSourceFactory.source(for: settings.settings) },
             textCopier: textCopier,
             feedback: feedback,
             settings: { settings.settings },

@@ -20,7 +20,7 @@ struct ScreenshotWorkspaceModelTests {
         savedURL: URL? = URL(fileURLWithPath: "/tmp/captAI-tests/shots/capture.png"),
         copy: @escaping @MainActor () async -> Void = {}
     ) -> ScreenshotWorkspaceModel {
-        ScreenshotWorkspaceModel(metadata: Self.metadata, savedURL: savedURL, appearsBlank: blank, source: source, copyText: copy)
+        ScreenshotWorkspaceModel(metadata: Self.metadata, savedURL: savedURL, appearsBlank: blank, sourceProvider: { source }, copyText: copy)
     }
 
     // MARK: Save location
@@ -197,6 +197,25 @@ struct ScreenshotWorkspaceModelTests {
         #expect(model.canSend)
     }
 
+    @Test func aProviderChangeAppliesToTheNextRequestOnly() async {
+        let box = SourceBox(NamedSource(name: "First", reply: "one"))
+        let model = ScreenshotWorkspaceModel(
+            metadata: Self.metadata, savedURL: nil, appearsBlank: false,
+            sourceProvider: { box.source }, copyText: {}
+        )
+        model.start()
+        await model.waitUntilSettled()
+        #expect(model.identity.name == "First")
+
+        box.source = NamedSource(name: "Second", reply: "two")
+        model.draft = "hello"
+        model.send()
+        await model.waitUntilSettled()
+        #expect(model.identity.name == "Second")
+        #expect(model.messages[1].text == "two")
+        #expect(model.messages[1].provider == ScreenshotWorkspaceModel.attribution(of: model.identity))
+    }
+
     @Test func aFailedReplyIsMarkedOnItsMessage() async {
         let source = FakeAnalysisSource()
         source.chunks = ["partial "]
@@ -348,3 +367,29 @@ private extension AnalysisSource {
         }
     }
 }
+
+/// Holds the source a test wants the model to use, so the test can change it between requests.
+@MainActor
+final class SourceBox {
+    var source: any AnalysisSource
+    init(_ source: any AnalysisSource) { self.source = source }
+}
+
+/// A source that replies with fixed text and carries a name, so a test can tell which one answered.
+struct NamedSource: AnalysisSource {
+    let identity: AnalysisSourceIdentity
+    let reply: String
+
+    init(name: String, reply: String) {
+        self.identity = AnalysisSourceIdentity(name: name, detail: "test", providerID: name, isMock: false, locality: .local)
+        self.reply = reply
+    }
+
+    func analyze(_ request: AnalysisRequest) -> AsyncThrowingStream<String, any Error> {
+        AsyncThrowingStream { continuation in
+            continuation.yield(reply)
+            continuation.finish()
+        }
+    }
+}
+

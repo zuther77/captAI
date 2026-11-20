@@ -22,7 +22,7 @@ struct OllamaAnalysisSource: AnalysisSource {
         let providerID = locality == .local ? "ollama" : "ollama@\(endpoint.host(percentEncoded: false) ?? "unknown")"
         identity = AnalysisSourceIdentity(
             name: "Ollama",
-            detail: "\(self.model) · \(locality == .local ? "On this Mac" : "Remote server")",
+            detail: "\(self.model.isEmpty ? "No model set" : self.model) · \(locality == .local ? "On this Mac" : "Remote server")",
             providerID: providerID,
             isMock: false,
             locality: locality
@@ -78,6 +78,19 @@ struct OllamaAnalysisSource: AnalysisSource {
                 continuation.yield(text)
             }
             if chunk.done == true { break }
+        }
+    }
+
+    /// Checks that the server answers, the model is installed and it can read images. Sends no screenshot.
+    /// Used by Settings > Providers > Test connection.
+    func verifyVisionModel() async throws(AppError) {
+        guard !model.isEmpty, Self.isUsable(endpoint) else { throw AppError.providerRequestRejected }
+        do {
+            try await checkVisionCapability()
+        } catch let error as AppError {
+            throw error
+        } catch {
+            throw AppError.providerUnavailable
         }
     }
 

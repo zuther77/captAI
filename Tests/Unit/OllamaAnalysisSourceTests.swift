@@ -143,6 +143,63 @@ struct OllamaAnalysisSourceTests {
         await expectFailure(.providerModelNotFound, source.analyze(AnalysisRequest(prompt: nil, metadata: Self.metadata, image: Self.png)))
     }
 
+    // MARK: Test connection (no screenshot is sent)
+
+    @Test func testConnectionPassesForAVisionModelAndSendsNoImage() async throws {
+        let transport = FakeHTTPTransport()
+        let source = OllamaAnalysisSource(model: "gemma4:e4b-mlx", transport: transport)
+        try await source.verifyVisionModel()
+        #expect(transport.requests.map { $0.url?.path } == ["/api/show"])
+    }
+
+    @Test func testConnectionReportsAMissingModel() async {
+        let transport = FakeHTTPTransport()
+        transport.showResponse = (404, Data(#"{"error":"model not found"}"#.utf8))
+        let source = OllamaAnalysisSource(model: "nope", transport: transport)
+        do {
+            try await source.verifyVisionModel()
+            Issue.record("expected a missing-model error")
+        } catch {
+            #expect(error == .providerModelNotFound)
+        }
+    }
+
+    @Test func testConnectionReportsATextOnlyModel() async {
+        let transport = FakeHTTPTransport()
+        transport.showResponse = (200, Data(#"{"capabilities":["completion"]}"#.utf8))
+        let source = OllamaAnalysisSource(model: "llama3.2", transport: transport)
+        do {
+            try await source.verifyVisionModel()
+            Issue.record("expected a vision error")
+        } catch {
+            #expect(error == .providerModelLacksVision)
+        }
+    }
+
+    @Test func testConnectionReportsAnUnreachableServer() async {
+        let transport = FakeHTTPTransport()
+        transport.failure = URLError(.cannotConnectToHost)
+        let source = OllamaAnalysisSource(model: "llava", transport: transport)
+        do {
+            try await source.verifyVisionModel()
+            Issue.record("expected an unavailable error")
+        } catch {
+            #expect(error == .providerUnavailable)
+        }
+    }
+
+    @Test func testConnectionRejectsAnEmptyModelWithoutAnyRequest() async {
+        let transport = FakeHTTPTransport()
+        let source = OllamaAnalysisSource(model: " ", transport: transport)
+        do {
+            try await source.verifyVisionModel()
+            Issue.record("expected a rejection")
+        } catch {
+            #expect(error == .providerRequestRejected)
+        }
+        #expect(transport.requests.isEmpty)
+    }
+
     // MARK: Failures
 
     @Test func anUnreachableServerIsReportedAsUnavailable() async {

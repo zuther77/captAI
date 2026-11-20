@@ -27,6 +27,8 @@ final class ScreenshotWorkspaceModel {
         let role: Role
         var text: String
         var status: Status
+        /// Who answered this message, for example "Ollama · gemma4:e4b-mlx · On this Mac". Nil for user messages.
+        var provider: String? = nil
     }
 
     /// Things the window layer must react to. The model decides; the controller applies them to real windows.
@@ -44,7 +46,9 @@ final class ScreenshotWorkspaceModel {
     /// The capture is entirely black or transparent: usually protected content, or a Screen Recording grant
     /// that is not really in effect. No analysis is requested for it.
     let appearsBlank: Bool
-    let identity: AnalysisSourceIdentity
+    /// Who answers the next request. Refreshed at the start of each request, so a provider change in Settings
+    /// applies from the next request, never to one already running.
+    private(set) var identity: AnalysisSourceIdentity
 
     private(set) var analysis: Analysis = .idle
     private(set) var messages: [Message] = []
@@ -56,7 +60,8 @@ final class ScreenshotWorkspaceModel {
 
     @ObservationIgnored var onEvent: (@MainActor (Event) -> Void)?
 
-    @ObservationIgnored private let source: any AnalysisSource
+    @ObservationIgnored private let sourceProvider: @MainActor () -> any AnalysisSource
+    @ObservationIgnored private var source: any AnalysisSource
     @ObservationIgnored private let copyTextAction: @MainActor () async -> Void
     @ObservationIgnored private var analysisTask: Task<Void, Never>?
     @ObservationIgnored private var replyTask: Task<Void, Never>?
@@ -66,15 +71,24 @@ final class ScreenshotWorkspaceModel {
         metadata: CaptureMetadata,
         savedURL: URL?,
         appearsBlank: Bool,
-        source: any AnalysisSource,
+        sourceProvider: @escaping @MainActor () -> any AnalysisSource,
         copyText: @escaping @MainActor () async -> Void
     ) {
         self.metadata = metadata
         self.savedURL = savedURL
         self.appearsBlank = appearsBlank
-        self.source = source
-        self.identity = source.identity
+        self.sourceProvider = sourceProvider
+        let initial = sourceProvider()
+        self.source = initial
+        self.identity = initial.identity
         self.copyTextAction = copyText
+    }
+
+    /// Asks the provider for the source to use for the next request.
+    private func refreshSource() {
+        let next = sourceProvider()
+        source = next
+        if identity != next.identity { identity = next.identity }
     }
 
     // MARK: Derived state
@@ -109,6 +123,7 @@ final class ScreenshotWorkspaceModel {
 
     private func runAnalysis() {
         analysisTask?.cancel()
+        refreshSource()
         analysis = .loading
         let stream = source.analyze(AnalysisRequest(prompt: nil, metadata: metadata))
         analysisTask = Task { [weak self] in
@@ -144,7 +159,8 @@ final class ScreenshotWorkspaceModel {
         draft = ""
         messages.append(Message(id: UUID(), role: .user, text: prompt, status: .complete))
         let replyID = UUID()
-        messages.append(Message(id: replyID, role: .assistant, text: "", status: .streaming))
+        refreshSource()
+        messages.append(Message(id: replyID, role: .assistant, text: "", status: .streaming, provider: Self.attribution(of: identity)))
 
         let stream = source.analyze(AnalysisRequest(prompt: prompt, metadata: metadata))
         replyTask = Task { [weak self] in
@@ -162,6 +178,10 @@ final class ScreenshotWorkspaceModel {
                 self.update(replyID, text: text, status: .failed(Self.appError(from: error)))
             }
         }
+    }
+
+    static func attribution(of identity: AnalysisSourceIdentity) -> String {
+        "\(identity.name) · \(identity.detail)"
     }
 
     private static func appError(from error: any Error) -> AppError {

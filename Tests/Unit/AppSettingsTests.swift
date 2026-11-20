@@ -17,6 +17,9 @@ struct AppSettingsTests {
         #expect(settings.recordMicrophone == false)
         #expect(settings.screenshotFolderPath == nil)
         #expect(settings.recordingFolderPath == nil)
+        #expect(settings.analysisProvider == .mock)
+        #expect(settings.ollamaModel == "")
+        #expect(settings.ollamaEndpoint == "http://localhost:11434")
     }
 
     @Test func codableRoundTripPreservesEveryField() throws {
@@ -34,6 +37,9 @@ struct AppSettingsTests {
         settings.recordMicrophone = true
         settings.cloudConsentPolicy = .localOnly
         settings.saveQuickCopyToHistory = true
+        settings.analysisProvider = .ollama
+        settings.ollamaModel = "gemma4:e4b-mlx"
+        settings.ollamaEndpoint = "http://127.0.0.1:11500"
 
         let data = try JSONEncoder().encode(settings)
         let decoded = try JSONDecoder().decode(AppSettings.self, from: data)

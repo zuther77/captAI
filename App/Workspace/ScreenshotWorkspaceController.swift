@@ -13,7 +13,7 @@ final class ScreenshotWorkspaceController: ScreenshotWorkspacePresenting {
     /// Opens Settings > Providers. Set after the window coordinator exists.
     var openProviders: (@MainActor () -> Void)?
 
-    private let analysis: any AnalysisSource
+    private let analysisProvider: @MainActor () -> any AnalysisSource
     private let textCopier: any TextCopying
     private let feedback: any CaptureFeedback
     private let settings: @MainActor () -> AppSettings
@@ -26,13 +26,13 @@ final class ScreenshotWorkspaceController: ScreenshotWorkspacePresenting {
     private var previousApplication: NSRunningApplication?
 
     init(
-        analysis: any AnalysisSource,
+        analysisProvider: @escaping @MainActor () -> any AnalysisSource,
         textCopier: any TextCopying,
         feedback: any CaptureFeedback,
         settings: @escaping @MainActor () -> AppSettings,
         diagnostics: Diagnostics
     ) {
-        self.analysis = analysis
+        self.analysisProvider = analysisProvider
         self.textCopier = textCopier
         self.feedback = feedback
         self.settings = settings
@@ -63,7 +63,7 @@ final class ScreenshotWorkspaceController: ScreenshotWorkspacePresenting {
             metadata: capture.metadata,
             savedURL: savedAt,
             appearsBlank: appearsBlank,
-            source: analysis,
+            sourceProvider: analysisProvider,
             copyText: { [weak self] in
                 guard let self else { return }
                 feedback.showToast(QuickCopyService.progressToast)

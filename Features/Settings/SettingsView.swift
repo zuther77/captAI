@@ -32,7 +32,7 @@ struct SettingsView: View {
     @ViewBuilder
     private func detail(for pane: SettingsPane) -> some View {
         switch pane {
-        case .providers: ProvidersSettingsPane()
+        case .providers: ProvidersSettingsPane(model: model)
         case .ocr: OCRSettingsPane(model: model)
         case .shortcuts: ShortcutsSettingsPane(model: model, shortcuts: shortcuts)
         case .storage: StorageSettingsPane(model: model)

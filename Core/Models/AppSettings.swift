@@ -41,6 +41,11 @@ enum CloudConsentPolicy: String, Codable, CaseIterable, Sendable {
     case localOnly
 }
 
+enum AnalysisProviderChoice: String, Codable, CaseIterable, Sendable {
+    case mock
+    case ollama
+}
+
 enum DefaultRecordingTarget: String, Codable, CaseIterable, Sendable {
     case region
     case display
@@ -81,6 +86,12 @@ struct AppSettings: Equatable, Codable, Sendable {
     var ocrRecognitionLevel: OCRRecognitionLevel = .accurate
     /// BCP-47 identifiers in priority order. Empty means automatic language detection.
     var ocrLanguages: [String] = []
+
+    // Analysis provider (Settings > Providers). Mock until the user chooses Ollama.
+    var analysisProvider: AnalysisProviderChoice = .mock
+    /// The Ollama model name exactly as `ollama list` shows it, for example "gemma4:e4b-mlx".
+    var ollamaModel: String = ""
+    var ollamaEndpoint: String = "http://localhost:11434"
 
     // Storage (Settings > Storage). nil means "use the default location".
     var screenshotFolderPath: String?
@@ -152,5 +163,8 @@ struct AppSettings: Equatable, Codable, Sendable {
         recordMicrophone = try container.decodeIfPresent(Bool.self, forKey: .recordMicrophone) ?? defaults.recordMicrophone
         cloudConsentPolicy = try container.decodeIfPresent(CloudConsentPolicy.self, forKey: .cloudConsentPolicy) ?? defaults.cloudConsentPolicy
         saveQuickCopyToHistory = try container.decodeIfPresent(Bool.self, forKey: .saveQuickCopyToHistory) ?? defaults.saveQuickCopyToHistory
+        analysisProvider = try container.decodeIfPresent(AnalysisProviderChoice.self, forKey: .analysisProvider) ?? defaults.analysisProvider
+        ollamaModel = try container.decodeIfPresent(String.self, forKey: .ollamaModel) ?? defaults.ollamaModel
+        ollamaEndpoint = try container.decodeIfPresent(String.self, forKey: .ollamaEndpoint) ?? defaults.ollamaEndpoint
     }
 }
