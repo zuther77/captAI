@@ -346,3 +346,51 @@ final class FakeTextClipboard: TextClipboard {
         return true
     }
 }
+
+/// A scripted HTTP transport. Records each request; the tests choose the status, body lines or failure.
+final class FakeHTTPTransport: HTTPTransport, @unchecked Sendable {
+    private let lock = NSLock()
+    private var recorded: [URLRequest] = []
+    private var storedShow: (status: Int, body: Data) = (200, Data(#"{"capabilities":["completion","vision"]}"#.utf8))
+    private var storedChatStatus = 200
+    private var storedChatLines: [String] = []
+    private var storedFailure: (any Error)?
+
+    var requests: [URLRequest] { lock.withLock { recorded } }
+    var showResponse: (status: Int, body: Data) {
+        get { lock.withLock { storedShow } }
+        set { lock.withLock { storedShow = newValue } }
+    }
+    var chatStatus: Int {
+        get { lock.withLock { storedChatStatus } }
+        set { lock.withLock { storedChatStatus = newValue } }
+    }
+    var chatLines: [String] {
+        get { lock.withLock { storedChatLines } }
+        set { lock.withLock { storedChatLines = newValue } }
+    }
+    /// When set, every request fails with this error before any response.
+    var failure: (any Error)? {
+        get { lock.withLock { storedFailure } }
+        set { lock.withLock { storedFailure = newValue } }
+    }
+
+    func streamLines(for request: URLRequest) async throws -> HTTPStreamResponse {
+        lock.withLock { recorded.append(request) }
+        if let failure { throw failure }
+        let status = chatStatus
+        let lines = chatLines
+        let stream = AsyncThrowingStream<String, any Error> { continuation in
+            for line in lines { continuation.yield(line) }
+            continuation.finish()
+        }
+        return HTTPStreamResponse(status: status, lines: stream)
+    }
+
+    func data(for request: URLRequest) async throws -> (status: Int, body: Data) {
+        lock.withLock { recorded.append(request) }
+        if let failure { throw failure }
+        return showResponse
+    }
+}
+
