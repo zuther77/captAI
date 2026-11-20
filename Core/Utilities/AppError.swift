@@ -22,6 +22,8 @@ enum AppError: Error, Equatable, Sendable {
     case ocrFailed
     /// The assistant's analysis or reply could not be produced.
     case analysisFailed
+    /// A secret (such as an API key) could not be read or saved in the Keychain. The value is never included.
+    case keychainFailed
 
     /// Stable machine-readable code for diagnostics and tests.
     var code: String {
@@ -39,6 +41,7 @@ enum AppError: Error, Equatable, Sendable {
         case .captureSaveFailed: "capture.saveFailed"
         case .ocrFailed: "ocr.failed"
         case .analysisFailed: "analysis.failed"
+        case .keychainFailed: "keychain.failed"
         }
     }
 
@@ -83,6 +86,8 @@ extension AppError: LocalizedError {
             "The text in the screenshot could not be read."
         case .analysisFailed:
             "The analysis could not be completed."
+        case .keychainFailed:
+            "captAI could not access the Keychain."
         }
     }
 
@@ -112,6 +117,8 @@ extension AppError: LocalizedError {
             "Try again. Quick Copy runs on this Mac and needs no account or network connection."
         case .analysisFailed:
             "Try again."
+        case .keychainFailed:
+            "Check that captAI may use the login Keychain, then try again."
         }
     }
 }

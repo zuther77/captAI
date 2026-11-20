@@ -226,7 +226,7 @@ final class FakeAnalysisSource: AnalysisSource, @unchecked Sendable {
     private var storedFailure: AppError?
     private var storedHoldsOpen = false
 
-    let identity = AnalysisSourceIdentity(name: "Test source", detail: "Scripted", isMock: true, locality: .local)
+    let identity = AnalysisSourceIdentity(name: "Test source", detail: "Scripted", providerID: "test", isMock: true, locality: .local)
 
     var chunks: [String] {
         get { lock.withLock { storedChunks } }
