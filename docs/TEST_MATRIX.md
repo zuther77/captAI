@@ -6,11 +6,11 @@ Status values: **PASS**, **FAIL**, **NOT PERFORMED** (no one has run it), **BLOC
 
 | Suite | Command | Result |
 |---|---|---|
-| Unit (234 tests, 24 suites) | `scripts/test.sh unit` | PASS (2026-11-19, M3 branch; run through `xcrun xctest` because the scheme `test` action cannot run in the agent sandbox) |
-| Integration (17 tests, 3 suites) | `scripts/test.sh integration` | PASS (2026-11-19, M3 branch; same note) |
+| Unit (234 tests, 24 suites) | `scripts/test.sh unit` | PASS (2026-11-20, M3 branch; run through `xcrun xctest` because the scheme `test` action cannot run in the agent sandbox) |
+| Integration (17 tests, 3 suites) | `scripts/test.sh integration` | PASS (2026-11-20, M3 branch; same note) |
 | UI (6 tests) | `scripts/test.sh ui` | PASS on M0 and M1 (2026-11-18) and on M2 (2026-11-19, product owner's Mac). Not yet re-run on M3. |
-| Debug build, warnings as errors | `scripts/build.sh Debug` | PASS (2026-11-19, M3 branch) |
-| Release build, warnings as errors | `scripts/build.sh Release` | PASS (2026-11-19, M3 branch) |
+| Debug build, warnings as errors | `scripts/build.sh Debug` | PASS (2026-11-20, M3 branch) |
+| Release build, warnings as errors | `scripts/build.sh Release` | PASS (2026-11-20, M3 branch) |
 
 ## Manual: M0 (real Mac)
 
