@@ -225,7 +225,7 @@ struct AssistantView: View {
     }
 
     private var composer: some View {
-        HStack(alignment: .bottom, spacing: 8) {
+        HStack(alignment: .center, spacing: 8) {
             TextField("Ask about this screenshot", text: Binding(get: { model.draft }, set: { model.draft = $0 }), axis: .vertical)
                 .textFieldStyle(.plain)
                 .focusEffectDisabled()
@@ -243,6 +243,7 @@ struct AssistantView: View {
                 model.send()
             } label: {
                 Image(systemName: "arrow.up")
+                    .frame(width: 28, height: 28)
             }
             .buttonStyle(.borderedProminent)
             .buttonBorderShape(.circle)
