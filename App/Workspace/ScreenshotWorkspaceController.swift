@@ -200,7 +200,8 @@ final class AssistantPanel: NSPanel {
         )
         isOpaque = false
         backgroundColor = .clear
-        hasShadow = true
+        // AppKit's rectangular shadow sat outside the rounded glass as a hard black border.
+        hasShadow = false
         isMovableByWindowBackground = true
         hidesOnDeactivate = false
         isReleasedWhenClosed = false

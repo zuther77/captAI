@@ -27,8 +27,9 @@ struct AssistantView: View {
         .padding(10)
         // Behind everything: any part of the window that is not a control or the reading card drags the window.
         .background(WindowDragHandle())
+        // Glass already gives the edge; a stroke and the AppKit window shadow both drew a hard square outline
+        // around the rounded content (product owner, 2026-11-22).
         .glassEffect(.regular, in: .rect(cornerRadius: Self.windowRadius))
-        .overlay(RoundedRectangle(cornerRadius: Self.windowRadius).strokeBorder(.separator))
         .onExitCommand { model.requestClose() }
         .onAppear { composerFocused = true }
         .accessibilityElement(children: .contain)
