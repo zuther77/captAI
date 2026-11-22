@@ -39,11 +39,14 @@ enum CloudConsentPolicy: String, Codable, CaseIterable, Sendable {
     case askOncePerProvider
     /// Never transmit; cloud providers are unusable.
     case localOnly
+    /// Send to the selected cloud provider without a prompt. Local-only still blocks sending.
+    case allowWithoutAsking
 }
 
 enum AnalysisProviderChoice: String, Codable, CaseIterable, Sendable {
     case mock
     case ollama
+    case openAI
 }
 
 enum DefaultRecordingTarget: String, Codable, CaseIterable, Sendable {
@@ -87,11 +90,16 @@ struct AppSettings: Equatable, Codable, Sendable {
     /// BCP-47 identifiers in priority order. Empty means automatic language detection.
     var ocrLanguages: [String] = []
 
-    // Analysis provider (Settings > Providers). Mock until the user chooses Ollama.
+    // Analysis provider (Settings > Providers). Mock until the user chooses a real provider.
     var analysisProvider: AnalysisProviderChoice = .mock
     /// The Ollama model name exactly as `ollama list` shows it, for example "gemma4:e4b-mlx".
     var ollamaModel: String = ""
     var ollamaEndpoint: String = "http://localhost:11434"
+    /// OpenAI or any OpenAI-compatible chat endpoint (no trailing slash required).
+    var openAIEndpoint: String = "https://api.openai.com/v1"
+    var openAIModel: String = "gpt-4o"
+    /// Provider IDs the user has approved under "Ask once per provider". Never holds secrets.
+    var approvedCloudProviderIDs: [String] = []
 
     // Storage (Settings > Storage). nil means "use the default location".
     var screenshotFolderPath: String?
@@ -166,5 +174,8 @@ struct AppSettings: Equatable, Codable, Sendable {
         analysisProvider = try container.decodeIfPresent(AnalysisProviderChoice.self, forKey: .analysisProvider) ?? defaults.analysisProvider
         ollamaModel = try container.decodeIfPresent(String.self, forKey: .ollamaModel) ?? defaults.ollamaModel
         ollamaEndpoint = try container.decodeIfPresent(String.self, forKey: .ollamaEndpoint) ?? defaults.ollamaEndpoint
+        openAIEndpoint = try container.decodeIfPresent(String.self, forKey: .openAIEndpoint) ?? defaults.openAIEndpoint
+        openAIModel = try container.decodeIfPresent(String.self, forKey: .openAIModel) ?? defaults.openAIModel
+        approvedCloudProviderIDs = try container.decodeIfPresent([String].self, forKey: .approvedCloudProviderIDs) ?? defaults.approvedCloudProviderIDs
     }
 }

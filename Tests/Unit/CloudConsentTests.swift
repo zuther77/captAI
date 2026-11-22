@@ -13,7 +13,7 @@ struct CloudConsentTests {
         name: "Anthropic", detail: "Cloud", providerID: "anthropic", isMock: false, locality: .cloud
     )
 
-    @Test(arguments: [CloudConsentPolicy.askEveryTime, .askOncePerProvider, .localOnly])
+    @Test(arguments: [CloudConsentPolicy.askEveryTime, .askOncePerProvider, .localOnly, .allowWithoutAsking])
     func aLocalRequestNeverNeedsConsent(policy: CloudConsentPolicy) {
         #expect(CloudConsent.decision(for: Self.local, policy: policy, approvedProviderIDs: []) == .proceed)
     }
@@ -38,6 +38,15 @@ struct CloudConsentTests {
         let approved: Set<String> = ["openai"]
         #expect(CloudConsent.decision(for: Self.openAI, policy: .askOncePerProvider, approvedProviderIDs: approved) == .proceed)
         #expect(CloudConsent.decision(for: Self.anthropic, policy: .askOncePerProvider, approvedProviderIDs: approved) == .askFirst)
+    }
+
+    @Test func allowWithoutAskingSendsCloudRequestsWithoutAPrompt() {
+        #expect(CloudConsent.decision(for: Self.openAI, policy: .allowWithoutAsking, approvedProviderIDs: []) == .proceed)
+        #expect(CloudConsent.decision(for: Self.anthropic, policy: .allowWithoutAsking, approvedProviderIDs: []) == .proceed)
+    }
+
+    @Test func localOnlyStillBlocksEvenWhenAllowWithoutAskingWouldOtherwiseApply() {
+        #expect(CloudConsent.decision(for: Self.openAI, policy: .localOnly, approvedProviderIDs: ["openai"]) == .refuse)
     }
 
     @Test func approvalIsKeyedByProviderIDNotDisplayName() {

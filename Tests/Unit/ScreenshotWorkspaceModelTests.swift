@@ -105,6 +105,8 @@ struct ScreenshotWorkspaceModelTests {
 
         model.start()
         #expect(model.analysis == .loading)
+        // Consent runs first inside the task, so wait until the source has the request before pushing.
+        await settle { source.recordedPrompts.count == 1 }
 
         source.push("Hel")
         await settle { model.analysis == .streaming("Hel") }
@@ -221,6 +223,7 @@ struct ScreenshotWorkspaceModelTests {
         let model = makeModel(source: source)
         model.draft = "first"
         model.send()
+        await settle { source.recordedPrompts.count == 1 }
         #expect(model.isResponding)
 
         model.draft = "second"

@@ -399,3 +399,21 @@ final class FakeHTTPTransport: HTTPTransport, @unchecked Sendable {
     }
 }
 
+/// In-memory secret store for tests. Never touches the Keychain.
+final class MemorySecretStore: SecretStore, @unchecked Sendable {
+    private let lock = NSLock()
+    private var values: [String: String] = [:]
+
+    func read(account: String) throws(AppError) -> String? {
+        lock.withLock { values[account] }
+    }
+
+    func write(_ value: String, account: String) throws(AppError) {
+        lock.withLock { values[account] = value }
+    }
+
+    func delete(account: String) throws(AppError) {
+        lock.withLock { _ = values.removeValue(forKey: account) }
+    }
+}
+

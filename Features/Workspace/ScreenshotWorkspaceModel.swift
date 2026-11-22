@@ -64,6 +64,7 @@ final class ScreenshotWorkspaceModel {
 
     @ObservationIgnored private let sourceProvider: @MainActor () -> any AnalysisSource
     @ObservationIgnored private var source: any AnalysisSource
+    @ObservationIgnored private let consent: ConsentGate?
     @ObservationIgnored private let copyTextAction: @MainActor () async -> Void
     @ObservationIgnored private var analysisTask: Task<Void, Never>?
     @ObservationIgnored private var replyTask: Task<Void, Never>?
@@ -75,6 +76,7 @@ final class ScreenshotWorkspaceModel {
         imagePNG: Data?,
         appearsBlank: Bool,
         sourceProvider: @escaping @MainActor () -> any AnalysisSource,
+        consent: ConsentGate? = nil,
         copyText: @escaping @MainActor () async -> Void
     ) {
         self.metadata = metadata
@@ -82,6 +84,7 @@ final class ScreenshotWorkspaceModel {
         self.imagePNG = imagePNG
         self.appearsBlank = appearsBlank
         self.sourceProvider = sourceProvider
+        self.consent = consent
         let initial = sourceProvider()
         self.source = initial
         self.identity = initial.identity
@@ -129,19 +132,24 @@ final class ScreenshotWorkspaceModel {
         analysisTask?.cancel()
         refreshSource()
         analysis = .loading
-        let stream = source.analyze(AnalysisRequest(prompt: nil, metadata: metadata, image: imagePNG))
         analysisTask = Task { [weak self] in
+            guard let self else { return }
+            if let error = await self.ensureConsent() {
+                self.analysis = .failed(error)
+                return
+            }
+            let stream = self.source.analyze(AnalysisRequest(prompt: nil, metadata: self.metadata, image: self.imagePNG))
             var text = ""
             do {
                 for try await chunk in stream {
-                    guard let self, !Task.isCancelled else { return }
+                    guard !Task.isCancelled else { return }
                     text += chunk
                     self.analysis = .streaming(text)
                 }
-                guard let self, !Task.isCancelled else { return }
+                guard !Task.isCancelled else { return }
                 self.analysis = .ready(text)
             } catch {
-                guard let self, !Task.isCancelled else { return }
+                guard !Task.isCancelled else { return }
                 self.analysis = .failed(Self.appError(from: error))
             }
         }
@@ -168,27 +176,38 @@ final class ScreenshotWorkspaceModel {
         refreshSource()
         messages.append(Message(id: replyID, role: .assistant, text: "", status: .streaming, provider: Self.attribution(of: identity)))
 
-        let stream = source.analyze(AnalysisRequest(
-            prompt: prompt,
-            metadata: metadata,
-            history: history,
-            image: imagePNG
-        ))
         replyTask = Task { [weak self] in
+            guard let self else { return }
+            if let error = await self.ensureConsent() {
+                self.update(replyID, text: "", status: .failed(error))
+                return
+            }
+            let stream = self.source.analyze(AnalysisRequest(
+                prompt: prompt,
+                metadata: self.metadata,
+                history: history,
+                image: self.imagePNG
+            ))
             var text = ""
             do {
                 for try await chunk in stream {
-                    guard let self, !Task.isCancelled else { return }
+                    guard !Task.isCancelled else { return }
                     text += chunk
                     self.update(replyID, text: text, status: .streaming)
                 }
-                guard let self, !Task.isCancelled else { return }
+                guard !Task.isCancelled else { return }
                 self.update(replyID, text: text, status: .complete)
             } catch {
-                guard let self, !Task.isCancelled else { return }
+                guard !Task.isCancelled else { return }
                 self.update(replyID, text: text, status: .failed(Self.appError(from: error)))
             }
         }
+    }
+
+    /// Returns an error when the request must not proceed; nil when it may be sent.
+    private func ensureConsent() async -> AppError? {
+        guard let consent else { return nil }
+        return await consent.allow(identity)
     }
 
     static func attribution(of identity: AnalysisSourceIdentity) -> String {

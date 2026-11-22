@@ -12,9 +12,10 @@ enum ConsentDecision: Equatable, Sendable {
 
 /// Decides whether a request may leave the Mac (PRD PRIV-01, plan M4 consent rules).
 ///
-/// Local sources always proceed. A cloud source obeys the policy: `localOnly` refuses, `askEveryTime` asks for
-/// every request, and `askOncePerProvider` asks until that provider is approved. Approval is per provider ID,
-/// so switching providers never sends content to a provider the user has not approved.
+/// Local sources always proceed. A cloud source obeys the policy: `localOnly` refuses, `allowWithoutAsking`
+/// proceeds, `askEveryTime` asks for every request, and `askOncePerProvider` asks until that provider is
+/// approved. Approval is per provider ID, so switching providers never sends content to a provider the user
+/// has not approved.
 enum CloudConsent {
     static func decision(
         for identity: AnalysisSourceIdentity,
@@ -28,6 +29,8 @@ enum CloudConsent {
             switch policy {
             case .localOnly:
                 return .refuse
+            case .allowWithoutAsking:
+                return .proceed
             case .askEveryTime:
                 return .askFirst
             case .askOncePerProvider:

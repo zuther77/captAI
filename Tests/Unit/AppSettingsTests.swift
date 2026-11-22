@@ -20,6 +20,10 @@ struct AppSettingsTests {
         #expect(settings.analysisProvider == .mock)
         #expect(settings.ollamaModel == "")
         #expect(settings.ollamaEndpoint == "http://localhost:11434")
+        #expect(settings.openAIEndpoint == "https://api.openai.com/v1")
+        #expect(settings.openAIModel == "gpt-4o")
+        #expect(settings.approvedCloudProviderIDs.isEmpty)
+        #expect(settings.cloudConsentPolicy == .askEveryTime)
     }
 
     @Test func codableRoundTripPreservesEveryField() throws {

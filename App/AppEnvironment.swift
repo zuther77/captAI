@@ -47,11 +47,19 @@ final class AppEnvironment {
             clipboard: PasteboardTextClipboard(),
             diagnostics: diagnostics
         )
+        let secrets = KeychainSecretStore()
         let workspace = ScreenshotWorkspaceController(
-            analysisProvider: { AnalysisSourceFactory.source(for: settings.settings) },
+            analysisProvider: { AnalysisSourceFactory.source(for: settings.settings, secrets: secrets) },
             textCopier: textCopier,
             feedback: feedback,
             settings: { settings.settings },
+            rememberCloudApproval: { id in
+                settings.update { current in
+                    if !current.approvedCloudProviderIDs.contains(id) {
+                        current.approvedCloudProviderIDs.append(id)
+                    }
+                }
+            },
             diagnostics: diagnostics
         )
         let capture = CaptureCoordinator(
@@ -78,7 +86,7 @@ final class AppEnvironment {
         )
 
         let navigation = SettingsNavigation()
-        let factory = AppKitWindowFactory(settings: settings, navigation: navigation, permissions: permissions, shortcuts: shortcuts)
+        let factory = AppKitWindowFactory(settings: settings, navigation: navigation, permissions: permissions, shortcuts: shortcuts, secrets: secrets)
         let windows = WindowCoordinator(factory: factory, navigation: navigation, diagnostics: diagnostics)
         workspace.openProviders = { windows.showSettings(pane: .providers) }
         return AppEnvironment(

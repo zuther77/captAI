@@ -17,6 +17,7 @@ final class ScreenshotWorkspaceController: ScreenshotWorkspacePresenting {
     private let textCopier: any TextCopying
     private let feedback: any CaptureFeedback
     private let settings: @MainActor () -> AppSettings
+    private let rememberCloudApproval: @MainActor (String) -> Void
     private let diagnostics: Diagnostics
 
     private var model: ScreenshotWorkspaceModel?
@@ -30,12 +31,14 @@ final class ScreenshotWorkspaceController: ScreenshotWorkspacePresenting {
         textCopier: any TextCopying,
         feedback: any CaptureFeedback,
         settings: @escaping @MainActor () -> AppSettings,
+        rememberCloudApproval: @escaping @MainActor (String) -> Void,
         diagnostics: Diagnostics
     ) {
         self.analysisProvider = analysisProvider
         self.textCopier = textCopier
         self.feedback = feedback
         self.settings = settings
+        self.rememberCloudApproval = rememberCloudApproval
         self.diagnostics = diagnostics
     }
 
@@ -65,6 +68,12 @@ final class ScreenshotWorkspaceController: ScreenshotWorkspacePresenting {
             imagePNG: capture.image.pngData(),
             appearsBlank: appearsBlank,
             sourceProvider: analysisProvider,
+            consent: ConsentGate(
+                policy: { [weak self] in self?.settings().cloudConsentPolicy ?? .askEveryTime },
+                approvedIDs: { [weak self] in Set(self?.settings().approvedCloudProviderIDs ?? []) },
+                rememberApproval: { [weak self] id in self?.rememberCloudApproval(id) },
+                asker: self
+            ),
             copyText: { [weak self] in
                 guard let self else { return }
                 feedback.showToast(QuickCopyService.progressToast)
@@ -175,6 +184,23 @@ final class ScreenshotWorkspaceController: ScreenshotWorkspacePresenting {
             _ = previous.activate(from: NSRunningApplication.current)
         }
         if restoreFocus { previousApplication = nil }
+    }
+}
+
+// MARK: - Consent
+
+extension ScreenshotWorkspaceController: ConsentAsking {
+    func askToSend(to identity: AnalysisSourceIdentity) async -> Bool {
+        await withCheckedContinuation { continuation in
+            let alert = NSAlert()
+            alert.messageText = "Send this screenshot to \(identity.name)?"
+            alert.informativeText = "The image and your message will leave this Mac and go to \(identity.detail). Nothing is sent if you cancel."
+            alert.alertStyle = .warning
+            alert.addButton(withTitle: "Send")
+            alert.addButton(withTitle: "Cancel")
+            let response = alert.runModal()
+            continuation.resume(returning: response == .alertFirstButtonReturn)
+        }
     }
 }
 

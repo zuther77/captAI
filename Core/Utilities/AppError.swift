@@ -24,6 +24,10 @@ enum AppError: Error, Equatable, Sendable {
     case analysisFailed
     /// A secret (such as an API key) could not be read or saved in the Keychain. The value is never included.
     case keychainFailed
+    /// The user declined the cloud-consent prompt. Nothing was sent.
+    case cloudConsentDeclined
+    /// Settings > Privacy is set to never send captures to cloud providers.
+    case cloudBlocked
     /// Provider problem: captAI could not reach the model provider.
     case providerUnavailable
     /// Provider problem: The model is not installed on the provider.
@@ -58,6 +62,8 @@ enum AppError: Error, Equatable, Sendable {
         case .ocrFailed: "ocr.failed"
         case .analysisFailed: "analysis.failed"
         case .keychainFailed: "keychain.failed"
+        case .cloudConsentDeclined: "cloud.consentDeclined"
+        case .cloudBlocked: "cloud.blocked"
         case .providerUnavailable: "provider.unavailable"
         case .providerModelNotFound: "provider.modelNotFound"
         case .providerModelLacksVision: "provider.modelLacksVision"
@@ -112,6 +118,10 @@ extension AppError: LocalizedError {
             "The analysis could not be completed."
         case .keychainFailed:
             "captAI could not access the Keychain."
+        case .cloudConsentDeclined:
+            "This screenshot was not sent."
+        case .cloudBlocked:
+            "Cloud providers are turned off."
         case .providerUnavailable:
             "captAI could not reach the model provider."
         case .providerModelNotFound:
@@ -159,6 +169,10 @@ extension AppError: LocalizedError {
             "Try again."
         case .keychainFailed:
             "Check that captAI may use the login Keychain, then try again."
+        case .cloudConsentDeclined:
+            "Nothing left this Mac."
+        case .cloudBlocked:
+            "Choose a local provider, or change Settings > Privacy."
         case .providerUnavailable:
             "Start Ollama, or check the endpoint in Settings > Providers."
         case .providerModelNotFound:
