@@ -1,5 +1,7 @@
 import CoreGraphics
 import Foundation
+import ImageIO
+import UniformTypeIdentifiers
 
 /// What was captured and where it came from (Design Spec section 9, `CaptureAsset`). Carries no pixels.
 struct CaptureMetadata: Equatable, Sendable {
@@ -17,6 +19,19 @@ struct CaptureMetadata: Equatable, Sendable {
 struct CapturedImage: @unchecked Sendable {
     let image: CGImage
     let metadata: CaptureMetadata
+}
+
+extension CGImage {
+    /// Encodes this image as PNG bytes for analysis sources. Returns nil when ImageIO cannot write it.
+    func pngData() -> Data? {
+        let data = NSMutableData()
+        guard let destination = CGImageDestinationCreateWithData(
+            data, UTType.png.identifier as CFString, 1, nil
+        ) else { return nil }
+        CGImageDestinationAddImage(destination, self, nil)
+        guard CGImageDestinationFinalize(destination) else { return nil }
+        return data as Data
+    }
 }
 
 /// Heuristic for a capture that came back empty, which is what macOS returns for protected (DRM) content

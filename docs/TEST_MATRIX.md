@@ -6,7 +6,7 @@ Status values: **PASS**, **FAIL**, **NOT PERFORMED** (no one has run it), **BLOC
 
 | Suite | Command | Result |
 |---|---|---|
-| Unit (269 tests, 28 suites) | `scripts/test.sh unit` | PASS (2026-11-20, M4 branch sub-PR 3, outside the sandbox; run through `xcrun xctest` because the scheme `test` action cannot run in the agent sandbox; the 4 Keychain tests need it run outside the sandbox, KI-025) |
+| Unit (271 tests, 28 suites) | `scripts/test.sh unit` | PASS (2026-11-20, M4 branch sub-PR 3, outside the sandbox; run through `xcrun xctest` because the scheme `test` action cannot run in the agent sandbox; the 4 Keychain tests need it run outside the sandbox, KI-025) |
 | Integration (17 tests, 3 suites) | `scripts/test.sh integration` | PASS (2026-11-20, M3 branch; same note) |
 | UI (6 tests) | `scripts/test.sh ui` | PASS on M0 and M1 (2026-11-18), on M2 (2026-11-19) and on M3 (2026-11-20), all on the product owner's Mac. |
 | Debug build, warnings as errors | `scripts/build.sh Debug` | PASS (2026-11-20, M3 branch) |

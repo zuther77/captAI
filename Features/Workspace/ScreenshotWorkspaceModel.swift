@@ -43,6 +43,8 @@ final class ScreenshotWorkspaceModel {
     let metadata: CaptureMetadata
     /// Where the PNG was saved, or nil when saving failed.
     let savedURL: URL?
+    /// The capture as PNG, for analysis sources that accept images. Nil only when encoding failed.
+    let imagePNG: Data?
     /// The capture is entirely black or transparent: usually protected content, or a Screen Recording grant
     /// that is not really in effect. No analysis is requested for it.
     let appearsBlank: Bool
@@ -70,12 +72,14 @@ final class ScreenshotWorkspaceModel {
     init(
         metadata: CaptureMetadata,
         savedURL: URL?,
+        imagePNG: Data?,
         appearsBlank: Bool,
         sourceProvider: @escaping @MainActor () -> any AnalysisSource,
         copyText: @escaping @MainActor () async -> Void
     ) {
         self.metadata = metadata
         self.savedURL = savedURL
+        self.imagePNG = imagePNG
         self.appearsBlank = appearsBlank
         self.sourceProvider = sourceProvider
         let initial = sourceProvider()
@@ -125,7 +129,7 @@ final class ScreenshotWorkspaceModel {
         analysisTask?.cancel()
         refreshSource()
         analysis = .loading
-        let stream = source.analyze(AnalysisRequest(prompt: nil, metadata: metadata))
+        let stream = source.analyze(AnalysisRequest(prompt: nil, metadata: metadata, image: imagePNG))
         analysisTask = Task { [weak self] in
             var text = ""
             do {
@@ -157,12 +161,19 @@ final class ScreenshotWorkspaceModel {
         let prompt = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard canSend else { return }
         draft = ""
+        // History is built before the new turns are appended, so the prompt is not sent twice.
+        let history = conversationHistory()
         messages.append(Message(id: UUID(), role: .user, text: prompt, status: .complete))
         let replyID = UUID()
         refreshSource()
         messages.append(Message(id: replyID, role: .assistant, text: "", status: .streaming, provider: Self.attribution(of: identity)))
 
-        let stream = source.analyze(AnalysisRequest(prompt: prompt, metadata: metadata))
+        let stream = source.analyze(AnalysisRequest(
+            prompt: prompt,
+            metadata: metadata,
+            history: history,
+            image: imagePNG
+        ))
         replyTask = Task { [weak self] in
             var text = ""
             do {
@@ -182,6 +193,26 @@ final class ScreenshotWorkspaceModel {
 
     static func attribution(of identity: AnalysisSourceIdentity) -> String {
         "\(identity.name) · \(identity.detail)"
+    }
+
+    /// Earlier turns for a follow-up: the automatic analysis (if ready), then completed conversation messages.
+    /// Call before appending the new user and reply turns, so the new prompt is only in `AnalysisRequest.prompt`.
+    private func conversationHistory() -> [AnalysisTurn] {
+        var turns: [AnalysisTurn] = []
+        if case .ready(let text) = analysis, !text.isEmpty {
+            turns.append(AnalysisTurn(role: .user, text: AnalysisRequest.automaticPrompt))
+            turns.append(AnalysisTurn(role: .assistant, text: text))
+        }
+        for message in messages {
+            switch message.status {
+            case .complete, .failed:
+                guard !message.text.isEmpty else { continue }
+                turns.append(AnalysisTurn(role: message.role == .user ? .user : .assistant, text: message.text))
+            case .streaming:
+                continue
+            }
+        }
+        return turns
     }
 
     private static func appError(from error: any Error) -> AppError {

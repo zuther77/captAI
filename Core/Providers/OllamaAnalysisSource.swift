@@ -7,7 +7,7 @@ import Foundation
 /// applies to a remote Ollama server exactly as it does to a hosted provider.
 struct OllamaAnalysisSource: AnalysisSource {
     static let defaultEndpoint = URL(string: "http://localhost:11434")!
-    static let defaultPrompt = "Describe what is in this screenshot and point out any text or details that matter."
+    static let defaultPrompt = AnalysisRequest.automaticPrompt
 
     let identity: AnalysisSourceIdentity
     private let model: String

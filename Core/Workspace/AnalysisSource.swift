@@ -1,8 +1,10 @@
 import Foundation
 
 /// What the assistant asks of an analysis source. `prompt` is nil for the automatic first analysis of a new
-/// capture. The image itself is added when real providers arrive (M4); the mock never needs it.
+/// capture. Real providers receive the capture as PNG in `image`.
 struct AnalysisRequest: Sendable {
+    /// The first-turn prompt when the assistant analyzes a new capture automatically.
+    static let automaticPrompt = "Describe what is in this screenshot and point out any text or details that matter."
     let prompt: String?
     let metadata: CaptureMetadata
     /// Earlier turns of the conversation, oldest first. Empty for the automatic first analysis.

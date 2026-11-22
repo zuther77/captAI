@@ -221,6 +221,7 @@ final class FakeAnalysisSource: AnalysisSource, @unchecked Sendable {
 
     private let lock = NSLock()
     private var prompts: [String?] = []
+    private var requests: [AnalysisRequest] = []
     private var held: [Continuation] = []
     private var storedChunks = ["Hello ", "world"]
     private var storedFailure: AppError?
@@ -241,9 +242,13 @@ final class FakeAnalysisSource: AnalysisSource, @unchecked Sendable {
         set { lock.withLock { storedHoldsOpen = newValue } }
     }
     var recordedPrompts: [String?] { lock.withLock { prompts } }
+    var recordedRequests: [AnalysisRequest] { lock.withLock { requests } }
 
     func analyze(_ request: AnalysisRequest) -> AsyncThrowingStream<String, any Error> {
-        lock.withLock { prompts.append(request.prompt) }
+        lock.withLock {
+            prompts.append(request.prompt)
+            requests.append(request)
+        }
         return AsyncThrowingStream { continuation in
             let (hold, script, error) = lock.withLock { (storedHoldsOpen, storedChunks, storedFailure) }
             if hold {

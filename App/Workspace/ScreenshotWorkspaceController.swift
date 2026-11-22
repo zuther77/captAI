@@ -62,6 +62,7 @@ final class ScreenshotWorkspaceController: ScreenshotWorkspacePresenting {
         let model = ScreenshotWorkspaceModel(
             metadata: capture.metadata,
             savedURL: savedAt,
+            imagePNG: capture.image.pngData(),
             appearsBlank: appearsBlank,
             sourceProvider: analysisProvider,
             copyText: { [weak self] in

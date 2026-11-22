@@ -20,7 +20,14 @@ struct ScreenshotWorkspaceModelTests {
         savedURL: URL? = URL(fileURLWithPath: "/tmp/captAI-tests/shots/capture.png"),
         copy: @escaping @MainActor () async -> Void = {}
     ) -> ScreenshotWorkspaceModel {
-        ScreenshotWorkspaceModel(metadata: Self.metadata, savedURL: savedURL, appearsBlank: blank, sourceProvider: { source }, copyText: copy)
+        ScreenshotWorkspaceModel(
+            metadata: Self.metadata,
+            savedURL: savedURL,
+            imagePNG: Data([0x89, 0x50, 0x4E, 0x47]),
+            appearsBlank: blank,
+            sourceProvider: { source },
+            copyText: copy
+        )
     }
 
     // MARK: Save location
@@ -40,6 +47,37 @@ struct ScreenshotWorkspaceModelTests {
     }
 
     // MARK: Analysis
+
+    @Test func analysisSendsTheScreenshotPNG() async throws {
+        let source = FakeAnalysisSource()
+        let model = makeModel(source: source)
+        model.start()
+        await model.waitUntilSettled()
+        let request = try #require(source.recordedRequests.first)
+        #expect(request.prompt == nil)
+        #expect(request.image == Data([0x89, 0x50, 0x4E, 0x47]))
+        #expect(request.history.isEmpty)
+    }
+
+    @Test func aFollowUpSendsHistoryAndTheSameImage() async throws {
+        let source = FakeAnalysisSource()
+        source.chunks = ["A button."]
+        let model = makeModel(source: source)
+        model.start()
+        await model.waitUntilSettled()
+        source.chunks = ["Blue."]
+        model.draft = "What colour is it?"
+        model.send()
+        await model.waitUntilSettled()
+
+        let followUp = try #require(source.recordedRequests.last)
+        #expect(followUp.prompt == "What colour is it?")
+        #expect(followUp.image == Data([0x89, 0x50, 0x4E, 0x47]))
+        #expect(followUp.history == [
+            AnalysisTurn(role: .user, text: AnalysisRequest.automaticPrompt),
+            AnalysisTurn(role: .assistant, text: "A button."),
+        ])
+    }
 
     @Test func aNewWorkspaceIsIdleAndOpen() {
         let model = makeModel()
@@ -200,7 +238,7 @@ struct ScreenshotWorkspaceModelTests {
     @Test func aProviderChangeAppliesToTheNextRequestOnly() async {
         let box = SourceBox(NamedSource(name: "First", reply: "one"))
         let model = ScreenshotWorkspaceModel(
-            metadata: Self.metadata, savedURL: nil, appearsBlank: false,
+            metadata: Self.metadata, savedURL: nil, imagePNG: Data([0x01, 0x02]), appearsBlank: false,
             sourceProvider: { box.source }, copyText: {}
         )
         model.start()
