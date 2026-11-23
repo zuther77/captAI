@@ -47,6 +47,7 @@ enum AnalysisProviderChoice: String, Codable, CaseIterable, Sendable {
     case mock
     case ollama
     case openAI
+    case anthropic
 }
 
 enum DefaultRecordingTarget: String, Codable, CaseIterable, Sendable {
@@ -90,14 +91,18 @@ struct AppSettings: Equatable, Codable, Sendable {
     /// BCP-47 identifiers in priority order. Empty means automatic language detection.
     var ocrLanguages: [String] = []
 
-    // Analysis provider (Settings > Providers). Mock until the user chooses a real provider.
+    // Analysis provider (Settings > Providers). Prefer named ``providerProfiles``; the fields below remain for
+    // migration from earlier M4 builds.
     var analysisProvider: AnalysisProviderChoice = .mock
-    /// The Ollama model name exactly as `ollama list` shows it, for example "gemma4:e4b-mlx".
     var ollamaModel: String = ""
     var ollamaEndpoint: String = "http://localhost:11434"
-    /// OpenAI or any OpenAI-compatible chat endpoint (no trailing slash required).
     var openAIEndpoint: String = "https://api.openai.com/v1"
     var openAIModel: String = "gpt-4o"
+    var anthropicEndpoint: String = "https://api.anthropic.com"
+    var anthropicModel: String = AnthropicAnalysisSource.defaultModel
+    /// Named provider configurations. The active one is ``activeProviderProfileID``.
+    var providerProfiles: [ProviderProfile] = []
+    var activeProviderProfileID: UUID?
     /// Provider IDs the user has approved under "Ask once per provider". Never holds secrets.
     var approvedCloudProviderIDs: [String] = []
 
@@ -149,6 +154,43 @@ struct AppSettings: Equatable, Codable, Sendable {
         }
     }
 
+    /// Moves the older single-provider fields into named profiles once, so existing setups keep working.
+    /// Returns whether anything changed.
+    @discardableResult
+    mutating func migrateProviderProfilesIfNeeded() -> Bool {
+        guard providerProfiles.isEmpty else {
+            if let id = activeProviderProfileID, !providerProfiles.contains(where: { $0.id == id }) {
+                activeProviderProfileID = providerProfiles.first?.id
+                return true
+            }
+            return false
+        }
+        switch analysisProvider {
+        case .mock:
+            return false
+        case .ollama:
+            let profile = ProviderProfile(name: "Ollama", kind: .ollama, endpoint: ollamaEndpoint, model: ollamaModel)
+            providerProfiles = [profile]
+            activeProviderProfileID = profile.id
+            return true
+        case .openAI:
+            let profile = ProviderProfile(name: "OpenAI", kind: .openAI, endpoint: openAIEndpoint, model: openAIModel)
+            providerProfiles = [profile]
+            activeProviderProfileID = profile.id
+            return true
+        case .anthropic:
+            let profile = ProviderProfile(name: "Anthropic", kind: .anthropic, endpoint: anthropicEndpoint, model: anthropicModel)
+            providerProfiles = [profile]
+            activeProviderProfileID = profile.id
+            return true
+        }
+    }
+
+    var activeProviderProfile: ProviderProfile? {
+        guard let id = activeProviderProfileID else { return nil }
+        return providerProfiles.first { $0.id == id }
+    }
+
     init() {}
 
     /// Decodes tolerantly: any missing key falls back to its default, so adding a field never invalidates old files.
@@ -176,6 +218,10 @@ struct AppSettings: Equatable, Codable, Sendable {
         ollamaEndpoint = try container.decodeIfPresent(String.self, forKey: .ollamaEndpoint) ?? defaults.ollamaEndpoint
         openAIEndpoint = try container.decodeIfPresent(String.self, forKey: .openAIEndpoint) ?? defaults.openAIEndpoint
         openAIModel = try container.decodeIfPresent(String.self, forKey: .openAIModel) ?? defaults.openAIModel
+        anthropicEndpoint = try container.decodeIfPresent(String.self, forKey: .anthropicEndpoint) ?? defaults.anthropicEndpoint
+        anthropicModel = try container.decodeIfPresent(String.self, forKey: .anthropicModel) ?? defaults.anthropicModel
+        providerProfiles = try container.decodeIfPresent([ProviderProfile].self, forKey: .providerProfiles) ?? defaults.providerProfiles
+        activeProviderProfileID = try container.decodeIfPresent(UUID.self, forKey: .activeProviderProfileID)
         approvedCloudProviderIDs = try container.decodeIfPresent([String].self, forKey: .approvedCloudProviderIDs) ?? defaults.approvedCloudProviderIDs
     }
 }

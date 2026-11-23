@@ -300,6 +300,70 @@ struct ScreenshotWorkspaceModelTests {
         #expect(source.recordedPrompts.isEmpty)
     }
 
+    // MARK: Stop and setup
+
+    @Test func stopKeepsPartialAnalysisText() async {
+        let source = FakeAnalysisSource()
+        source.holdsOpen = true
+        let model = makeModel(source: source)
+        model.start()
+        await settle { source.recordedPrompts.count == 1 }
+        source.push("Hel")
+        await settle { model.analysis == .streaming("Hel") }
+        #expect(model.canStop)
+        model.stop()
+        #expect(model.analysis == .ready("Hel"))
+        #expect(!model.canStop)
+        source.finishHeld()
+        await model.waitUntilSettled()
+        #expect(model.analysis == .ready("Hel"))
+    }
+
+    @Test func stopDuringLoadingReturnsToIdle() async {
+        let source = FakeAnalysisSource()
+        source.holdsOpen = true
+        let model = makeModel(source: source)
+        model.start()
+        await settle { source.recordedPrompts.count == 1 }
+        #expect(model.analysis == .loading)
+        model.stop()
+        #expect(model.analysis == .idle)
+        #expect(!model.canStop)
+    }
+
+    @Test func stopKeepsAPartialReply() async {
+        let source = FakeAnalysisSource()
+        source.holdsOpen = true
+        let model = makeModel(source: source)
+        model.draft = "hi"
+        model.send()
+        await settle { source.recordedPrompts.count == 1 }
+        source.push("partial")
+        await settle { model.messages.last?.text == "partial" }
+        model.stop()
+        #expect(model.messages.last?.status == .complete)
+        #expect(model.messages.last?.text == "partial")
+        #expect(!model.canStop)
+    }
+
+    @Test func setupNeededLeavesAnalysisIdle() async {
+        let model = ScreenshotWorkspaceModel(
+            metadata: Self.metadata,
+            savedURL: nil,
+            imagePNG: Data([0x01]),
+            appearsBlank: false,
+            sourceProvider: { SetupNeededSource() },
+            copyText: {}
+        )
+        #expect(model.identity.needsSetup)
+        model.start()
+        await model.waitUntilSettled()
+        #expect(model.analysis == .idle)
+        #expect(!model.canSend)
+        model.draft = "hello"
+        #expect(!model.canSend)
+    }
+
     // MARK: Panel controls
 
     @Test func pinningAndCaptureVisibilityReportOnlyRealChanges() {

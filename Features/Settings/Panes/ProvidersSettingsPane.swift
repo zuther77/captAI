@@ -1,148 +1,185 @@
 import SwiftUI
 
-/// Settings > Providers: choose the analysis provider and set up Ollama or OpenAI (including compatible endpoints).
+/// Settings > Providers: named profiles for Ollama, OpenAI-compatible, and Anthropic.
 ///
 /// Changes take effect on the next request. Cloud providers obey Settings > Privacy before anything is sent.
 struct ProvidersSettingsPane: View {
     let model: SettingsModel
     let secrets: any SecretStore
 
-    @State private var draftOllamaModel = ""
-    @State private var draftOllamaEndpoint = ""
-    @State private var draftOpenAIModel = ""
-    @State private var draftOpenAIEndpoint = ""
+    @State private var draftName = ""
+    @State private var draftKind: ProviderKind = .ollama
+    @State private var draftModel = ""
+    @State private var draftEndpoint = ""
     @State private var draftAPIKey = ""
     @State private var keyIsSaved = false
     @State private var checking = false
     @State private var checkResult: String?
+    @State private var selectedID: UUID?
 
-    private var choice: AnalysisProviderChoice { model.settings.analysisProvider }
+    private var profiles: [ProviderProfile] { model.settings.providerProfiles }
+    private var activeID: UUID? { model.settings.activeProviderProfileID }
 
     var body: some View {
         Form {
-            Section("Analysis provider") {
-                Picker("Provider", selection: Binding(
-                    get: { model.settings.analysisProvider },
-                    set: { value in
-                        model.update { $0.analysisProvider = value }
-                        checkResult = nil
+            Section("Profiles") {
+                if profiles.isEmpty {
+                    Text("No providers yet. Add Ollama on this Mac, or an OpenAI or Anthropic key.")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(profiles) { profile in
+                        HStack {
+                            Button {
+                                select(profile)
+                            } label: {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(profile.name).fontWeight(profile.id == selectedID ? .semibold : .regular)
+                                    Text("\(profile.kind.displayName) · \(profile.model.isEmpty ? "No model" : profile.model)")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            .buttonStyle(.plain)
+                            Spacer()
+                            if profile.id == activeID {
+                                Text("Active").font(.caption).foregroundStyle(.secondary)
+                            } else {
+                                Button("Use") { activate(profile.id) }
+                                    .buttonStyle(.bordered)
+                            }
+                            Button(role: .destructive) { remove(profile) } label: {
+                                Image(systemName: "trash")
+                            }
+                            .buttonStyle(.borderless)
+                            .help("Remove this profile")
+                        }
                     }
-                )) {
-                    Text("Mock analysis (no model)").tag(AnalysisProviderChoice.mock)
-                    Text("Ollama on this Mac").tag(AnalysisProviderChoice.ollama)
-                    Text("OpenAI / compatible").tag(AnalysisProviderChoice.openAI)
                 }
-                .accessibilityIdentifier("settings.providers.picker")
-                Text(providerHelp)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                Menu("Add provider") {
+                    Button("Ollama") { addProfile(kind: .ollama) }
+                    Button("OpenAI / compatible") { addProfile(kind: .openAI) }
+                    Button("Anthropic") { addProfile(kind: .anthropic) }
+                }
+                .accessibilityIdentifier("settings.providers.add")
             }
 
-            if choice == .ollama { ollamaSection }
-            if choice == .openAI { openAISection }
+            if selectedID != nil {
+                editorSection
+            }
         }
         .formStyle(.grouped)
-        .onAppear(perform: loadDrafts)
+        .onAppear(perform: appear)
         .accessibilityIdentifier("settings.pane.providers")
     }
 
-    private var providerHelp: String {
-        switch choice {
-        case .mock:
-            "The assistant shows a labelled mock answer and nothing is analyzed."
-        case .ollama:
-            "Screenshots are analyzed by a vision model on this Mac. Nothing leaves the machine when the server is localhost."
-        case .openAI:
-            "Screenshots are sent to the configured cloud endpoint. Settings > Privacy controls the consent prompt."
-        }
-    }
-
-    // MARK: Ollama
-
-    private var ollamaSection: some View {
-        Section("Ollama") {
-            TextField("Model", text: $draftOllamaModel, prompt: Text("for example gemma4:e4b-mlx"))
-                .accessibilityIdentifier("settings.providers.model")
-            TextField("Server address", text: $draftOllamaEndpoint)
-                .accessibilityIdentifier("settings.providers.endpoint")
-            if let problem = ollamaAddressProblem {
-                Label(problem, systemImage: "exclamationmark.triangle.fill")
-                    .font(.caption).foregroundStyle(.orange)
-            } else if let url = URL(string: draftOllamaEndpoint.trimmingCharacters(in: .whitespacesAndNewlines)),
-                      OllamaAnalysisSource.locality(for: url) == .cloud {
-                Label("Cloud: this address is not on this Mac. Privacy settings apply before each send.", systemImage: "cloud")
-                    .font(.caption).foregroundStyle(.orange)
-            } else {
-                Label("Local: screenshots go only to this Mac.", systemImage: "circle.fill")
-                    .font(.caption).foregroundStyle(.green)
+    private var editorSection: some View {
+        Section("Selected profile") {
+            TextField("Name", text: $draftName)
+                .accessibilityIdentifier("settings.providers.name")
+            Picker("Kind", selection: $draftKind) {
+                ForEach(ProviderKind.allCases, id: \.self) { kind in
+                    Text(kind.displayName).tag(kind)
+                }
             }
-            actionRow(dirty: ollamaDirty, saveEnabled: ollamaAddressProblem == nil, onSave: saveOllama, onTest: testOllama)
+            .onChange(of: draftKind) { _, kind in
+                if draftEndpoint.isEmpty || ProviderKind.allCases.map(\.defaultEndpoint).contains(draftEndpoint) {
+                    draftEndpoint = kind.defaultEndpoint
+                }
+                if draftModel.isEmpty || ProviderKind.allCases.map(\.defaultModel).contains(draftModel) {
+                    draftModel = kind.defaultModel
+                }
+                checkResult = nil
+            }
+            .accessibilityIdentifier("settings.providers.kind")
+            TextField("Model", text: $draftModel, prompt: Text(modelPrompt))
+                .accessibilityIdentifier("settings.providers.model")
+            TextField(endpointLabel, text: $draftEndpoint)
+                .accessibilityIdentifier("settings.providers.endpoint")
+            if draftKind.needsAPIKey {
+                SecureField(keyIsSaved && draftAPIKey.isEmpty ? "API key saved — enter a new key to replace it" : "API key", text: $draftAPIKey)
+                    .accessibilityIdentifier("settings.providers.key")
+            }
+            localityHint
+            actionRow
         }
     }
 
-    private var ollamaDirty: Bool {
-        draftOllamaModel.trimmingCharacters(in: .whitespacesAndNewlines) != model.settings.ollamaModel
-            || draftOllamaEndpoint.trimmingCharacters(in: .whitespacesAndNewlines) != model.settings.ollamaEndpoint
+    private var modelPrompt: String {
+        switch draftKind {
+        case .ollama: "for example gemma4:e4b-mlx"
+        case .openAI: "for example gpt-4o"
+        case .anthropic: "for example \(AnthropicAnalysisSource.defaultModel)"
+        }
     }
 
-    private var ollamaAddressProblem: String? {
-        let address = draftOllamaEndpoint.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let url = URL(string: address), OllamaAnalysisSource.isUsable(url) else {
-            return "Enter a server address such as http://localhost:11434."
+    private var endpointLabel: String {
+        draftKind == .openAI ? "API base URL" : "Server address"
+    }
+
+    @ViewBuilder
+    private var localityHint: some View {
+        if let problem = addressProblem {
+            Label(problem, systemImage: "exclamationmark.triangle.fill")
+                .font(.caption).foregroundStyle(.orange)
+        } else if draftKind == .ollama,
+                  let url = URL(string: draftEndpoint.trimmingCharacters(in: .whitespacesAndNewlines)),
+                  OllamaAnalysisSource.locality(for: url) == .cloud {
+            Label("Cloud: this address is not on this Mac. Privacy settings apply before each send.", systemImage: "cloud")
+                .font(.caption).foregroundStyle(.orange)
+        } else if draftKind == .ollama {
+            Label("Local: screenshots go only to this Mac.", systemImage: "circle.fill")
+                .font(.caption).foregroundStyle(.green)
+        } else {
+            Label("Cloud: screenshots leave this Mac when you analyze.", systemImage: "cloud")
+                .font(.caption).foregroundStyle(.orange)
+        }
+    }
+
+    private var addressProblem: String? {
+        let address = draftEndpoint.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let url = URL(string: address) else {
+            return "Enter a valid server address."
+        }
+        switch draftKind {
+        case .ollama:
+            guard OllamaAnalysisSource.isUsable(url) else {
+                return "Enter a server address such as http://localhost:11434."
+            }
+        case .openAI:
+            guard OpenAIAnalysisSource.isUsable(url) else {
+                return "Enter an API base URL such as https://api.openai.com/v1."
+            }
+        case .anthropic:
+            guard AnthropicAnalysisSource.isUsable(url) else {
+                return "Enter a server address such as https://api.anthropic.com."
+            }
         }
         return nil
     }
 
-    // MARK: OpenAI
-
-    private var openAISection: some View {
-        Section("OpenAI / compatible") {
-            TextField("Model", text: $draftOpenAIModel, prompt: Text("for example gpt-4o"))
-                .accessibilityIdentifier("settings.providers.openai.model")
-            TextField("API base URL", text: $draftOpenAIEndpoint, prompt: Text("https://api.openai.com/v1"))
-                .accessibilityIdentifier("settings.providers.openai.endpoint")
-            SecureField(keyIsSaved && draftAPIKey.isEmpty ? "API key saved — enter a new key to replace it" : "API key", text: $draftAPIKey)
-                .accessibilityIdentifier("settings.providers.openai.key")
-            if let problem = openAIAddressProblem {
-                Label(problem, systemImage: "exclamationmark.triangle.fill")
-                    .font(.caption).foregroundStyle(.orange)
-            } else {
-                Label("Cloud: screenshots leave this Mac when you analyze.", systemImage: "cloud")
-                    .font(.caption).foregroundStyle(.orange)
-            }
-            actionRow(
-                dirty: openAIDirty,
-                saveEnabled: openAIAddressProblem == nil && (!draftAPIKey.isEmpty || keyIsSaved),
-                onSave: saveOpenAI,
-                onTest: testOpenAI
-            )
-        }
-    }
-
-    private var openAIDirty: Bool {
-        draftOpenAIModel.trimmingCharacters(in: .whitespacesAndNewlines) != model.settings.openAIModel
-            || draftOpenAIEndpoint.trimmingCharacters(in: .whitespacesAndNewlines) != model.settings.openAIEndpoint
+    private var dirty: Bool {
+        guard let profile = selectedProfile else { return false }
+        return draftName.trimmingCharacters(in: .whitespacesAndNewlines) != profile.name
+            || draftKind != profile.kind
+            || draftModel.trimmingCharacters(in: .whitespacesAndNewlines) != profile.model
+            || draftEndpoint.trimmingCharacters(in: .whitespacesAndNewlines) != profile.endpoint
             || !draftAPIKey.isEmpty
     }
 
-    private var openAIAddressProblem: String? {
-        let address = draftOpenAIEndpoint.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let url = URL(string: address), OpenAIAnalysisSource.isUsable(url) else {
-            return "Enter an API base URL such as https://api.openai.com/v1."
-        }
-        return nil
+    private var saveEnabled: Bool {
+        addressProblem == nil
+            && !draftName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && (!draftKind.needsAPIKey || !draftAPIKey.isEmpty || keyIsSaved)
     }
 
-    // MARK: Shared actions
-
-    private func actionRow(dirty: Bool, saveEnabled: Bool, onSave: @escaping () -> Void, onTest: @escaping () async -> Void) -> some View {
+    private var actionRow: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Button("Save") { onSave() }
+                Button("Save") { saveSelected() }
                     .disabled(!dirty || !saveEnabled)
                     .accessibilityIdentifier("settings.providers.save")
-                Button("Test connection") { Task { await onTest() } }
-                    .disabled(dirty || checking)
+                Button("Test connection") { Task { await testSelected() } }
+                    .disabled(dirty || checking || selectedProfile == nil)
                     .accessibilityIdentifier("settings.providers.test")
                 if checking { ProgressView().controlSize(.small) }
             }
@@ -155,31 +192,97 @@ struct ProvidersSettingsPane: View {
         }
     }
 
-    private func loadDrafts() {
-        draftOllamaModel = model.settings.ollamaModel
-        draftOllamaEndpoint = model.settings.ollamaEndpoint
-        draftOpenAIModel = model.settings.openAIModel
-        draftOpenAIEndpoint = model.settings.openAIEndpoint
-        draftAPIKey = ""
-        keyIsSaved = (try? secrets.read(account: AnalysisSourceFactory.openAIKeyAccount))?.isEmpty == false
+    private var selectedProfile: ProviderProfile? {
+        guard let selectedID else { return nil }
+        return profiles.first { $0.id == selectedID }
     }
 
-    private func saveOllama() {
-        model.update {
-            $0.ollamaModel = draftOllamaModel.trimmingCharacters(in: .whitespacesAndNewlines)
-            $0.ollamaEndpoint = draftOllamaEndpoint.trimmingCharacters(in: .whitespacesAndNewlines)
-        }
+    private func appear() {
+        model.update { $0.migrateProviderProfilesIfNeeded() }
+        selectedID = activeID ?? profiles.first?.id
+        loadDrafts()
+    }
+
+    private func select(_ profile: ProviderProfile) {
+        selectedID = profile.id
+        loadDrafts()
         checkResult = nil
     }
 
-    private func saveOpenAI() {
+    private func activate(_ id: UUID) {
+        model.update { $0.activeProviderProfileID = id }
+        selectedID = id
+        loadDrafts()
+        checkResult = nil
+    }
+
+    private func addProfile(kind: ProviderKind) {
+        let profile = ProviderProfile(name: kind.displayName, kind: kind)
         model.update {
-            $0.openAIModel = draftOpenAIModel.trimmingCharacters(in: .whitespacesAndNewlines)
-            $0.openAIEndpoint = draftOpenAIEndpoint.trimmingCharacters(in: .whitespacesAndNewlines)
+            $0.providerProfiles.append(profile)
+            if $0.activeProviderProfileID == nil {
+                $0.activeProviderProfileID = profile.id
+            }
         }
-        if !draftAPIKey.isEmpty {
+        selectedID = profile.id
+        loadDrafts()
+        checkResult = nil
+    }
+
+    private func remove(_ profile: ProviderProfile) {
+        if profile.kind.needsAPIKey {
+            try? secrets.delete(account: profile.secretAccount)
+        }
+        model.update { settings in
+            settings.providerProfiles.removeAll { $0.id == profile.id }
+            if settings.activeProviderProfileID == profile.id {
+                settings.activeProviderProfileID = settings.providerProfiles.first?.id
+            }
+        }
+        selectedID = activeID ?? profiles.first?.id
+        loadDrafts()
+        checkResult = nil
+    }
+
+    private func loadDrafts() {
+        guard let profile = selectedProfile else {
+            draftName = ""; draftModel = ""; draftEndpoint = ""; draftAPIKey = ""; keyIsSaved = false
+            return
+        }
+        draftName = profile.name
+        draftKind = profile.kind
+        draftModel = profile.model
+        draftEndpoint = profile.endpoint
+        draftAPIKey = ""
+        if profile.kind.needsAPIKey {
+            let primary = (try? secrets.read(account: profile.secretAccount))?.isEmpty == false
+            let legacyOpenAI = profile.kind == .openAI
+                && (try? secrets.read(account: AnalysisSourceFactory.openAIKeyAccount))?.isEmpty == false
+            let legacyAnthropic = profile.kind == .anthropic
+                && (try? secrets.read(account: AnalysisSourceFactory.anthropicKeyAccount))?.isEmpty == false
+            keyIsSaved = primary || legacyOpenAI || legacyAnthropic
+        } else {
+            keyIsSaved = false
+        }
+    }
+
+    private func saveSelected() {
+        guard let id = selectedID else { return }
+        let name = draftName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let modelName = draftModel.trimmingCharacters(in: .whitespacesAndNewlines)
+        let endpoint = draftEndpoint.trimmingCharacters(in: .whitespacesAndNewlines)
+        let kind = draftKind
+        model.update { settings in
+            guard let index = settings.providerProfiles.firstIndex(where: { $0.id == id }) else { return }
+            settings.providerProfiles[index].name = name
+            settings.providerProfiles[index].kind = kind
+            settings.providerProfiles[index].model = modelName
+            settings.providerProfiles[index].endpoint = endpoint
+            settings.activeProviderProfileID = id
+        }
+        if kind.needsAPIKey, !draftAPIKey.isEmpty, let profile = selectedProfile {
             do {
-                try secrets.write(draftAPIKey, account: AnalysisSourceFactory.openAIKeyAccount)
+                try secrets.write(draftAPIKey, account: profile.secretAccount)
                 draftAPIKey = ""
                 keyIsSaved = true
             } catch {
@@ -188,38 +291,63 @@ struct ProvidersSettingsPane: View {
             }
         }
         checkResult = nil
+        loadDrafts()
     }
 
-    private func testOllama() async {
-        guard let endpoint = URL(string: model.settings.ollamaEndpoint) else { return }
+    private func testSelected() async {
+        guard let profile = selectedProfile else { return }
         checking = true
         defer { checking = false }
-        let source = OllamaAnalysisSource(model: model.settings.ollamaModel, endpoint: endpoint)
-        do {
-            try await source.verifyVisionModel()
-            checkResult = "Ready: \(model.settings.ollamaModel) answers and can read images."
-        } catch {
-            checkResult = error.errorDescription ?? "The connection could not be checked."
-        }
-    }
-
-    private func testOpenAI() async {
-        guard let endpoint = URL(string: model.settings.openAIEndpoint) else { return }
-        checking = true
-        defer { checking = false }
-        let key: String
-        do {
-            key = try secrets.read(account: AnalysisSourceFactory.openAIKeyAccount) ?? ""
-        } catch {
-            checkResult = "The API key could not be read."
-            return
-        }
-        let source = OpenAIAnalysisSource(model: model.settings.openAIModel, endpoint: endpoint, apiKey: key)
-        do {
-            try await source.verifyConnection()
-            checkResult = "Ready: \(model.settings.openAIModel) answers at this endpoint."
-        } catch {
-            checkResult = error.errorDescription ?? "The connection could not be checked."
+        switch profile.kind {
+        case .ollama:
+            guard let endpoint = URL(string: profile.endpoint) else { return }
+            let source = OllamaAnalysisSource(model: profile.model, endpoint: endpoint)
+            do {
+                try await source.verifyVisionModel()
+                checkResult = "Ready: \(profile.model) answers and can read images."
+            } catch {
+                checkResult = error.errorDescription ?? "The connection could not be checked."
+            }
+        case .openAI:
+            guard let endpoint = URL(string: profile.endpoint) else { return }
+            let key: String
+            do {
+                if let stored = try secrets.read(account: profile.secretAccount), !stored.isEmpty {
+                    key = stored
+                } else {
+                    key = try secrets.read(account: AnalysisSourceFactory.openAIKeyAccount) ?? ""
+                }
+            } catch {
+                checkResult = "The API key could not be read."
+                return
+            }
+            let source = OpenAIAnalysisSource(model: profile.model, endpoint: endpoint, apiKey: key)
+            do {
+                try await source.verifyConnection()
+                checkResult = "Ready: \(profile.model) answers at this endpoint."
+            } catch {
+                checkResult = error.errorDescription ?? "The connection could not be checked."
+            }
+        case .anthropic:
+            guard let endpoint = URL(string: profile.endpoint) else { return }
+            let key: String
+            do {
+                if let stored = try secrets.read(account: profile.secretAccount), !stored.isEmpty {
+                    key = stored
+                } else {
+                    key = try secrets.read(account: AnalysisSourceFactory.anthropicKeyAccount) ?? ""
+                }
+            } catch {
+                checkResult = "The API key could not be read."
+                return
+            }
+            let source = AnthropicAnalysisSource(model: profile.model, endpoint: endpoint, apiKey: key)
+            do {
+                try await source.verifyConnection()
+                checkResult = "Ready: \(profile.model) answers at this endpoint."
+            } catch {
+                checkResult = error.errorDescription ?? "The connection could not be checked."
+            }
         }
     }
 }

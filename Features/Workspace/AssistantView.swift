@@ -86,9 +86,10 @@ struct AssistantView: View {
             Divider()
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    if model.identity.isMock { mockBanner }
+                    if model.identity.needsSetup { setupBanner }
+                    else if model.identity.isMock { mockBanner }
                     if model.appearsBlank { blankNotice }
-                    analysisSection
+                    if !model.identity.needsSetup { analysisSection }
                     ForEach(model.messages) { message in
                         MessageView(message: message)
                     }
@@ -151,6 +152,20 @@ struct AssistantView: View {
             .accessibilityIdentifier("workspace.mockBanner")
     }
 
+    private var setupBanner: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("Set up a provider to analyze this screenshot.", systemImage: "sparkles")
+                .font(.callout.weight(.medium))
+            Text("Choose Ollama on this Mac, or add an OpenAI or Anthropic key in Settings.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Button("Open Providers…") { model.openProviders() }
+                .buttonStyle(.borderedProminent)
+                .accessibilityIdentifier("workspace.setupProviders")
+        }
+        .accessibilityIdentifier("workspace.setupBanner")
+    }
+
     private var blankNotice: some View {
         Label {
             Text("This capture looks blank. Protected content, or a Screen Recording permission that is not active yet, shows up this way, so nothing was analyzed.")
@@ -165,7 +180,7 @@ struct AssistantView: View {
     private var analysisSection: some View {
         switch model.analysis {
         case .idle:
-            if !model.appearsBlank {
+            if !model.appearsBlank && !model.identity.needsSetup {
                 placeholder("Preparing analysis…")
             }
         case .loading:
@@ -243,19 +258,33 @@ struct AssistantView: View {
                 }
                 .accessibilityLabel("Message")
                 .accessibilityIdentifier("workspace.composer")
-            Button {
-                model.send()
-            } label: {
-                Image(systemName: "arrow.up")
-                    .frame(width: 28, height: 28)
+            if model.canStop {
+                Button {
+                    model.stop()
+                } label: {
+                    Image(systemName: "stop.fill")
+                        .frame(width: 28, height: 28)
+                }
+                .buttonStyle(.borderedProminent)
+                .buttonBorderShape(.circle)
+                .help("Stop")
+                .accessibilityLabel("Stop")
+                .accessibilityIdentifier("workspace.stop")
+            } else {
+                Button {
+                    model.send()
+                } label: {
+                    Image(systemName: "arrow.up")
+                        .frame(width: 28, height: 28)
+                }
+                .buttonStyle(.borderedProminent)
+                .buttonBorderShape(.circle)
+                .disabled(!model.canSend)
+                .keyboardShortcut(.return, modifiers: .command)
+                .help("Send (Return)")
+                .accessibilityLabel("Send")
+                .accessibilityIdentifier("workspace.send")
             }
-            .buttonStyle(.borderedProminent)
-            .buttonBorderShape(.circle)
-            .disabled(!model.canSend)
-            .keyboardShortcut(.return, modifiers: .command)
-            .help("Send (Return)")
-            .accessibilityLabel("Send")
-            .accessibilityIdentifier("workspace.send")
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)

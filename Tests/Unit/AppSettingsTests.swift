@@ -22,6 +22,10 @@ struct AppSettingsTests {
         #expect(settings.ollamaEndpoint == "http://localhost:11434")
         #expect(settings.openAIEndpoint == "https://api.openai.com/v1")
         #expect(settings.openAIModel == "gpt-4o")
+        #expect(settings.anthropicEndpoint == "https://api.anthropic.com")
+        #expect(settings.anthropicModel == AnthropicAnalysisSource.defaultModel)
+        #expect(settings.providerProfiles.isEmpty)
+        #expect(settings.activeProviderProfileID == nil)
         #expect(settings.approvedCloudProviderIDs.isEmpty)
         #expect(settings.cloudConsentPolicy == .askEveryTime)
     }

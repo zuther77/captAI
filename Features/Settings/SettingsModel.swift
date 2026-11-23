@@ -61,8 +61,22 @@ final class SettingsModel {
         self.store = store
         self.diagnostics = diagnostics
         let result = store.load()
-        settings = result.settings
-        lastError = result.recoveredFrom
+        var loaded = result.settings
+        if loaded.migrateProviderProfilesIfNeeded() {
+            do {
+                try store.save(loaded)
+                lastError = result.recoveredFrom
+            } catch let error as AppError {
+                lastError = result.recoveredFrom ?? error
+                diagnostics.error(.settings, "Provider profile migration save failed", error: error)
+            } catch {
+                lastError = result.recoveredFrom ?? .settingsSaveFailed
+                diagnostics.error(.settings, "Provider profile migration save failed", error: .settingsSaveFailed)
+            }
+        } else {
+            lastError = result.recoveredFrom
+        }
+        settings = loaded
         if let recovered = result.recoveredFrom {
             diagnostics.error(.settings, "Settings recovered with defaults", error: recovered)
         }

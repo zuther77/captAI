@@ -109,16 +109,32 @@ final class ScreenshotWorkspaceModel {
     var isResponding: Bool { messages.last?.status == .streaming }
 
     var canSend: Bool {
-        !isClosed && !isResponding && !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        !isClosed && !isResponding && !isAnalyzing && !identity.needsSetup
+            && !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    /// True while the automatic analysis or a follow-up reply is in flight.
+    var canStop: Bool {
+        !isClosed && (isAnalyzing || isResponding)
+    }
+
+    private var isAnalyzing: Bool {
+        switch analysis {
+        case .loading, .streaming: true
+        case .idle, .ready, .failed: false
+        }
     }
 
     // MARK: Analysis
 
     /// Begins the automatic analysis. Does nothing twice, after closing, or for a blank capture.
+    /// When no provider is set up, stays idle so the assistant can show the set-up prompt.
     func start() {
         guard !isClosed, !hasStarted else { return }
         hasStarted = true
         guard !appearsBlank else { return }
+        refreshSource()
+        guard !identity.needsSetup else { return }
         runAnalysis()
     }
 
@@ -130,7 +146,12 @@ final class ScreenshotWorkspaceModel {
 
     private func runAnalysis() {
         analysisTask?.cancel()
+        replyTask?.cancel()
         refreshSource()
+        guard !identity.needsSetup else {
+            analysis = .idle
+            return
+        }
         analysis = .loading
         analysisTask = Task { [weak self] in
             guard let self else { return }
@@ -152,6 +173,36 @@ final class ScreenshotWorkspaceModel {
                 guard !Task.isCancelled else { return }
                 self.analysis = .failed(Self.appError(from: error))
             }
+        }
+    }
+
+    /// Cancels the in-flight analysis or reply and keeps any text already received.
+    func stop() {
+        guard canStop else { return }
+        if isResponding {
+            replyTask?.cancel()
+            replyTask = nil
+            if let last = messages.indices.last, messages[last].status == .streaming {
+                let text = messages[last].text
+                update(messages[last].id, text: text, status: .complete)
+            }
+            return
+        }
+        analysisTask?.cancel()
+        analysisTask = nil
+        finishStoppedAnalysis(partial: {
+            switch analysis {
+            case .streaming(let text): text
+            case .loading, .idle, .ready, .failed: ""
+            }
+        }())
+    }
+
+    private func finishStoppedAnalysis(partial: String) {
+        if partial.isEmpty {
+            analysis = .idle
+        } else {
+            analysis = .ready(partial)
         }
     }
 

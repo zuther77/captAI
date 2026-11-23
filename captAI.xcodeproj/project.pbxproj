@@ -66,6 +66,13 @@
 		4265A18230339F1D8BE46B05 /* AnalysisSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119F660A4AE45D9C0FD549D5 /* AnalysisSource.swift */; };
 		43B0C69E42E5A94EBD7C2EC8 /* ScreenshotWorkspaceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53483F04EB69C53C6DFC5A60 /* ScreenshotWorkspaceController.swift */; };
 		443212474729A577D0F4513C /* OpenAIAnalysisSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21CECF8D43EDD156E7BEC714 /* OpenAIAnalysisSource.swift */; };
+		E1F19684C8270C4AFB994EAD /* AnthropicAnalysisSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0B6D3FD4A595D1E2685189 /* AnthropicAnalysisSource.swift */; };
+		5C61D1234C74ADF2BBACF96F /* ProviderProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BCFD02E90DADDFDE77DC028 /* ProviderProfile.swift */; };
+		E188E57DECB1E5110C7B1D6B /* AnthropicAnalysisSourceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8B7EC376E64FD21D8185B22 /* AnthropicAnalysisSourceTests.swift */; };
+		1DABA77B26B10267F0860255 /* AnthropicAnalysisSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0B6D3FD4A595D1E2685189 /* AnthropicAnalysisSource.swift */; };
+		3C87C627E8C6402E3140CE98 /* ProviderProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BCFD02E90DADDFDE77DC028 /* ProviderProfile.swift */; };
+		CC66B372C0BF1E0DA980BDF9 /* AnthropicAnalysisSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0B6D3FD4A595D1E2685189 /* AnthropicAnalysisSource.swift */; };
+		208251CE187378E489E03C27 /* ProviderProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BCFD02E90DADDFDE77DC028 /* ProviderProfile.swift */; };
 		465286B724D2AE0996F1E2A3 /* CloudConsent.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF6B752CEA706B50F5C06FBB /* CloudConsent.swift */; };
 		4652FC68FA2D96BBCEFF334A /* PermissionTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ECA25CFA50888691F8898A5 /* PermissionTypes.swift */; };
 		48FE474195EACEEB14073A6C /* SelectionOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3C69BFFEE65EE03B0736B84 /* SelectionOverlayView.swift */; };
@@ -260,6 +267,9 @@
 		2174C230AB42A3DC35DE08ED /* ShortcutTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ShortcutTests.swift; sourceTree = "<group>"; };
 		219ED40AD8CDD65F3F66854E /* PermissionProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PermissionProvider.swift; sourceTree = "<group>"; };
 		21CECF8D43EDD156E7BEC714 /* OpenAIAnalysisSource.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Core/Providers/OpenAIAnalysisSource.swift; sourceTree = SOURCE_ROOT; };
+		FF0B6D3FD4A595D1E2685189 /* AnthropicAnalysisSource.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Core/Providers/AnthropicAnalysisSource.swift; sourceTree = SOURCE_ROOT; };
+		9BCFD02E90DADDFDE77DC028 /* ProviderProfile.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Core/Providers/ProviderProfile.swift; sourceTree = SOURCE_ROOT; };
+		B8B7EC376E64FD21D8185B22 /* AnthropicAnalysisSourceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AnthropicAnalysisSourceTests.swift; sourceTree = "<group>"; };
 		2312F5032F05B1EDC8973815 /* CaptAIApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CaptAIApp.swift; sourceTree = "<group>"; };
 		23566DB2475256709CCF320D /* MenuBarContent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MenuBarContent.swift; sourceTree = "<group>"; };
 		267420F62D164B494E8348C1 /* PermissionProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PermissionProvider.swift; sourceTree = "<group>"; };
@@ -438,6 +448,8 @@
 				737A5202C7A468D1662A4B27 /* OllamaAnalysisSource.swift */,
 				B157EEBAD0C0B5782435C1F1 /* AnalysisSourceFactory.swift */,
 				21CECF8D43EDD156E7BEC714 /* OpenAIAnalysisSource.swift */,
+				FF0B6D3FD4A595D1E2685189 /* AnthropicAnalysisSource.swift */,
+				9BCFD02E90DADDFDE77DC028 /* ProviderProfile.swift */,
 				0E91070ED3D7388FA4442267 /* ConsentGate.swift */,
 			);
 			name = Providers;
@@ -617,6 +629,7 @@
 				CDFA11033F0A27D54C36F746 /* OllamaAnalysisSourceTests.swift */,
 				67786B7772F5FA32A4AEC32E /* AnalysisSourceFactoryTests.swift */,
 				4CA66656F95147D3DC136920 /* OpenAIAnalysisSourceTests.swift */,
+				B8B7EC376E64FD21D8185B22 /* AnthropicAnalysisSourceTests.swift */,
 				F9F56BD5CC4A2E914FB7E094 /* ConsentGateTests.swift */,
 			);
 			name = captAIUnitTests;
@@ -1325,6 +1338,9 @@
 				6908BCA7D556C486C7E85929 /* ConsentGate.swift in Sources */,
 				862ED06F071082B3BAFDD988 /* OpenAIAnalysisSourceTests.swift in Sources */,
 				A2250ECB25E1D9871A8D718E /* ConsentGateTests.swift in Sources */,
+				E1F19684C8270C4AFB994EAD /* AnthropicAnalysisSource.swift in Sources */,
+				5C61D1234C74ADF2BBACF96F /* ProviderProfile.swift in Sources */,
+				E188E57DECB1E5110C7B1D6B /* AnthropicAnalysisSourceTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1397,6 +1413,8 @@
 				BF07CC187E063E49FAEECDC7 /* AnalysisSourceFactory.swift in Sources */,
 				443212474729A577D0F4513C /* OpenAIAnalysisSource.swift in Sources */,
 				0AF57BD2AA9A27F4B1F0988D /* ConsentGate.swift in Sources */,
+				1DABA77B26B10267F0860255 /* AnthropicAnalysisSource.swift in Sources */,
+				3C87C627E8C6402E3140CE98 /* ProviderProfile.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1466,6 +1484,8 @@
 				10745A4E1D0035553895F96B /* AnalysisSourceFactory.swift in Sources */,
 				4F72F5A332046EE6E3A274E8 /* OpenAIAnalysisSource.swift in Sources */,
 				A8838AE15C4010191FA117E3 /* ConsentGate.swift in Sources */,
+				CC66B372C0BF1E0DA980BDF9 /* AnthropicAnalysisSource.swift in Sources */,
+				208251CE187378E489E03C27 /* ProviderProfile.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
