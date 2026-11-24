@@ -315,6 +315,11 @@ struct ProvidersSettingsPane: View {
             if settings.activeProviderProfileID == profile.id {
                 settings.activeProviderProfileID = settings.providerProfiles.first?.id
             }
+            // Stop legacy migration / factory fallback from bringing the deleted provider back.
+            if settings.providerProfiles.isEmpty {
+                settings.activeProviderProfileID = nil
+                settings.analysisProvider = .mock
+            }
         }
         selectedID = activeID ?? profiles.first?.id
         loadDrafts()

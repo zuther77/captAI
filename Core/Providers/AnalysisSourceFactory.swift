@@ -15,7 +15,12 @@ enum AnalysisSourceFactory {
         if let profile = settings.activeProviderProfile {
             return source(for: profile, secrets: secrets, chatGPTStore: chatGPTStore)
         }
-        // Unmigrated older settings, or nothing configured yet.
+        // Named profiles are the source of truth. An empty list means set-up — never fall through to
+        // leftover legacy fields (those are only for one-shot migration into a profile).
+        if !settings.providerProfiles.isEmpty {
+            return SetupNeededSource()
+        }
+        // Unmigrated older settings (no profiles yet), or nothing configured.
         switch settings.analysisProvider {
         case .mock:
             return SetupNeededSource()

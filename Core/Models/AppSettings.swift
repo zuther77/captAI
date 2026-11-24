@@ -155,6 +155,8 @@ struct AppSettings: Equatable, Codable, Sendable {
     }
 
     /// Moves the older single-provider fields into named profiles once, so existing setups keep working.
+    /// Clears ``analysisProvider`` to `.mock` afterward so deleting every profile cannot resurrect the legacy
+    /// choice on the next launch.
     /// Returns whether anything changed.
     @discardableResult
     mutating func migrateProviderProfilesIfNeeded() -> Bool {
@@ -172,16 +174,19 @@ struct AppSettings: Equatable, Codable, Sendable {
             let profile = ProviderProfile(name: "Ollama", kind: .ollama, endpoint: ollamaEndpoint, model: ollamaModel)
             providerProfiles = [profile]
             activeProviderProfileID = profile.id
+            analysisProvider = .mock
             return true
         case .openAI:
             let profile = ProviderProfile(name: "OpenAI", kind: .openAI, endpoint: openAIEndpoint, model: openAIModel)
             providerProfiles = [profile]
             activeProviderProfileID = profile.id
+            analysisProvider = .mock
             return true
         case .anthropic:
             let profile = ProviderProfile(name: "Anthropic", kind: .anthropic, endpoint: anthropicEndpoint, model: anthropicModel)
             providerProfiles = [profile]
             activeProviderProfileID = profile.id
+            analysisProvider = .mock
             return true
         }
     }

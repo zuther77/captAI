@@ -125,7 +125,37 @@ struct AnalysisSourceFactoryTests {
         #expect(settings.providerProfiles[0].kind == .ollama)
         #expect(settings.providerProfiles[0].model == "gemma4:e4b-mlx")
         #expect(settings.activeProviderProfileID == settings.providerProfiles[0].id)
+        #expect(settings.analysisProvider == .mock)
         let second = settings.migrateProviderProfilesIfNeeded()
         #expect(!second)
+    }
+
+    @Test func deletingEveryProfileDoesNotResurrectLegacyOllama() {
+        var settings = AppSettings()
+        settings.analysisProvider = .ollama
+        settings.ollamaModel = "gemma4:e4b-mlx"
+        let migrated = settings.migrateProviderProfilesIfNeeded()
+        #expect(migrated)
+        settings.providerProfiles = []
+        settings.activeProviderProfileID = nil
+        // Migration already cleared analysisProvider; an empty list must stay empty.
+        let again = settings.migrateProviderProfilesIfNeeded()
+        #expect(!again)
+        #expect(settings.providerProfiles.isEmpty)
+        let source = AnalysisSourceFactory.source(for: settings, secrets: MemorySecretStore())
+        #expect(source.identity.needsSetup)
+    }
+
+    @Test func emptyProfilesWithAStaleLegacyChoiceStillNeedSetupOnceProfilesExistElsewhere() {
+        // Profiles list is authoritative: leftover legacy fields must not drive the assistant
+        // when the user has named profiles but none selected.
+        let orphan = ProviderProfile(name: "Unused", kind: .ollama, model: "x")
+        let source = AnalysisSourceFactory.source(for: Self.settings {
+            $0.providerProfiles = [orphan]
+            $0.activeProviderProfileID = nil
+            $0.analysisProvider = .ollama
+            $0.ollamaModel = "gemma4:e4b-mlx"
+        }, secrets: MemorySecretStore())
+        #expect(source.identity.needsSetup)
     }
 }
