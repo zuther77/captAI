@@ -75,7 +75,7 @@ struct ChatGPTAnalysisSource: AnalysisSource {
         do {
             body = try encodeBody(ResponsesRequest(
                 model: model,
-                input: [.message(role: "user", content: [.text("ping")])],
+                input: [.text(role: "user", text: "ping")],
                 store: false,
                 stream: true
             ))
@@ -162,22 +162,22 @@ struct ChatGPTAnalysisSource: AnalysisSource {
     }
 
     static func input(for request: AnalysisRequest) -> [InputItem] {
+        // Responses / SIWC: text turns use EasyInputMessage (`role` + string `content`). Assistant history
+        // must not use `input_text` parts — that 400s as "provider rejected the request".
         var items: [InputItem] = request.history.map { turn in
-            .message(role: turn.role == .user ? "user" : "assistant", content: [.text(turn.text)])
+            .text(role: turn.role == .user ? "user" : "assistant", text: turn.text)
         }
         let prompt = request.prompt ?? (items.isEmpty ? AnalysisRequest.automaticPrompt : nil)
         if let prompt {
-            var content: [ContentPart] = [.text(prompt)]
             if let image = request.image {
-                content.append(.image(png: image))
+                items.append(.multimodal(role: "user", content: [.text(prompt), .image(png: image)]))
+            } else {
+                items.append(.text(role: "user", text: prompt))
             }
-            items.append(.message(role: "user", content: content))
-        } else if let image = request.image, let index = items.firstIndex(where: {
-            if case .message(let role, _) = $0 { return role == "user" }
-            return false
-        }), case .message(let role, var content) = items[index] {
-            content.append(.image(png: image))
-            items[index] = .message(role: role, content: content)
+        } else if let image = request.image,
+                  let index = items.firstIndex(where: { $0.isUser }),
+                  case .text(let role, let text) = items[index] {
+            items[index] = .multimodal(role: role, content: [.text(text), .image(png: image)])
         }
         return items
     }
@@ -261,15 +261,26 @@ struct ChatGPTAnalysisSource: AnalysisSource {
     }
 
     enum InputItem: Encodable, Equatable {
-        case message(role: String, content: [ContentPart])
+        /// EasyInputMessage: `{ "role": "…", "content": "…" }`.
+        case text(role: String, text: String)
+        /// Multimodal user turn with `input_text` / `input_image` parts.
+        case multimodal(role: String, content: [ContentPart])
 
-        enum CodingKeys: String, CodingKey { case type, role, content }
+        var isUser: Bool {
+            switch self {
+            case .text(let role, _), .multimodal(let role, _): role == "user"
+            }
+        }
+
+        enum CodingKeys: String, CodingKey { case role, content }
 
         func encode(to encoder: any Encoder) throws {
             var container = encoder.container(keyedBy: CodingKeys.self)
             switch self {
-            case .message(let role, let content):
-                try container.encode("message", forKey: .type)
+            case .text(let role, let text):
+                try container.encode(role, forKey: .role)
+                try container.encode(text, forKey: .content)
+            case .multimodal(let role, let content):
                 try container.encode(role, forKey: .role)
                 try container.encode(content, forKey: .content)
             }

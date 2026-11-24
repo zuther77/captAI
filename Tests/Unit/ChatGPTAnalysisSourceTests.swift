@@ -114,6 +114,30 @@ struct ChatGPTAnalysisSourceTests {
         #expect(source.identity.detail == "Sign in with ChatGPT")
     }
 
+    @Test func aFollowUpEncodesAssistantHistoryAsPlainStrings() throws {
+        let request = AnalysisRequest(
+            prompt: "What colour?",
+            metadata: Self.metadata,
+            history: [
+                AnalysisTurn(role: .user, text: AnalysisRequest.automaticPrompt),
+                AnalysisTurn(role: .assistant, text: "A blue button."),
+            ],
+            image: Self.png
+        )
+        let encoded = try JSONEncoder().encode(ChatGPTAnalysisSource.input(for: request))
+        let input = try #require(JSONSerialization.jsonObject(with: encoded) as? [[String: Any]])
+        #expect(input.count == 3)
+        #expect(input[0]["role"] as? String == "user")
+        #expect(input[0]["content"] as? String == AnalysisRequest.automaticPrompt)
+        #expect(input[1]["role"] as? String == "assistant")
+        #expect(input[1]["content"] as? String == "A blue button.")
+        // Assistant history must be a plain string, not input_text parts (SIWC 400s otherwise).
+        #expect((input[1]["content"] as? [[String: Any]]) == nil)
+        #expect(input[2]["role"] as? String == "user")
+        let content = try #require(input[2]["content"] as? [[String: Any]])
+        #expect(content.contains { ($0["type"] as? String) == "input_image" })
+    }
+
     @Test func usageLimitMapsToRateLimited() async {
         let store = MemoryChatGPTSessionStore()
         try? store.save(Self.session())
