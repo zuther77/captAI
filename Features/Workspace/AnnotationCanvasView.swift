@@ -18,46 +18,40 @@ struct AnnotationCanvasView: View {
     private var toolbar: some View {
         HStack(spacing: 6) {
             ForEach(AnnotationTool.allCases, id: \.self) { tool in
-                Button {
+                HoverNamedIconButton(
+                    title: tool.title,
+                    symbolName: tool.symbolName,
+                    isActive: document.tool == tool,
+                    accessibilityID: "annotation.tool.\(tool.rawValue)"
+                ) {
                     document.tool = tool
-                } label: {
-                    Image(systemName: tool.symbolName)
-                        .frame(width: 26, height: 26)
                 }
-                .buttonStyle(.borderless)
-                .background(document.tool == tool ? Color.accentColor.opacity(0.25) : Color.clear, in: .rect(cornerRadius: 6))
-                .help(tool.title)
-                .accessibilityLabel(tool.title)
-                .accessibilityIdentifier("annotation.tool.\(tool.rawValue)")
             }
             Divider().frame(height: 18)
-            Button {
+            HoverNamedIconButton(
+                title: "Undo",
+                symbolName: "arrow.uturn.backward",
+                isEnabled: document.canUndo,
+                accessibilityID: "annotation.undo"
+            ) {
                 document.undo()
-            } label: {
-                Image(systemName: "arrow.uturn.backward").frame(width: 26, height: 26)
             }
-            .buttonStyle(.borderless)
-            .disabled(!document.canUndo)
-            .help("Undo")
-            .accessibilityIdentifier("annotation.undo")
-            Button {
+            HoverNamedIconButton(
+                title: "Redo",
+                symbolName: "arrow.uturn.forward",
+                isEnabled: document.canRedo,
+                accessibilityID: "annotation.redo"
+            ) {
                 document.redo()
-            } label: {
-                Image(systemName: "arrow.uturn.forward").frame(width: 26, height: 26)
             }
-            .buttonStyle(.borderless)
-            .disabled(!document.canRedo)
-            .help("Redo")
-            .accessibilityIdentifier("annotation.redo")
-            Button {
+            HoverNamedIconButton(
+                title: "Delete",
+                symbolName: "trash",
+                isEnabled: document.hasSelection,
+                accessibilityID: "annotation.delete"
+            ) {
                 document.deleteSelected()
-            } label: {
-                Image(systemName: "trash").frame(width: 26, height: 26)
             }
-            .buttonStyle(.borderless)
-            .disabled(!document.hasSelection)
-            .help("Delete selected mark")
-            .accessibilityIdentifier("annotation.delete")
             Spacer(minLength: 4)
             Button("Ask about selection") {
                 onAskAboutSelection()
@@ -75,7 +69,43 @@ struct AnnotationCanvasView: View {
     }
 }
 
+/// Icon control that reveals its name beside the glyph on hover (system `.help` is unreliable in the capture panel).
+private struct HoverNamedIconButton: View {
+    let title: String
+    let symbolName: String
+    var isActive = false
+    var isEnabled = true
+    let accessibilityID: String
+    let action: () -> Void
+
+    @State private var isHovered = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 4) {
+                Image(systemName: symbolName)
+                if isHovered {
+                    Text(title)
+                        .font(.caption.weight(.medium))
+                        .lineLimit(1)
+                }
+            }
+            .frame(minWidth: 26, minHeight: 26)
+            .padding(.horizontal, isHovered ? 4 : 0)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.borderless)
+        .disabled(!isEnabled)
+        .background(isActive ? Color.accentColor.opacity(0.25) : Color.clear, in: .rect(cornerRadius: 6))
+        .onHover { isHovered = $0 }
+        .help(title)
+        .accessibilityLabel(title)
+        .accessibilityIdentifier(accessibilityID)
+    }
+}
+
 /// Hit-testing canvas that maps view points into normalized annotation space.
+/// Drawing tools own the drag; Select leaves empty space to AppKit so the capture window can move.
 private struct CanvasHost: View {
     @Bindable var document: AnnotationDocument
 
@@ -88,27 +118,28 @@ private struct CanvasHost: View {
                 }
             }
             .contentShape(Rectangle())
-            .gesture(
-                DragGesture(minimumDistance: document.tool.createsMark ? 1 : 0)
-                    .onChanged { value in
-                        guard document.tool.createsMark else { return }
-                        let point = normalize(value.location, in: geo.size)
-                        if document.draft == nil {
-                            document.beginStroke(at: point)
-                        } else {
-                            document.updateStroke(to: point)
-                        }
-                    }
-                    .onEnded { value in
-                        if document.tool.createsMark {
-                            document.endStroke()
-                        } else if abs(value.translation.width) < 4, abs(value.translation.height) < 4 {
-                            document.select(at: normalize(value.location, in: geo.size))
-                        }
-                    }
-            )
+            .gesture(document.tool.createsMark ? drawGesture(size: geo.size) : nil)
+            .onTapGesture { location in
+                guard document.tool == .select else { return }
+                document.select(at: normalize(location, in: geo.size))
+            }
         }
         .accessibilityIdentifier("annotation.canvas")
+    }
+
+    private func drawGesture(size: CGSize) -> some Gesture {
+        DragGesture(minimumDistance: 1)
+            .onChanged { value in
+                let point = normalize(value.location, in: size)
+                if document.draft == nil {
+                    document.beginStroke(at: point)
+                } else {
+                    document.updateStroke(to: point)
+                }
+            }
+            .onEnded { _ in
+                document.endStroke()
+            }
     }
 
     private func normalize(_ point: CGPoint, in size: CGSize) -> CGPoint {
@@ -133,9 +164,6 @@ private struct AnnotationShapeView: View {
             )
             ZStack {
                 switch mark.kind {
-                case .rectangle:
-                    Path { $0.addRect(bounds) }
-                        .stroke(color, style: StrokeStyle(lineWidth: selected ? 2.5 : 2))
                 case .highlight:
                     Rectangle()
                         .fill(Color.yellow.opacity(0.35))
@@ -143,11 +171,6 @@ private struct AnnotationShapeView: View {
                         .position(x: bounds.midX, y: bounds.midY)
                     Path { $0.addRect(bounds) }
                         .stroke(color.opacity(0.8), lineWidth: selected ? 2 : 1)
-                case .circle:
-                    Path { path in
-                        path.addEllipse(in: bounds)
-                    }
-                    .stroke(color, style: StrokeStyle(lineWidth: selected ? 2.5 : 2))
                 case .arrow:
                     Path { path in
                         path.move(to: start)

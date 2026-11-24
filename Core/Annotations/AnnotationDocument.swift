@@ -3,30 +3,24 @@ import Foundation
 import Observation
 
 /// Drawing tool for the frozen-capture toolbar.
-enum AnnotationTool: String, CaseIterable, Equatable, Sendable {
+    enum AnnotationTool: String, CaseIterable, Equatable, Sendable {
     case select
-    case circle
-    case rectangle
-    case arrow
     case highlight
+    case arrow
 
     var title: String {
         switch self {
         case .select: "Select"
-        case .circle: "Circle"
-        case .rectangle: "Rectangle"
-        case .arrow: "Arrow"
         case .highlight: "Highlight"
+        case .arrow: "Arrow"
         }
     }
 
     var symbolName: String {
         switch self {
         case .select: "cursorarrow"
-        case .circle: "circle"
-        case .rectangle: "rectangle"
-        case .arrow: "arrow.up.right"
         case .highlight: "highlighter"
+        case .arrow: "arrow.up.right"
         }
     }
 
@@ -63,11 +57,9 @@ final class AnnotationDocument {
             return
         }
         let kind: CaptureAnnotation.Kind = switch tool {
-        case .circle: .circle
-        case .rectangle: .rectangle
-        case .arrow: .arrow
         case .highlight: .highlight
-        case .select: .rectangle
+        case .arrow: .arrow
+        case .select: .highlight
         }
         draft = CaptureAnnotation(kind: kind, start: point, end: point)
         selectedID = draft?.id

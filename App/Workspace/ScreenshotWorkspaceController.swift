@@ -418,10 +418,13 @@ final class FrozenCaptureView: NSView {
         layer?.borderWidth = borderWidth
         updateBorderColor()
 
-        let host = NSHostingView(rootView: AnnotationCanvasView(
-            document: annotations,
-            onAskAboutSelection: onAskAboutSelection
-        ))
+        let host = AnnotationOverlayHost(
+            rootView: AnnotationCanvasView(
+                document: annotations,
+                onAskAboutSelection: onAskAboutSelection
+            ),
+            annotations: annotations
+        )
         host.sizingOptions = []
         host.translatesAutoresizingMaskIntoConstraints = false
         addSubview(host)
@@ -458,6 +461,47 @@ final class FrozenCaptureView: NSView {
     private func updateBorderColor() {
         effectiveAppearance.performAsCurrentDrawingAppearance {
             layer?.borderColor = (customBorderColor ?? NSColor.controlAccentColor.withAlphaComponent(0.85)).cgColor
+        }
+    }
+}
+
+/// Hosts the annotation overlay. With Select active, empty capture area returns no hit so the parent
+/// view can `performDrag` and move the window; the toolbar and marks still receive clicks.
+private final class AnnotationOverlayHost: NSHostingView<AnnotationCanvasView> {
+    private let annotations: AnnotationDocument
+
+    init(rootView: AnnotationCanvasView, annotations: AnnotationDocument) {
+        self.annotations = annotations
+        super.init(rootView: rootView)
+    }
+
+    @available(*, unavailable)
+    required init(rootView: AnnotationCanvasView) {
+        fatalError("Use init(rootView:annotations:)")
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) is not supported")
+    }
+
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        guard annotations.tool == .select else { return super.hitTest(point) }
+        // AppKit origin is bottom-left; the toolbar sits along the bottom edge.
+        let toolbarHeight: CGFloat = 56
+        if point.y <= toolbarHeight { return super.hitTest(point) }
+        let normalized = CGPoint(
+            x: bounds.width > 0 ? point.x / bounds.width : 0,
+            y: bounds.height > 0 ? 1 - (point.y / bounds.height) : 0
+        )
+        if hitsMark(at: normalized) { return super.hitTest(point) }
+        return nil
+    }
+
+    private func hitsMark(at point: CGPoint) -> Bool {
+        let pad: CGFloat = 0.02
+        return annotations.annotations.contains { mark in
+            mark.normalizedBounds.insetBy(dx: -pad, dy: -pad).contains(point)
         }
     }
 }

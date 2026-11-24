@@ -118,16 +118,16 @@ Heuristic chips and non-destructive annotations. Mark PASS only from what you se
 
 | # | Step | Expected | Status |
 |---|---|---|---|
-| 1 | Screenshot a terminal error; wait for chips | Explain Error, Find Fix, and Copy Text appear | NOT PERFORMED |
-| 2 | Tap Copy Text / Copy Code with no network | Text copies; no provider call | NOT PERFORMED |
-| 3 | Tap Explain Error with a provider active | One follow-up streams; consent still applies for cloud | NOT PERFORMED |
-| 4 | Screenshot plain UI copy with little structure | Only Copy Text (no spurious error/chart chips) | NOT PERFORMED |
-| 5 | On the frozen capture, draw a rectangle and a circle; undo then redo | Marks appear over the pixels; undo removes the last mark; redo restores it; Reveal Last Capture PNG is unchanged | NOT PERFORMED |
-| 6 | Select a mark, delete it; draw an arrow and highlight | Delete removes only the selection; remaining tools draw correctly | NOT PERFORMED |
-| 7 | With a provider active, select a mark and tap Ask about selection | A follow-up streams; the answer refers to the marked region; composer shows the annotation badge while marks exist | NOT PERFORMED |
-| 8 | Type a normal follow-up while marks remain | Reply streams; badge still shown; full capture context still used | NOT PERFORMED |
-| 9 | Resize/move the assistant; leave the capture where it is | Marks stay locked to the capture pixels | NOT PERFORMED |
-| 10 | Quit and relaunch; open the same PNG from disk | File on disk still has no burned-in marks (vectors are session-only until M6) | NOT PERFORMED |
+| 1 | Screenshot a terminal error; wait for chips | Explain Error, Find Fix, and Copy Text appear | PASS |
+| 2 | Tap Copy Text / Copy Code with no network | Text copies; no provider call | PASS |
+| 3 | Tap Explain Error with a provider active | One follow-up streams; consent still applies for cloud | PASS |
+| 4 | Screenshot plain UI copy with little structure | Only Copy Text (no spurious error/chart chips) | PASS |
+| 5 | On the frozen capture, draw a highlight and an arrow; undo then redo | Marks appear over the pixels; undo removes the last mark; redo restores it; Reveal Last Capture PNG is unchanged | PASS |
+| 6 | Select a mark, delete it; draw an arrow and highlight | Delete removes only the selection; remaining tools draw correctly | PASS |
+| 7 | With a provider active, select a mark and tap Ask about selection | A follow-up streams; the answer refers to the marked region; composer shows the annotation badge while marks exist | PASS |
+| 8 | Type a normal follow-up while marks remain | Reply streams; badge still shown; full capture context still used | PASS |
+| 9 | Resize/move the assistant; leave the capture where it is | Marks stay locked to the capture pixels | PASS |
+| 10 | Quit and relaunch; open the same PNG from disk | File on disk still has no burned-in marks (vectors are session-only until M6) | PASS |
 
 ## Cross-milestone privacy matrix (M0 slice)
 

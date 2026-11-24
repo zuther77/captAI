@@ -452,7 +452,7 @@ struct ScreenshotWorkspaceModelTests {
         model.start()
         await model.waitUntilSettled()
 
-        model.annotations.tool = .rectangle
+        model.annotations.tool = .highlight
         model.annotations.beginStroke(at: CGPoint(x: 0.1, y: 0.1))
         model.annotations.updateStroke(to: CGPoint(x: 0.5, y: 0.6))
         model.annotations.endStroke()
@@ -475,20 +475,20 @@ struct ScreenshotWorkspaceModelTests {
         model.start()
         await model.waitUntilSettled()
 
-        model.annotations.tool = .circle
+        model.annotations.tool = .highlight
         model.annotations.beginStroke(at: CGPoint(x: 0.2, y: 0.2))
         model.annotations.updateStroke(to: CGPoint(x: 0.4, y: 0.4))
         model.annotations.endStroke()
 
-        model.draft = "What is circled?"
+        model.draft = "What is highlighted?"
         model.send()
         await model.waitUntilSettled()
 
         let followUp = try #require(source.recordedRequests.last)
         #expect(!followUp.imageIsAnnotationCrop)
         #expect(followUp.image == Data([0x89, 0x50, 0x4E, 0x47]))
-        #expect(followUp.prompt?.contains("What is circled?") == true)
-        #expect(followUp.prompt?.contains("circle") == true)
+        #expect(followUp.prompt?.contains("What is highlighted?") == true)
+        #expect(followUp.prompt?.contains("highlight") == true)
     }
 
     @Test func copyTextRunsTheActionOnceAtATime() async {

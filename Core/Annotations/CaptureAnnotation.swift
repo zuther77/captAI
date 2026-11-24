@@ -5,10 +5,8 @@ import Foundation
 /// stay attached to pixels when the panel is resized (Design Spec S2, plan M5).
 struct CaptureAnnotation: Identifiable, Equatable, Codable, Sendable {
     enum Kind: String, Codable, CaseIterable, Sendable {
-        case circle
-        case rectangle
-        case arrow
         case highlight
+        case arrow
     }
 
     let id: UUID

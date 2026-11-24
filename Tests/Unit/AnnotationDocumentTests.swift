@@ -6,12 +6,12 @@ import Testing
 struct AnnotationDocumentTests {
     @Test func drawingCommitsAMarkAndSupportsUndoRedo() {
         let doc = AnnotationDocument()
-        doc.tool = .rectangle
+        doc.tool = .highlight
         doc.beginStroke(at: CGPoint(x: 0.1, y: 0.1))
         doc.updateStroke(to: CGPoint(x: 0.4, y: 0.3))
         doc.endStroke()
         #expect(doc.annotations.count == 1)
-        #expect(doc.annotations[0].kind == .rectangle)
+        #expect(doc.annotations[0].kind == .highlight)
         #expect(doc.canUndo)
         #expect(!doc.canRedo)
 
@@ -25,7 +25,7 @@ struct AnnotationDocumentTests {
 
     @Test func outOfRangePointsClampToUnitSquare() {
         let mark = CaptureAnnotation(
-            kind: .circle,
+            kind: .highlight,
             start: CGPoint(x: -1, y: 2),
             end: CGPoint(x: 1.5, y: -0.5)
         )
@@ -37,13 +37,13 @@ struct AnnotationDocumentTests {
 
     @Test func selectHitsTopmostMarkAndDeleteRemovesIt() {
         let doc = AnnotationDocument()
-        doc.tool = .circle
+        doc.tool = .highlight
         doc.beginStroke(at: CGPoint(x: 0.2, y: 0.2))
         doc.updateStroke(to: CGPoint(x: 0.5, y: 0.5))
         doc.endStroke()
         let firstID = doc.annotations[0].id
 
-        doc.tool = .rectangle
+        doc.tool = .arrow
         doc.beginStroke(at: CGPoint(x: 0.25, y: 0.25))
         doc.updateStroke(to: CGPoint(x: 0.45, y: 0.45))
         doc.endStroke()
@@ -72,7 +72,7 @@ struct AnnotationDocumentTests {
 
     @Test func focusBoundsUnionsMarksOrUsesSelection() throws {
         let doc = AnnotationDocument()
-        doc.tool = .rectangle
+        doc.tool = .highlight
         doc.beginStroke(at: CGPoint(x: 0.0, y: 0.0))
         doc.updateStroke(to: CGPoint(x: 0.2, y: 0.2))
         doc.endStroke()
