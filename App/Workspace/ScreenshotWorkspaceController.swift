@@ -278,7 +278,15 @@ final class AssistantPanel: NSPanel {
         host.sizingOptions = []
         // Focusing the composer would otherwise draw AppKit's square focus ring around the whole window.
         host.focusRingType = .none
-        contentView = host
+
+        // AppKit glass samples the desktop and stays static when the panel is key. SwiftUI `.glassEffect`
+        // drew a faint rim at the curves on activation (product owner, 2026-11-23).
+        let glass = NSGlassEffectView()
+        glass.cornerRadius = 28
+        glass.style = .regular
+        glass.effectIsInteractive = false
+        glass.contentView = host
+        contentView = glass
         setFrame(frame, display: false)
     }
 

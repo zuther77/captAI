@@ -4,10 +4,9 @@ import SwiftUI
 /// The floating assistant (Design Spec S2): one semi-transparent Liquid Glass window holding a header, a reading
 /// card, a composer and a footer.
 ///
-/// The whole assistant sits on a single glass surface, so every label, including the footer, has the window
-/// behind it instead of whatever is on the desktop. Controls inside it are flat rather than glass, because glass
-/// on glass is hard to read. The analysis and conversation sit on a nearly opaque card, which becomes fully
-/// opaque with Reduce Transparency on.
+/// The panel's glass is AppKit `NSGlassEffectView` (non-interactive). Content here is clipped to the same
+/// corner radius. Controls inside are flat rather than glass, because glass on glass is hard to read. The
+/// analysis and conversation sit on a nearly opaque card, which becomes fully opaque with Reduce Transparency.
 struct AssistantView: View {
     let model: ScreenshotWorkspaceModel
 
@@ -27,9 +26,9 @@ struct AssistantView: View {
         .padding(10)
         // Behind everything: any part of the window that is not a control or the reading card drags the window.
         .background(WindowDragHandle())
-        // Glass already gives the edge; a stroke and the AppKit window shadow both drew a hard square outline
-        // around the rounded content (product owner, 2026-11-22).
-        .glassEffect(.regular, in: .rect(cornerRadius: Self.windowRadius))
+        // Window chrome is AppKit `NSGlassEffectView` (non-interactive). SwiftUI `.glassEffect` was removed
+        // because its rim lit up at the curves whenever the panel became key (product owner, 2026-11-23).
+        .clipShape(.rect(cornerRadius: Self.windowRadius))
         .onExitCommand { model.requestClose() }
         .onAppear { composerFocused = true }
         .accessibilityElement(children: .contain)
