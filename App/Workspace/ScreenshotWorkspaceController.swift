@@ -24,6 +24,7 @@ final class ScreenshotWorkspaceController: ScreenshotWorkspacePresenting {
     private var assistant: AssistantPanel?
     private var frozen: FrozenCapturePanel?
     private var screenObserver: (any NSObjectProtocol)?
+    private var spaceObserver: (any NSObjectProtocol)?
     private var previousApplication: NSRunningApplication?
 
     init(
@@ -109,6 +110,14 @@ final class ScreenshotWorkspaceController: ScreenshotWorkspacePresenting {
             // The saved geometry no longer matches the displays, so close rather than show a stray panel.
             MainActor.assumeIsolated { self?.dismiss() }
         }
+        spaceObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.activeSpaceDidChangeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            // Floating + fullScreenAuxiliary can otherwise sit on top of a different full-screen app.
+            MainActor.assumeIsolated { self?.syncSpaceVisibility() }
+        }
 
         frozen.orderFrontRegardless()
         NSApp.activate()
@@ -167,12 +176,38 @@ final class ScreenshotWorkspaceController: ScreenshotWorkspacePresenting {
         }
     }
 
+    /// Shows the workspace only on the Space it belongs to, so it does not block another full-screen app.
+    private func syncSpaceVisibility() {
+        guard model != nil, let frozen, let assistant else { return }
+        let frozenHere = frozen.isOnActiveSpace
+        let assistantHere = assistant.isOnActiveSpace
+        if !frozenHere && !assistantHere {
+            frozen.orderOut(nil)
+            assistant.orderOut(nil)
+            return
+        }
+        if frozenHere {
+            if model?.isCaptureVisible == true { frozen.orderFrontRegardless() }
+        } else {
+            frozen.orderOut(nil)
+        }
+        if assistantHere {
+            assistant.orderFrontRegardless()
+        } else {
+            assistant.orderOut(nil)
+        }
+    }
+
     private func teardown(restoreFocus: Bool) {
         model?.close()
         model = nil
         if let screenObserver {
             NotificationCenter.default.removeObserver(screenObserver)
             self.screenObserver = nil
+        }
+        if let spaceObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(spaceObserver)
+            self.spaceObserver = nil
         }
         for panel in [assistant, frozen] as [NSPanel?] {
             panel?.orderOut(nil)
@@ -233,7 +268,8 @@ final class AssistantPanel: NSPanel {
         isReleasedWhenClosed = false
         animationBehavior = .none
         sharingType = .none
-        collectionBehavior = [.fullScreenAuxiliary, .ignoresCycle]
+        // stationary keeps the panel on the Space where the capture happened (not every full-screen app).
+        collectionBehavior = [.fullScreenAuxiliary, .stationary, .ignoresCycle]
         minSize = NSSize(width: PanelPlacer.minimumWidth, height: PanelPlacer.minimumHeight)
         maxSize = NSSize(width: PanelPlacer.maximumWidth, height: max(maximumHeight, PanelPlacer.minimumHeight))
 
@@ -280,11 +316,13 @@ final class FrozenCapturePanel: NSPanel {
         isOpaque = true
         backgroundColor = .black
         hasShadow = true
+        isMovableByWindowBackground = true
         hidesOnDeactivate = false
         isReleasedWhenClosed = false
         animationBehavior = .none
         sharingType = .none
-        collectionBehavior = [.fullScreenAuxiliary, .ignoresCycle]
+        // stationary keeps the panel on the Space where the capture happened (not every full-screen app).
+        collectionBehavior = [.fullScreenAuxiliary, .stationary, .ignoresCycle]
         contentView = FrozenCaptureView(image: image, scale: scale, borderColor: borderColor, borderWidth: borderWidth)
         setFrame(frame, display: false)
     }
@@ -324,6 +362,14 @@ final class FrozenCaptureView: NSView {
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) is not supported")
+    }
+
+    override var mouseDownCanMoveWindow: Bool { true }
+
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
+    override func mouseDown(with event: NSEvent) {
+        window?.performDrag(with: event)
     }
 
     override func viewDidChangeEffectiveAppearance() {
