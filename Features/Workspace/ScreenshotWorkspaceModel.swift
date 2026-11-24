@@ -40,6 +40,8 @@ final class ScreenshotWorkspaceModel {
     }
 
     let id = UUID()
+    /// Stable library id when this capture is (or will be) in the history DB.
+    let assetID: CaptureAssetID?
     let metadata: CaptureMetadata
     /// Where the PNG was saved, or nil when saving failed.
     let savedURL: URL?
@@ -76,21 +78,29 @@ final class ScreenshotWorkspaceModel {
     @ObservationIgnored private var suggestTask: Task<Void, Never>?
     @ObservationIgnored private var actionTask: Task<Void, Never>?
     @ObservationIgnored private var hasStarted = false
+    /// When true, ``start()`` skips automatic analysis (restored from the library).
+    @ObservationIgnored private let skipAutomaticAnalysis: Bool
 
     init(
         metadata: CaptureMetadata,
         savedURL: URL?,
         imagePNG: Data?,
         appearsBlank: Bool,
+        assetID: CaptureAssetID? = nil,
         sourceProvider: @escaping @MainActor () -> any AnalysisSource,
         consent: ConsentGate? = nil,
         copyText: @escaping @MainActor () async -> Void,
-        recognizeText: (@MainActor () async -> String)? = nil
+        recognizeText: (@MainActor () async -> String)? = nil,
+        restoredAnalysis: Analysis = .idle,
+        restoredMessages: [Message] = [],
+        restoredAnnotations: [CaptureAnnotation] = [],
+        skipAutomaticAnalysis: Bool = false
     ) {
         self.metadata = metadata
         self.savedURL = savedURL
         self.imagePNG = imagePNG
         self.appearsBlank = appearsBlank
+        self.assetID = assetID
         self.sourceProvider = sourceProvider
         self.consent = consent
         let initial = sourceProvider()
@@ -98,6 +108,13 @@ final class ScreenshotWorkspaceModel {
         self.identity = initial.identity
         self.copyTextAction = copyText
         self.recognizeTextAction = recognizeText
+        self.skipAutomaticAnalysis = skipAutomaticAnalysis
+        self.analysis = restoredAnalysis
+        self.messages = restoredMessages
+        if !restoredAnnotations.isEmpty {
+            annotations.replaceAll(restoredAnnotations)
+        }
+        if skipAutomaticAnalysis { hasStarted = true }
     }
 
     /// Asks the provider for the source to use for the next request.
@@ -143,6 +160,7 @@ final class ScreenshotWorkspaceModel {
         hasStarted = true
         refreshSuggestions()
         guard !appearsBlank else { return }
+        guard !skipAutomaticAnalysis else { return }
         refreshSource()
         guard !identity.needsSetup else { return }
         runAnalysis()

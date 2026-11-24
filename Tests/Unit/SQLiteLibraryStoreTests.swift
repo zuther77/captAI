@@ -92,7 +92,7 @@ struct SQLiteLibraryStoreTests {
         #expect(loaded?.1 == messages)
         #expect(try store.fetchAnnotations(for: asset.id) == marks)
 
-        try store.deleteCapture(id: asset.id)
+        try store.deleteCapture(id: asset.id, deleteFile: false)
         #expect(try store.fetchCapture(id: asset.id) == nil)
         #expect(try store.fetchConversation(for: asset.id) == nil)
         #expect(try store.fetchAnnotations(for: asset.id).isEmpty)
@@ -102,7 +102,7 @@ struct SQLiteLibraryStoreTests {
         let (store, _) = try tempStore()
         let asset = sampleAsset()
         try store.upsert(asset)
-        try store.deleteCapture(id: asset.id)
+        try store.deleteCapture(id: asset.id, deleteFile: true)
         #expect(try store.fetchCaptures(limit: 5).isEmpty)
     }
 }

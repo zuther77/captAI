@@ -114,13 +114,24 @@ final class SQLiteLibraryStore: LibraryStore, @unchecked Sendable {
         }
     }
 
-    func deleteCapture(id: CaptureAssetID) throws {
-        try withDB { db in
+    func deleteCapture(id: CaptureAssetID, deleteFile: Bool) throws {
+        let path: String? = try withDB { db in
+            var filePath: String?
+            try query(
+                "SELECT file_path FROM capture_assets WHERE id = ?;",
+                db: db,
+                binders: { self.bind($0, 1, id.rawValue.uuidString) },
+                row: { stmt in filePath = self.text(stmt, 0) }
+            )
             try exec(
                 "DELETE FROM capture_assets WHERE id = ?;",
                 db: db,
                 binders: { self.bind($0, 1, id.rawValue.uuidString) }
             )
+            return filePath
+        }
+        if deleteFile, let path {
+            try? FileManager.default.removeItem(atPath: path)
         }
     }
 

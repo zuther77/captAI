@@ -12,12 +12,15 @@ import SwiftUI
 final class ScreenshotWorkspaceController: ScreenshotWorkspacePresenting {
     /// Opens Settings > Providers. Set after the window coordinator exists.
     var openProviders: (@MainActor () -> Void)?
+    /// Called after the library changes so an open Library window can refresh.
+    var onLibraryChanged: (@MainActor () -> Void)?
 
     private let analysisProvider: @MainActor () -> any AnalysisSource
     private let textCopier: any TextCopying
     private let feedback: any CaptureFeedback
     private let settings: @MainActor () -> AppSettings
     private let rememberCloudApproval: @MainActor (String) -> Void
+    private let library: (any LibraryStore)?
     private let diagnostics: Diagnostics
 
     private var model: ScreenshotWorkspaceModel?
@@ -33,6 +36,7 @@ final class ScreenshotWorkspaceController: ScreenshotWorkspacePresenting {
         feedback: any CaptureFeedback,
         settings: @escaping @MainActor () -> AppSettings,
         rememberCloudApproval: @escaping @MainActor (String) -> Void,
+        library: (any LibraryStore)? = nil,
         diagnostics: Diagnostics
     ) {
         self.analysisProvider = analysisProvider
@@ -40,6 +44,7 @@ final class ScreenshotWorkspaceController: ScreenshotWorkspacePresenting {
         self.feedback = feedback
         self.settings = settings
         self.rememberCloudApproval = rememberCloudApproval
+        self.library = library
         self.diagnostics = diagnostics
     }
 
@@ -50,6 +55,75 @@ final class ScreenshotWorkspaceController: ScreenshotWorkspacePresenting {
     // MARK: Presenting
 
     func present(_ capture: CapturedImage, savedAt: URL?, appearsBlank: Bool) {
+        let assetID = CaptureAssetID()
+        if let savedAt, let library {
+            do {
+                try WorkspaceLibrarySync.upsertCapture(
+                    id: assetID,
+                    metadata: capture.metadata,
+                    fileURL: savedAt,
+                    into: library
+                )
+                onLibraryChanged?()
+                NotificationCenter.default.post(name: .captAILibraryDidChange, object: nil)
+            } catch {
+                diagnostics.error(.windows, "library.upsertFailed", error: error as? AppError ?? .libraryFailed)
+            }
+        }
+        presentSession(
+            capture: capture,
+            savedAt: savedAt,
+            appearsBlank: appearsBlank,
+            assetID: savedAt == nil ? nil : assetID,
+            restoredAnalysis: .idle,
+            restoredMessages: [],
+            restoredAnnotations: [],
+            skipAutomaticAnalysis: false
+        )
+    }
+
+    /// Reopens a saved capture from the library with prior chat and marks.
+    func presentFromLibrary(assetID: CaptureAssetID) {
+        guard let library else { return }
+        do {
+            guard let asset = try library.fetchCapture(id: assetID),
+                  let image = WorkspaceLibrarySync.loadImage(at: asset.filePath)
+            else {
+                feedback.present(.libraryFailed)
+                return
+            }
+            let chat = try library.fetchConversation(for: assetID)
+            let restored = chat.map { WorkspaceLibrarySync.restoreChat(from: $0.1) }
+            let marks = try library.fetchAnnotations(for: assetID).map {
+                CaptureAnnotation(id: $0.id.rawValue, kind: $0.kind, start: $0.start, end: $0.end)
+            }
+            let capture = CapturedImage(image: image, metadata: WorkspaceLibrarySync.metadata(from: asset))
+            presentSession(
+                capture: capture,
+                savedAt: URL(fileURLWithPath: asset.filePath),
+                appearsBlank: ImageBlankDetector.isBlank(image),
+                assetID: assetID,
+                restoredAnalysis: restored?.analysis ?? .idle,
+                restoredMessages: restored?.messages ?? [],
+                restoredAnnotations: marks,
+                skipAutomaticAnalysis: true
+            )
+        } catch {
+            diagnostics.error(.windows, "library.openFailed", error: error as? AppError ?? .libraryFailed)
+            feedback.present(.libraryFailed)
+        }
+    }
+
+    private func presentSession(
+        capture: CapturedImage,
+        savedAt: URL?,
+        appearsBlank: Bool,
+        assetID: CaptureAssetID?,
+        restoredAnalysis: ScreenshotWorkspaceModel.Analysis,
+        restoredMessages: [ScreenshotWorkspaceModel.Message],
+        restoredAnnotations: [CaptureAnnotation],
+        skipAutomaticAnalysis: Bool
+    ) {
         let carriedApplication = previousApplication
         teardown(restoreFocus: false)
 
@@ -68,6 +142,7 @@ final class ScreenshotWorkspaceController: ScreenshotWorkspacePresenting {
             savedURL: savedAt,
             imagePNG: capture.image.pngData(),
             appearsBlank: appearsBlank,
+            assetID: assetID,
             sourceProvider: analysisProvider,
             consent: ConsentGate(
                 policy: { [weak self] in self?.settings().cloudConsentPolicy ?? .askEveryTime },
@@ -84,7 +159,11 @@ final class ScreenshotWorkspaceController: ScreenshotWorkspacePresenting {
             recognizeText: { [weak self] in
                 guard let self else { return "" }
                 return await textCopier.recognizedText(from: capture, settings: settings())
-            }
+            },
+            restoredAnalysis: restoredAnalysis,
+            restoredMessages: restoredMessages,
+            restoredAnnotations: restoredAnnotations,
+            skipAutomaticAnalysis: skipAutomaticAnalysis
         )
         model.onEvent = { [weak self] event in self?.handle(event) }
         self.model = model
@@ -214,6 +293,7 @@ final class ScreenshotWorkspaceController: ScreenshotWorkspacePresenting {
     }
 
     private func teardown(restoreFocus: Bool) {
+        persistOpenSession()
         model?.close()
         model = nil
         if let screenObserver {
@@ -234,6 +314,24 @@ final class ScreenshotWorkspaceController: ScreenshotWorkspacePresenting {
             _ = previous.activate(from: NSRunningApplication.current)
         }
         if restoreFocus { previousApplication = nil }
+    }
+
+    private func persistOpenSession() {
+        guard let model, let assetID = model.assetID, let library else { return }
+        do {
+            try WorkspaceLibrarySync.persistSession(
+                assetID: assetID,
+                analysis: model.analysis,
+                messages: model.messages,
+                annotations: model.annotations.annotations,
+                identityAttribution: ScreenshotWorkspaceModel.attribution(of: model.identity),
+                into: library
+            )
+            onLibraryChanged?()
+            NotificationCenter.default.post(name: .captAILibraryDidChange, object: nil)
+        } catch {
+            diagnostics.error(.windows, "library.persistFailed", error: error as? AppError ?? .libraryFailed)
+        }
     }
 }
 
