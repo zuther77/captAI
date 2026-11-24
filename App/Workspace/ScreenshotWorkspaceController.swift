@@ -101,6 +101,7 @@ final class ScreenshotWorkspaceController: ScreenshotWorkspacePresenting {
         self.frozen = frozen
         self.assistant = assistant
         applyLevels(pinned: model.isPinned)
+        applyScreenSharing(allowCapture: preferences.allowWorkspaceScreenCapture)
 
         screenObserver = NotificationCenter.default.addObserver(
             forName: NSApplication.didChangeScreenParametersNotification,
@@ -174,6 +175,14 @@ final class ScreenshotWorkspaceController: ScreenshotWorkspacePresenting {
             frozen?.level = .normal
             assistant?.level = .normal
         }
+    }
+
+    /// Lets macOS screenshot/recording tools include the workspace when enabled in Privacy settings.
+    /// captAI’s own captures still exclude these windows by ID.
+    func applyScreenSharing(allowCapture: Bool) {
+        let sharing: NSWindow.SharingType = allowCapture ? .readOnly : .none
+        assistant?.sharingType = sharing
+        frozen?.sharingType = sharing
     }
 
     /// Shows the workspace only on the Space it belongs to, so it does not block another full-screen app.
@@ -267,6 +276,7 @@ final class AssistantPanel: NSPanel {
         hidesOnDeactivate = false
         isReleasedWhenClosed = false
         animationBehavior = .none
+        // Default hidden from system capture; ``applyScreenSharing`` may open this for demos.
         sharingType = .none
         // stationary keeps the panel on the Space where the capture happened (not every full-screen app).
         collectionBehavior = [.fullScreenAuxiliary, .stationary, .ignoresCycle]
@@ -328,6 +338,7 @@ final class FrozenCapturePanel: NSPanel {
         hidesOnDeactivate = false
         isReleasedWhenClosed = false
         animationBehavior = .none
+        // Default hidden from system capture; ``applyScreenSharing`` may open this for demos.
         sharingType = .none
         // stationary keeps the panel on the Space where the capture happened (not every full-screen app).
         collectionBehavior = [.fullScreenAuxiliary, .stationary, .ignoresCycle]

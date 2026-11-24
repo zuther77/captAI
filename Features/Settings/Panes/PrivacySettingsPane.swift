@@ -56,6 +56,20 @@ struct PrivacySettingsPane: View {
             } footer: {
                 Text("Off by default. When off, Quick Copy keeps nothing but the text on your clipboard.")
             }
+
+            Section {
+                Toggle("Allow screenshots and recordings of the assistant", isOn: Binding(
+                    get: { model.settings.allowWorkspaceScreenCapture },
+                    set: { value in model.update { $0.allowWorkspaceScreenCapture = value } }
+                ))
+                .accessibilityIdentifier("settings.privacy.workspaceCapture")
+            } header: {
+                Text("Workspace capture")
+            } footer: {
+                Text(model.settings.allowWorkspaceScreenCapture
+                    ? "macOS screenshot and screen-recording tools can include the frozen capture and assistant. captAI’s own captures still leave them out."
+                    : "Off by default. The frozen capture and assistant stay out of macOS screenshots and recordings (⌘⇧3 / ⌘⇧4 / ⌘⇧5).")
+            }
         }
         .formStyle(.grouped)
         .accessibilityIdentifier("settings.pane.privacy")

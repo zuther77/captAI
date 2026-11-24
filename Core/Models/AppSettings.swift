@@ -125,6 +125,9 @@ struct AppSettings: Equatable, Codable, Sendable {
     var cloudConsentPolicy: CloudConsentPolicy = .askEveryTime
     /// Quick Copy history is off by default (PRD FR-O04).
     var saveQuickCopyToHistory = false
+    /// When false (default), the assistant and frozen capture use `sharingType = .none` so macOS
+    /// screenshots/recordings skip them. Turn on for demos so ⌘⇧3/4/5 can capture the workspace.
+    var allowWorkspaceScreenCapture = false
 
     static let overlayDimRange: ClosedRange<Double> = 0.30...0.40
     static let captureBorderWidthRange: ClosedRange<Double> = 0...8
@@ -218,6 +221,7 @@ struct AppSettings: Equatable, Codable, Sendable {
         recordMicrophone = try container.decodeIfPresent(Bool.self, forKey: .recordMicrophone) ?? defaults.recordMicrophone
         cloudConsentPolicy = try container.decodeIfPresent(CloudConsentPolicy.self, forKey: .cloudConsentPolicy) ?? defaults.cloudConsentPolicy
         saveQuickCopyToHistory = try container.decodeIfPresent(Bool.self, forKey: .saveQuickCopyToHistory) ?? defaults.saveQuickCopyToHistory
+        allowWorkspaceScreenCapture = try container.decodeIfPresent(Bool.self, forKey: .allowWorkspaceScreenCapture) ?? defaults.allowWorkspaceScreenCapture
         analysisProvider = try container.decodeIfPresent(AnalysisProviderChoice.self, forKey: .analysisProvider) ?? defaults.analysisProvider
         ollamaModel = try container.decodeIfPresent(String.self, forKey: .ollamaModel) ?? defaults.ollamaModel
         ollamaEndpoint = try container.decodeIfPresent(String.self, forKey: .ollamaEndpoint) ?? defaults.ollamaEndpoint

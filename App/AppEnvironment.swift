@@ -90,6 +90,10 @@ final class AppEnvironment {
         let factory = AppKitWindowFactory(settings: settings, navigation: navigation, permissions: permissions, shortcuts: shortcuts, secrets: secrets, chatGPTStore: chatGPTStore)
         let windows = WindowCoordinator(factory: factory, navigation: navigation, diagnostics: diagnostics)
         workspace.openProviders = { windows.showSettings(pane: .providers) }
+        settings.onSettingsSaved = { [shortcuts, workspace] saved in
+            shortcuts.apply(saved)
+            workspace.applyScreenSharing(allowCapture: saved.allowWorkspaceScreenCapture)
+        }
         return AppEnvironment(
             diagnostics: diagnostics,
             settings: settings,
@@ -100,9 +104,8 @@ final class AppEnvironment {
         )
     }
 
-    /// Registers the global shortcuts and keeps them in step with later settings changes.
+    /// Registers the global shortcuts. Later settings changes are already wired in ``live()``.
     func startShortcuts() {
         shortcuts.start(with: settings.settings)
-        settings.onSettingsSaved = { [shortcuts] saved in shortcuts.apply(saved) }
     }
 }

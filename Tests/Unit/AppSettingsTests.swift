@@ -13,6 +13,7 @@ struct AppSettingsTests {
         #expect(settings.cloudConsentPolicy == .askEveryTime)
         // PRD FR-O04: Quick Copy history is off by default.
         #expect(settings.saveQuickCopyToHistory == false)
+        #expect(settings.allowWorkspaceScreenCapture == false)
         #expect(settings.recordSystemAudio == false)
         #expect(settings.recordMicrophone == false)
         #expect(settings.screenshotFolderPath == nil)
@@ -45,6 +46,7 @@ struct AppSettingsTests {
         settings.recordMicrophone = true
         settings.cloudConsentPolicy = .localOnly
         settings.saveQuickCopyToHistory = true
+        settings.allowWorkspaceScreenCapture = true
         settings.analysisProvider = .ollama
         settings.ollamaModel = "gemma4:e4b-mlx"
         settings.ollamaEndpoint = "http://127.0.0.1:11500"

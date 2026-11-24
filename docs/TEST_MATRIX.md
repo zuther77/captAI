@@ -6,7 +6,7 @@ Status values: **PASS**, **FAIL**, **NOT PERFORMED** (no one has run it), **BLOC
 
 | Suite | Command | Result |
 |---|---|---|
-| Unit (308 tests, 33 suites) | `scripts/test.sh unit` | PASS (2026-11-23, empty-provider Ollama resurrection fix; Keychain tests need a non-sandbox run, KI-025) |
+| Unit (308 tests, 33 suites) | `scripts/test.sh unit` | PASS (2026-11-23, workspace screen-capture Privacy toggle; Keychain tests need a non-sandbox run, KI-025) |
 | Integration (17 tests, 3 suites) | `scripts/test.sh integration` | PASS (2026-11-20, M3 branch; same note) |
 | UI (6 tests) | `scripts/test.sh ui` | PASS on M0 and M1 (2026-11-18), on M2 (2026-11-19) and on M3 (2026-11-20), all on the product owner's Mac. |
 | Debug build, warnings as errors | `scripts/build.sh Debug` | PASS (2026-11-20, M3 branch) |
