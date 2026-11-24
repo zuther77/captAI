@@ -95,7 +95,9 @@ final class ScreenshotWorkspaceController: ScreenshotWorkspacePresenting {
             scale: capture.metadata.backingScale,
             frame: captureRect,
             borderColor: preferences.captureBorderColor?.nsColor,
-            borderWidth: preferences.clampedCaptureBorderWidth
+            borderWidth: preferences.clampedCaptureBorderWidth,
+            annotations: model.annotations,
+            onAskAboutSelection: { [weak model] in model?.askAboutSelection() }
         )
         let assistant = AssistantPanel(frame: placement.frame, maximumHeight: visible.height, model: model)
         assistant.onCancel = { [weak model] in model?.requestClose() }
@@ -338,7 +340,15 @@ final class FrozenCapturePanel: NSPanel {
     override var canBecomeMain: Bool { false }
 
     @MainActor
-    init(image: CGImage, scale: CGFloat, frame: CGRect, borderColor: NSColor?, borderWidth: CGFloat) {
+    init(
+        image: CGImage,
+        scale: CGFloat,
+        frame: CGRect,
+        borderColor: NSColor?,
+        borderWidth: CGFloat,
+        annotations: AnnotationDocument,
+        onAskAboutSelection: @escaping () -> Void
+    ) {
         super.init(
             contentRect: frame,
             styleMask: [.borderless, .nonactivatingPanel],
@@ -356,7 +366,14 @@ final class FrozenCapturePanel: NSPanel {
         sharingType = .none
         // stationary keeps the panel on the Space where the capture happened (not every full-screen app).
         collectionBehavior = [.fullScreenAuxiliary, .stationary, .ignoresCycle]
-        contentView = FrozenCaptureView(image: image, scale: scale, borderColor: borderColor, borderWidth: borderWidth)
+        contentView = FrozenCaptureView(
+            image: image,
+            scale: scale,
+            borderColor: borderColor,
+            borderWidth: borderWidth,
+            annotations: annotations,
+            onAskAboutSelection: onAskAboutSelection
+        )
         setFrame(frame, display: false)
     }
 
@@ -376,14 +393,23 @@ private extension NSEvent {
     }
 }
 
-/// Draws the capture pixel for pixel, with an outline so it reads as a frozen region. The outline is drawn
+/// Draws the capture pixel for pixel, with an annotation overlay and a small toolbar. The outline is drawn
 /// inside the capture's bounds, so the window stays exactly where the capture was taken. `borderColor` nil
-/// means the system accent color.
+/// means the system accent color. Marks never rewrite the PNG on disk.
 final class FrozenCaptureView: NSView {
     private let customBorderColor: NSColor?
+    private let annotations: AnnotationDocument
 
-    init(image: CGImage, scale: CGFloat, borderColor: NSColor?, borderWidth: CGFloat) {
+    init(
+        image: CGImage,
+        scale: CGFloat,
+        borderColor: NSColor?,
+        borderWidth: CGFloat,
+        annotations: AnnotationDocument,
+        onAskAboutSelection: @escaping () -> Void
+    ) {
         customBorderColor = borderColor
+        self.annotations = annotations
         super.init(frame: .zero)
         wantsLayer = true
         layer?.contents = image
@@ -391,18 +417,37 @@ final class FrozenCaptureView: NSView {
         layer?.contentsScale = scale
         layer?.borderWidth = borderWidth
         updateBorderColor()
+
+        let host = NSHostingView(rootView: AnnotationCanvasView(
+            document: annotations,
+            onAskAboutSelection: onAskAboutSelection
+        ))
+        host.sizingOptions = []
+        host.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(host)
+        NSLayoutConstraint.activate([
+            host.leadingAnchor.constraint(equalTo: leadingAnchor),
+            host.trailingAnchor.constraint(equalTo: trailingAnchor),
+            host.topAnchor.constraint(equalTo: topAnchor),
+            host.bottomAnchor.constraint(equalTo: bottomAnchor),
+        ])
     }
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) is not supported")
     }
 
-    override var mouseDownCanMoveWindow: Bool { true }
+    /// Drag to move only with the Select tool so drawing gestures are not stolen.
+    override var mouseDownCanMoveWindow: Bool { annotations.tool == .select }
 
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
     override func mouseDown(with event: NSEvent) {
-        window?.performDrag(with: event)
+        if annotations.tool == .select {
+            window?.performDrag(with: event)
+        } else {
+            super.mouseDown(with: event)
+        }
     }
 
     override func viewDidChangeEffectiveAppearance() {

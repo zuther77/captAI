@@ -258,6 +258,13 @@ struct AssistantView: View {
 
     private var composer: some View {
         HStack(alignment: .center, spacing: 8) {
+            if !model.annotations.annotations.isEmpty {
+                Image(systemName: "pencil.and.outline")
+                    .foregroundStyle(.secondary)
+                    .help("Marks on the capture will be described to the provider with this message.")
+                    .accessibilityLabel("Annotations attached")
+                    .accessibilityIdentifier("workspace.annotationBadge")
+            }
             TextField("Ask about this screenshot", text: Binding(get: { model.draft }, set: { model.draft = $0 }), axis: .vertical)
                 .textFieldStyle(.plain)
                 .focusEffectDisabled()

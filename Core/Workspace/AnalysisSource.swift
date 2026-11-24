@@ -11,6 +11,8 @@ struct AnalysisRequest: Sendable {
     var history: [AnalysisTurn] = []
     /// The capture as PNG data, for sources that accept images. Nil for the mock.
     var image: Data?
+    /// True when `image` is a crop of a marked region rather than the full capture (M5 region-aware ask).
+    var imageIsAnnotationCrop: Bool = false
 }
 
 /// One earlier message in the assistant conversation, sent back to a source for follow-ups.

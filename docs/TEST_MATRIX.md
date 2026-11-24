@@ -6,11 +6,11 @@ Status values: **PASS**, **FAIL**, **NOT PERFORMED** (no one has run it), **BLOC
 
 | Suite | Command | Result |
 |---|---|---|
-| Unit (318 tests, 34 suites) | `scripts/test.sh unit` | PASS (2026-11-23, M5 action chips; Keychain tests need a non-sandbox run, KI-025) |
-| Integration (17 tests, 3 suites) | `scripts/test.sh integration` | PASS (2026-11-23, M4 gate) |
+| Unit (330 tests, 36 suites) | `scripts/test.sh unit` | PASS (2026-11-24, M5 annotations; Keychain OK outside agent sandbox, KI-025) |
+| Integration (17 tests, 3 suites) | `scripts/test.sh integration` | PASS (2026-11-24, M5 gate) |
 | UI (6 tests) | `scripts/test.sh ui` | PASS on M0–M3 (product owner's Mac) and on M4 (2026-11-23). |
-| Debug build, warnings as errors | `scripts/build.sh Debug` | PASS (2026-11-23, M4 gate) |
-| Release build, warnings as errors | `scripts/build.sh Release` | PASS (2026-11-23, M4 gate) |
+| Debug build, warnings as errors | `scripts/build.sh Debug` | PASS (2026-11-24, M5 gate) |
+| Release build, warnings as errors | `scripts/build.sh Release` | PASS (2026-11-24, M5 gate) |
 
 ## Manual: M0 (real Mac)
 
@@ -114,7 +114,7 @@ Providers, consent, Stop, and the set-up empty state. The agent cannot observe a
 
 ## Manual: M5 (real Mac)
 
-Heuristic chips and (later) annotations. Mark PASS only from what you see.
+Heuristic chips and non-destructive annotations. Mark PASS only from what you see. Run `scripts/run.sh`.
 
 | # | Step | Expected | Status |
 |---|---|---|---|
@@ -122,6 +122,12 @@ Heuristic chips and (later) annotations. Mark PASS only from what you see.
 | 2 | Tap Copy Text / Copy Code with no network | Text copies; no provider call | NOT PERFORMED |
 | 3 | Tap Explain Error with a provider active | One follow-up streams; consent still applies for cloud | NOT PERFORMED |
 | 4 | Screenshot plain UI copy with little structure | Only Copy Text (no spurious error/chart chips) | NOT PERFORMED |
+| 5 | On the frozen capture, draw a rectangle and a circle; undo then redo | Marks appear over the pixels; undo removes the last mark; redo restores it; Reveal Last Capture PNG is unchanged | NOT PERFORMED |
+| 6 | Select a mark, delete it; draw an arrow and highlight | Delete removes only the selection; remaining tools draw correctly | NOT PERFORMED |
+| 7 | With a provider active, select a mark and tap Ask about selection | A follow-up streams; the answer refers to the marked region; composer shows the annotation badge while marks exist | NOT PERFORMED |
+| 8 | Type a normal follow-up while marks remain | Reply streams; badge still shown; full capture context still used | NOT PERFORMED |
+| 9 | Resize/move the assistant; leave the capture where it is | Marks stay locked to the capture pixels | NOT PERFORMED |
+| 10 | Quit and relaunch; open the same PNG from disk | File on disk still has no burned-in marks (vectors are session-only until M6) | NOT PERFORMED |
 
 ## Cross-milestone privacy matrix (M0 slice)
 

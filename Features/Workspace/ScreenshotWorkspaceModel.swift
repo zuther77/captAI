@@ -60,6 +60,8 @@ final class ScreenshotWorkspaceModel {
     private(set) var isCopyingText = false
     /// Heuristic chips from OCR (M5). Empty until recognition finishes or when the capture is blank.
     private(set) var suggestedActions: [ScreenshotAction] = []
+    /// Vector marks on the frozen capture. Shared with the capture overlay; never rewrites the PNG on disk.
+    let annotations = AnnotationDocument()
     var draft = ""
 
     @ObservationIgnored var onEvent: (@MainActor (Event) -> Void)?
@@ -252,16 +254,32 @@ final class ScreenshotWorkspaceModel {
     }
 
     func send() {
-        let prompt = draft.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard canSend else { return }
+        send(prompt: draft.trimmingCharacters(in: .whitespacesAndNewlines), preferCrop: false)
+    }
+
+    /// Asks about the selected mark (or all marks), sending a crop when possible so the model sees the region.
+    func askAboutSelection() {
+        guard !isClosed, !identity.needsSetup else { return }
+        guard annotations.focusBounds != nil else { return }
+        let prompt = "Explain what is inside the marked region(s) on this screenshot."
+        send(prompt: prompt, preferCrop: true)
+    }
+
+    private func send(prompt: String, preferCrop: Bool) {
+        guard !isClosed, !isResponding, !isAnalyzing, !identity.needsSetup else { return }
+        let trimmed = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
         draft = ""
+        let appendix = annotations.promptAppendix()
+        let fullPrompt = appendix.isEmpty ? trimmed : trimmed + "\n\n" + appendix
         // History is built before the new turns are appended, so the prompt is not sent twice.
         let history = conversationHistory()
-        messages.append(Message(id: UUID(), role: .user, text: prompt, status: .complete))
+        messages.append(Message(id: UUID(), role: .user, text: trimmed, status: .complete))
         let replyID = UUID()
         refreshSource()
         messages.append(Message(id: replyID, role: .assistant, text: "", status: .streaming, provider: Self.attribution(of: identity)))
 
+        let (image, isCrop) = imagePayload(preferCrop: preferCrop)
         replyTask = Task { [weak self] in
             guard let self else { return }
             if let error = await self.ensureConsent() {
@@ -269,10 +287,11 @@ final class ScreenshotWorkspaceModel {
                 return
             }
             let stream = self.source.analyze(AnalysisRequest(
-                prompt: prompt,
+                prompt: fullPrompt,
                 metadata: self.metadata,
                 history: history,
-                image: self.imagePNG
+                image: image,
+                imageIsAnnotationCrop: isCrop
             ))
             var text = ""
             do {
@@ -288,6 +307,15 @@ final class ScreenshotWorkspaceModel {
                 self.update(replyID, text: text, status: .failed(Self.appError(from: error)))
             }
         }
+    }
+
+    /// Full capture by default; a cropped PNG when asking about a mark and a crop can be made.
+    private func imagePayload(preferCrop: Bool) -> (Data?, Bool) {
+        guard let imagePNG else { return (nil, false) }
+        if preferCrop, let bounds = annotations.focusBounds, let crop = ImageCropper.cropPNG(imagePNG, normalizedRect: bounds) {
+            return (crop, true)
+        }
+        return (imagePNG, false)
     }
 
     /// Returns an error when the request must not proceed; nil when it may be sent.
