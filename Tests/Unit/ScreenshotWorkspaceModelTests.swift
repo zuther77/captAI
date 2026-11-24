@@ -18,7 +18,8 @@ struct ScreenshotWorkspaceModelTests {
         source: FakeAnalysisSource = FakeAnalysisSource(),
         blank: Bool = false,
         savedURL: URL? = URL(fileURLWithPath: "/tmp/captAI-tests/shots/capture.png"),
-        copy: @escaping @MainActor () async -> Void = {}
+        copy: @escaping @MainActor () async -> Void = {},
+        recognize: (@MainActor () async -> String)? = nil
     ) -> ScreenshotWorkspaceModel {
         ScreenshotWorkspaceModel(
             metadata: Self.metadata,
@@ -26,7 +27,8 @@ struct ScreenshotWorkspaceModelTests {
             imagePNG: Data([0x89, 0x50, 0x4E, 0x47]),
             appearsBlank: blank,
             sourceProvider: { source },
-            copyText: copy
+            copyText: copy,
+            recognizeText: recognize
         )
     }
 
@@ -395,6 +397,99 @@ struct ScreenshotWorkspaceModelTests {
     }
 
     // MARK: Copy Text
+
+    @Test func errorOCRSuggestsExplainAndFindFixChips() async {
+        let model = makeModel(recognize: { "Error: connection refused\nTraceback (most recent call last):" })
+        model.start()
+        await model.waitUntilSettled()
+        let kinds = model.suggestedActions.map(\.kind)
+        #expect(kinds.contains(.explainError))
+        #expect(kinds.contains(.findFix))
+        #expect(kinds.contains(.copyText))
+    }
+
+    @Test func aCopyChipNeverCallsTheModel() async {
+        var copies = 0
+        let source = FakeAnalysisSource()
+        let model = makeModel(source: source, copy: { copies += 1 }, recognize: { "hello" })
+        model.start()
+        await model.waitUntilSettled()
+        let before = source.recordedRequests.count
+        model.perform(ScreenshotAction(kind: .copyText))
+        await model.waitUntilSettled()
+        #expect(copies == 1)
+        #expect(source.recordedRequests.count == before)
+    }
+
+    @Test func anExplainChipSendsOneFollowUpPrompt() async {
+        let source = FakeAnalysisSource()
+        let model = makeModel(source: source, recognize: { "Error: boom" })
+        model.start()
+        await model.waitUntilSettled()
+        let before = source.recordedRequests.count
+        model.perform(ScreenshotAction(kind: .explainError))
+        await model.waitUntilSettled()
+        #expect(source.recordedRequests.count == before + 1)
+        #expect(source.recordedPrompts.last == ScreenshotAction.Kind.explainError.prompt)
+        #expect(model.messages.first?.text == ScreenshotAction.Kind.explainError.prompt)
+    }
+
+    // MARK: Annotations
+
+    @Test func askAboutSelectionSendsCropAndCoordinateAppendix() async throws {
+        let image = makeTestImage(width: 100, height: 80, red: 40, green: 50, blue: 60)
+        let png = try #require(image.pngData())
+        let beforeHash = png
+        let source = FakeAnalysisSource()
+        let model = ScreenshotWorkspaceModel(
+            metadata: Self.metadata,
+            savedURL: URL(fileURLWithPath: "/tmp/captAI-tests/shots/capture.png"),
+            imagePNG: png,
+            appearsBlank: false,
+            sourceProvider: { source },
+            copyText: {}
+        )
+        model.start()
+        await model.waitUntilSettled()
+
+        model.annotations.tool = .highlight
+        model.annotations.beginStroke(at: CGPoint(x: 0.1, y: 0.1))
+        model.annotations.updateStroke(to: CGPoint(x: 0.5, y: 0.6))
+        model.annotations.endStroke()
+
+        model.askAboutSelection()
+        await model.waitUntilSettled()
+
+        let request = try #require(source.recordedRequests.last)
+        #expect(request.imageIsAnnotationCrop)
+        #expect(request.image != png)
+        #expect(request.image!.count < png.count)
+        #expect(request.prompt?.contains("marked region") == true)
+        #expect(request.prompt?.contains("normalized") == true)
+        #expect(model.imagePNG == beforeHash)
+    }
+
+    @Test func aFollowUpWithMarksKeepsFullImageAndAppendsGeometry() async throws {
+        let source = FakeAnalysisSource()
+        let model = makeModel(source: source)
+        model.start()
+        await model.waitUntilSettled()
+
+        model.annotations.tool = .highlight
+        model.annotations.beginStroke(at: CGPoint(x: 0.2, y: 0.2))
+        model.annotations.updateStroke(to: CGPoint(x: 0.4, y: 0.4))
+        model.annotations.endStroke()
+
+        model.draft = "What is highlighted?"
+        model.send()
+        await model.waitUntilSettled()
+
+        let followUp = try #require(source.recordedRequests.last)
+        #expect(!followUp.imageIsAnnotationCrop)
+        #expect(followUp.image == Data([0x89, 0x50, 0x4E, 0x47]))
+        #expect(followUp.prompt?.contains("What is highlighted?") == true)
+        #expect(followUp.prompt?.contains("highlight") == true)
+    }
 
     @Test func copyTextRunsTheActionOnceAtATime() async {
         let probe = CopyProbe()

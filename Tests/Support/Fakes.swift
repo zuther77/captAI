@@ -189,13 +189,19 @@ final class FakeFeedback: CaptureFeedback {
 @MainActor
 final class FakeTextCopier: TextCopying {
     var outcome: QuickCopyService.Outcome = .noText
+    var recognizedTextResult = ""
     /// Runs while recognition is "in progress", so a test can look at what the user sees at that moment.
     var duringCopy: (@MainActor () -> Void)?
     private(set) var calls = 0
+    private(set) var recognizeCalls = 0
     func copyText(from capture: CapturedImage, settings: AppSettings) async -> QuickCopyService.Outcome {
         calls += 1
         duringCopy?()
         return outcome
+    }
+    func recognizedText(from capture: CapturedImage, settings: AppSettings) async -> String {
+        recognizeCalls += 1
+        return recognizedTextResult
     }
 }
 

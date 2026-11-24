@@ -8,6 +8,8 @@ import Foundation
 @MainActor
 protocol TextCopying: AnyObject {
     func copyText(from capture: CapturedImage, settings: AppSettings) async -> QuickCopyService.Outcome
+    /// Laid-out OCR text for classifiers and chips. Empty string when blank or no text; nil only unused.
+    func recognizedText(from capture: CapturedImage, settings: AppSettings) async -> String
 }
 
 @MainActor
@@ -46,29 +48,15 @@ final class QuickCopyService: TextCopying {
     }
 
     func copyText(from capture: CapturedImage, settings: AppSettings) async -> Outcome {
-        if ImageBlankDetector.isBlank(capture.image) {
-            diagnostics.info(.ocr, "quickCopy.blank")
-            return .noText
-        }
-
-        let observations: [TextObservation]
+        let text: String
         do throws(AppError) {
-            observations = try await recognizer.recognize(
-                in: capture,
-                level: settings.ocrRecognitionLevel,
-                languages: settings.ocrLanguages
-            )
+            text = try await recognize(capture, settings: settings)
         } catch {
             diagnostics.error(.ocr, "quickCopy.failed", error: error)
             return .failed(error)
         }
-
-        let text = ReadingOrder.text(
-            from: observations,
-            imageSize: CGSize(width: capture.image.width, height: capture.image.height)
-        )
         guard !text.isEmpty else {
-            diagnostics.info(.ocr, "quickCopy.noText", ["fragments": String(observations.count)])
+            diagnostics.info(.ocr, "quickCopy.noText")
             return .noText
         }
 
@@ -79,5 +67,25 @@ final class QuickCopyService: TextCopying {
         let lines = text.split(separator: "\n", omittingEmptySubsequences: false).count
         diagnostics.info(.ocr, "quickCopy.copied", ["characters": String(text.count), "lines": String(lines)])
         return .copied(characters: text.count, lines: lines)
+    }
+
+    func recognizedText(from capture: CapturedImage, settings: AppSettings) async -> String {
+        (try? await recognize(capture, settings: settings)) ?? ""
+    }
+
+    private func recognize(_ capture: CapturedImage, settings: AppSettings) async throws(AppError) -> String {
+        if ImageBlankDetector.isBlank(capture.image) {
+            diagnostics.info(.ocr, "quickCopy.blank")
+            return ""
+        }
+        let observations = try await recognizer.recognize(
+            in: capture,
+            level: settings.ocrRecognitionLevel,
+            languages: settings.ocrLanguages
+        )
+        return ReadingOrder.text(
+            from: observations,
+            imageSize: CGSize(width: capture.image.width, height: capture.image.height)
+        )
     }
 }

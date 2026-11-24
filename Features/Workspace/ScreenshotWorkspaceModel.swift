@@ -58,6 +58,10 @@ final class ScreenshotWorkspaceModel {
     private(set) var isCaptureVisible = true
     private(set) var isClosed = false
     private(set) var isCopyingText = false
+    /// Heuristic chips from OCR (M5). Empty until recognition finishes or when the capture is blank.
+    private(set) var suggestedActions: [ScreenshotAction] = []
+    /// Vector marks on the frozen capture. Shared with the capture overlay; never rewrites the PNG on disk.
+    let annotations = AnnotationDocument()
     var draft = ""
 
     @ObservationIgnored var onEvent: (@MainActor (Event) -> Void)?
@@ -66,8 +70,11 @@ final class ScreenshotWorkspaceModel {
     @ObservationIgnored private var source: any AnalysisSource
     @ObservationIgnored private let consent: ConsentGate?
     @ObservationIgnored private let copyTextAction: @MainActor () async -> Void
+    @ObservationIgnored private let recognizeTextAction: (@MainActor () async -> String)?
     @ObservationIgnored private var analysisTask: Task<Void, Never>?
     @ObservationIgnored private var replyTask: Task<Void, Never>?
+    @ObservationIgnored private var suggestTask: Task<Void, Never>?
+    @ObservationIgnored private var actionTask: Task<Void, Never>?
     @ObservationIgnored private var hasStarted = false
 
     init(
@@ -77,7 +84,8 @@ final class ScreenshotWorkspaceModel {
         appearsBlank: Bool,
         sourceProvider: @escaping @MainActor () -> any AnalysisSource,
         consent: ConsentGate? = nil,
-        copyText: @escaping @MainActor () async -> Void
+        copyText: @escaping @MainActor () async -> Void,
+        recognizeText: (@MainActor () async -> String)? = nil
     ) {
         self.metadata = metadata
         self.savedURL = savedURL
@@ -89,6 +97,7 @@ final class ScreenshotWorkspaceModel {
         self.source = initial
         self.identity = initial.identity
         self.copyTextAction = copyText
+        self.recognizeTextAction = recognizeText
     }
 
     /// Asks the provider for the source to use for the next request.
@@ -132,10 +141,38 @@ final class ScreenshotWorkspaceModel {
     func start() {
         guard !isClosed, !hasStarted else { return }
         hasStarted = true
+        refreshSuggestions()
         guard !appearsBlank else { return }
         refreshSource()
         guard !identity.needsSetup else { return }
         runAnalysis()
+    }
+
+    /// Runs offline OCR and fills ``suggestedActions``. Safe to call when recognition is unavailable.
+    private func refreshSuggestions() {
+        suggestTask?.cancel()
+        guard !appearsBlank, let recognizeTextAction else {
+            suggestedActions = []
+            return
+        }
+        suggestTask = Task { [weak self] in
+            guard let self else { return }
+            let text = await recognizeTextAction()
+            guard !Task.isCancelled, !self.isClosed else { return }
+            self.suggestedActions = HeuristicActionClassifier.actions(for: text)
+        }
+    }
+
+    /// Runs a suggested chip: copy actions stay local; model chips send a fixed prompt.
+    func perform(_ action: ScreenshotAction) {
+        guard !isClosed else { return }
+        if action.kind.needsModel {
+            guard !isResponding, !isAnalyzing, !identity.needsSetup, let prompt = action.kind.prompt else { return }
+            draft = prompt
+            send()
+            return
+        }
+        actionTask = Task { await copyText() }
     }
 
     /// Runs the automatic analysis again after a failure.
@@ -217,16 +254,32 @@ final class ScreenshotWorkspaceModel {
     }
 
     func send() {
-        let prompt = draft.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard canSend else { return }
+        send(prompt: draft.trimmingCharacters(in: .whitespacesAndNewlines), preferCrop: false)
+    }
+
+    /// Asks about the selected mark (or all marks), sending a crop when possible so the model sees the region.
+    func askAboutSelection() {
+        guard !isClosed, !identity.needsSetup else { return }
+        guard annotations.focusBounds != nil else { return }
+        let prompt = "Explain what is inside the marked region(s) on this screenshot."
+        send(prompt: prompt, preferCrop: true)
+    }
+
+    private func send(prompt: String, preferCrop: Bool) {
+        guard !isClosed, !isResponding, !isAnalyzing, !identity.needsSetup else { return }
+        let trimmed = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
         draft = ""
+        let appendix = annotations.promptAppendix()
+        let fullPrompt = appendix.isEmpty ? trimmed : trimmed + "\n\n" + appendix
         // History is built before the new turns are appended, so the prompt is not sent twice.
         let history = conversationHistory()
-        messages.append(Message(id: UUID(), role: .user, text: prompt, status: .complete))
+        messages.append(Message(id: UUID(), role: .user, text: trimmed, status: .complete))
         let replyID = UUID()
         refreshSource()
         messages.append(Message(id: replyID, role: .assistant, text: "", status: .streaming, provider: Self.attribution(of: identity)))
 
+        let (image, isCrop) = imagePayload(preferCrop: preferCrop)
         replyTask = Task { [weak self] in
             guard let self else { return }
             if let error = await self.ensureConsent() {
@@ -234,10 +287,11 @@ final class ScreenshotWorkspaceModel {
                 return
             }
             let stream = self.source.analyze(AnalysisRequest(
-                prompt: prompt,
+                prompt: fullPrompt,
                 metadata: self.metadata,
                 history: history,
-                image: self.imagePNG
+                image: image,
+                imageIsAnnotationCrop: isCrop
             ))
             var text = ""
             do {
@@ -253,6 +307,15 @@ final class ScreenshotWorkspaceModel {
                 self.update(replyID, text: text, status: .failed(Self.appError(from: error)))
             }
         }
+    }
+
+    /// Full capture by default; a cropped PNG when asking about a mark and a crop can be made.
+    private func imagePayload(preferCrop: Bool) -> (Data?, Bool) {
+        guard let imagePNG else { return (nil, false) }
+        if preferCrop, let bounds = annotations.focusBounds, let crop = ImageCropper.cropPNG(imagePNG, normalizedRect: bounds) {
+            return (crop, true)
+        }
+        return (imagePNG, false)
     }
 
     /// Returns an error when the request must not proceed; nil when it may be sent.
@@ -332,11 +395,15 @@ final class ScreenshotWorkspaceModel {
         isClosed = true
         analysisTask?.cancel()
         replyTask?.cancel()
+        suggestTask?.cancel()
+        actionTask?.cancel()
     }
 
-    /// Waits for the analysis and any reply in flight to finish. For tests.
+    /// Waits for the analysis, suggestion OCR, chip actions, and any reply in flight to finish. For tests.
     func waitUntilSettled() async {
         await analysisTask?.value
+        await suggestTask?.value
         await replyTask?.value
+        await actionTask?.value
     }
 }

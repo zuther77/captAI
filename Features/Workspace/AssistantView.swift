@@ -219,24 +219,52 @@ struct AssistantView: View {
     // MARK: Actions and composer
 
     private var actionRow: some View {
-        HStack(spacing: 8) {
-            Button {
-                Task { await model.copyText() }
-            } label: {
-                Label("Copy Text", systemImage: "doc.on.clipboard")
+        VStack(alignment: .leading, spacing: 8) {
+            if !model.suggestedActions.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(model.suggestedActions) { action in
+                            Button(action.kind.title) {
+                                model.perform(action)
+                            }
+                            .buttonStyle(.bordered)
+                            .disabled(action.kind.needsModel
+                                      ? model.identity.needsSetup || model.canStop
+                                      : model.isCopyingText)
+                            .help(action.kind.needsModel
+                                  ? "Sends a follow-up to the active provider."
+                                  : "Runs on this Mac. Nothing is sent.")
+                            .accessibilityIdentifier("workspace.action.\(action.kind.rawValue)")
+                        }
+                    }
+                }
+                .accessibilityIdentifier("workspace.suggestedActions")
+            } else {
+                Button {
+                    Task { await model.copyText() }
+                } label: {
+                    Label("Copy Text", systemImage: "doc.on.clipboard")
+                }
+                .buttonStyle(.bordered)
+                .disabled(model.isCopyingText)
+                .help("Copy the text in the capture. Runs on this Mac.")
+                .accessibilityIdentifier("workspace.copyText")
             }
-            .buttonStyle(.bordered)
-            .disabled(model.isCopyingText)
-            .help("Copy the text in the capture. Runs on this Mac.")
-            .accessibilityIdentifier("workspace.copyText")
-            Spacer(minLength: 0)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
     }
 
     private var composer: some View {
         HStack(alignment: .center, spacing: 8) {
+            if !model.annotations.annotations.isEmpty {
+                Image(systemName: "pencil.and.outline")
+                    .foregroundStyle(.secondary)
+                    .help("Marks on the capture will be described to the provider with this message.")
+                    .accessibilityLabel("Annotations attached")
+                    .accessibilityIdentifier("workspace.annotationBadge")
+            }
             TextField("Ask about this screenshot", text: Binding(get: { model.draft }, set: { model.draft = $0 }), axis: .vertical)
                 .textFieldStyle(.plain)
                 .focusEffectDisabled()

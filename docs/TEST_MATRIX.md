@@ -6,11 +6,11 @@ Status values: **PASS**, **FAIL**, **NOT PERFORMED** (no one has run it), **BLOC
 
 | Suite | Command | Result |
 |---|---|---|
-| Unit (308 tests, 33 suites) | `scripts/test.sh unit` | PASS (2026-11-23, M4 gate; Keychain tests need a non-sandbox run, KI-025) |
-| Integration (17 tests, 3 suites) | `scripts/test.sh integration` | PASS (2026-11-23, M4 gate) |
+| Unit (330 tests, 36 suites) | `scripts/test.sh unit` | PASS (2026-11-24, M5 annotations; Keychain OK outside agent sandbox, KI-025) |
+| Integration (17 tests, 3 suites) | `scripts/test.sh integration` | PASS (2026-11-24, M5 gate) |
 | UI (6 tests) | `scripts/test.sh ui` | PASS on M0–M3 (product owner's Mac) and on M4 (2026-11-23). |
-| Debug build, warnings as errors | `scripts/build.sh Debug` | PASS (2026-11-23, M4 gate) |
-| Release build, warnings as errors | `scripts/build.sh Release` | PASS (2026-11-23, M4 gate) |
+| Debug build, warnings as errors | `scripts/build.sh Debug` | PASS (2026-11-24, M5 gate) |
+| Release build, warnings as errors | `scripts/build.sh Release` | PASS (2026-11-24, M5 gate) |
 
 ## Manual: M0 (real Mac)
 
@@ -111,6 +111,23 @@ Providers, consent, Stop, and the set-up empty state. The agent cannot observe a
 | 10 | Remove all profiles (or clear Active); screenshot | Set-up empty state again | PASS |
 | 11 | Add ChatGPT account profile → Continue with ChatGPT; allow plan usage; screenshot | Browser sign-in; analysis streams via ChatGPT plan; Cloud badge; Manage usage opens ChatGPT settings | PASS |
 | 12 | Sign out of ChatGPT; screenshot with that profile still active | Clear “sign in” refusal / set-up, nothing sent | PASS |
+
+## Manual: M5 (real Mac)
+
+Heuristic chips and non-destructive annotations. Mark PASS only from what you see. Run `scripts/run.sh`.
+
+| # | Step | Expected | Status |
+|---|---|---|---|
+| 1 | Screenshot a terminal error; wait for chips | Explain Error, Find Fix, and Copy Text appear | PASS |
+| 2 | Tap Copy Text / Copy Code with no network | Text copies; no provider call | PASS |
+| 3 | Tap Explain Error with a provider active | One follow-up streams; consent still applies for cloud | PASS |
+| 4 | Screenshot plain UI copy with little structure | Only Copy Text (no spurious error/chart chips) | PASS |
+| 5 | On the frozen capture, draw a highlight and an arrow; undo then redo | Marks appear over the pixels; undo removes the last mark; redo restores it; Reveal Last Capture PNG is unchanged | PASS |
+| 6 | Select a mark, delete it; draw an arrow and highlight | Delete removes only the selection; remaining tools draw correctly | PASS |
+| 7 | With a provider active, select a mark and tap Ask about selection | A follow-up streams; the answer refers to the marked region; composer shows the annotation badge while marks exist | PASS |
+| 8 | Type a normal follow-up while marks remain | Reply streams; badge still shown; full capture context still used | PASS |
+| 9 | Resize/move the assistant; leave the capture where it is | Marks stay locked to the capture pixels | PASS |
+| 10 | Quit and relaunch; open the same PNG from disk | File on disk still has no burned-in marks (vectors are session-only until M6) | PASS |
 
 ## Cross-milestone privacy matrix (M0 slice)
 
