@@ -289,14 +289,24 @@ final class AssistantPanel: NSPanel {
         // Focusing the composer would otherwise draw AppKit's square focus ring around the whole window.
         host.focusRingType = .none
 
-        // AppKit glass samples the desktop and stays static when the panel is key. SwiftUI `.glassEffect`
-        // drew a faint rim at the curves on activation (product owner, 2026-11-23).
-        let glass = NSGlassEffectView()
-        glass.cornerRadius = 28
-        glass.style = .regular
-        glass.effectIsInteractive = false
-        glass.contentView = host
-        contentView = glass
+        // Liquid Glass (`NSGlassEffectView` / SwiftUI `.glassEffect`) draws a soft rim outside the fill at
+        // every curve (product owner, 2026-11-23). A clipped material view keeps frost without that ghost edge.
+        let chrome = NSVisualEffectView()
+        chrome.material = .hudWindow
+        chrome.blendingMode = .behindWindow
+        chrome.state = .active
+        chrome.wantsLayer = true
+        chrome.layer?.cornerRadius = 28
+        chrome.layer?.masksToBounds = true
+        host.translatesAutoresizingMaskIntoConstraints = false
+        chrome.addSubview(host)
+        NSLayoutConstraint.activate([
+            host.leadingAnchor.constraint(equalTo: chrome.leadingAnchor),
+            host.trailingAnchor.constraint(equalTo: chrome.trailingAnchor),
+            host.topAnchor.constraint(equalTo: chrome.topAnchor),
+            host.bottomAnchor.constraint(equalTo: chrome.bottomAnchor),
+        ])
+        contentView = chrome
         setFrame(frame, display: false)
     }
 
