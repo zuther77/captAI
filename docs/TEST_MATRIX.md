@@ -6,11 +6,11 @@ Status values: **PASS**, **FAIL**, **NOT PERFORMED** (no one has run it), **BLOC
 
 | Suite | Command | Result |
 |---|---|---|
-| Unit (308 tests, 33 suites) | `scripts/test.sh unit` | PASS (2026-11-23, workspace screen-capture Privacy toggle; Keychain tests need a non-sandbox run, KI-025) |
-| Integration (17 tests, 3 suites) | `scripts/test.sh integration` | PASS (2026-11-20, M3 branch; same note) |
-| UI (6 tests) | `scripts/test.sh ui` | PASS on M0 and M1 (2026-11-18), on M2 (2026-11-19) and on M3 (2026-11-20), all on the product owner's Mac. |
-| Debug build, warnings as errors | `scripts/build.sh Debug` | PASS (2026-11-20, M3 branch) |
-| Release build, warnings as errors | `scripts/build.sh Release` | PASS (2026-11-20, M3 branch) |
+| Unit (308 tests, 33 suites) | `scripts/test.sh unit` | PASS (2026-11-23, M4 gate; Keychain tests need a non-sandbox run, KI-025) |
+| Integration (17 tests, 3 suites) | `scripts/test.sh integration` | PASS (2026-11-23, M4 gate) |
+| UI (6 tests) | `scripts/test.sh ui` | PASS on M0–M3 (product owner's Mac) and on M4 (2026-11-23). |
+| Debug build, warnings as errors | `scripts/build.sh Debug` | PASS (2026-11-23, M4 gate) |
+| Release build, warnings as errors | `scripts/build.sh Release` | PASS (2026-11-23, M4 gate) |
 
 ## Manual: M0 (real Mac)
 
