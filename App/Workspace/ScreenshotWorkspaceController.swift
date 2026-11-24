@@ -80,6 +80,10 @@ final class ScreenshotWorkspaceController: ScreenshotWorkspacePresenting {
                 feedback.showToast(QuickCopyService.progressToast)
                 let outcome = await textCopier.copyText(from: capture, settings: settings())
                 feedback.showToast(outcome.toast)
+            },
+            recognizeText: { [weak self] in
+                guard let self else { return "" }
+                return await textCopier.recognizedText(from: capture, settings: settings())
             }
         )
         model.onEvent = { [weak self] event in self?.handle(event) }

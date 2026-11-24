@@ -6,7 +6,7 @@ Status values: **PASS**, **FAIL**, **NOT PERFORMED** (no one has run it), **BLOC
 
 | Suite | Command | Result |
 |---|---|---|
-| Unit (308 tests, 33 suites) | `scripts/test.sh unit` | PASS (2026-11-23, M4 gate; Keychain tests need a non-sandbox run, KI-025) |
+| Unit (318 tests, 34 suites) | `scripts/test.sh unit` | PASS (2026-11-23, M5 action chips; Keychain tests need a non-sandbox run, KI-025) |
 | Integration (17 tests, 3 suites) | `scripts/test.sh integration` | PASS (2026-11-23, M4 gate) |
 | UI (6 tests) | `scripts/test.sh ui` | PASS on M0–M3 (product owner's Mac) and on M4 (2026-11-23). |
 | Debug build, warnings as errors | `scripts/build.sh Debug` | PASS (2026-11-23, M4 gate) |
@@ -111,6 +111,17 @@ Providers, consent, Stop, and the set-up empty state. The agent cannot observe a
 | 10 | Remove all profiles (or clear Active); screenshot | Set-up empty state again | PASS |
 | 11 | Add ChatGPT account profile → Continue with ChatGPT; allow plan usage; screenshot | Browser sign-in; analysis streams via ChatGPT plan; Cloud badge; Manage usage opens ChatGPT settings | PASS |
 | 12 | Sign out of ChatGPT; screenshot with that profile still active | Clear “sign in” refusal / set-up, nothing sent | PASS |
+
+## Manual: M5 (real Mac)
+
+Heuristic chips and (later) annotations. Mark PASS only from what you see.
+
+| # | Step | Expected | Status |
+|---|---|---|---|
+| 1 | Screenshot a terminal error; wait for chips | Explain Error, Find Fix, and Copy Text appear | NOT PERFORMED |
+| 2 | Tap Copy Text / Copy Code with no network | Text copies; no provider call | NOT PERFORMED |
+| 3 | Tap Explain Error with a provider active | One follow-up streams; consent still applies for cloud | NOT PERFORMED |
+| 4 | Screenshot plain UI copy with little structure | Only Copy Text (no spurious error/chart chips) | NOT PERFORMED |
 
 ## Cross-milestone privacy matrix (M0 slice)
 

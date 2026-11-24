@@ -18,7 +18,8 @@ struct ScreenshotWorkspaceModelTests {
         source: FakeAnalysisSource = FakeAnalysisSource(),
         blank: Bool = false,
         savedURL: URL? = URL(fileURLWithPath: "/tmp/captAI-tests/shots/capture.png"),
-        copy: @escaping @MainActor () async -> Void = {}
+        copy: @escaping @MainActor () async -> Void = {},
+        recognize: (@MainActor () async -> String)? = nil
     ) -> ScreenshotWorkspaceModel {
         ScreenshotWorkspaceModel(
             metadata: Self.metadata,
@@ -26,7 +27,8 @@ struct ScreenshotWorkspaceModelTests {
             imagePNG: Data([0x89, 0x50, 0x4E, 0x47]),
             appearsBlank: blank,
             sourceProvider: { source },
-            copyText: copy
+            copyText: copy,
+            recognizeText: recognize
         )
     }
 
@@ -395,6 +397,42 @@ struct ScreenshotWorkspaceModelTests {
     }
 
     // MARK: Copy Text
+
+    @Test func errorOCRSuggestsExplainAndFindFixChips() async {
+        let model = makeModel(recognize: { "Error: connection refused\nTraceback (most recent call last):" })
+        model.start()
+        await model.waitUntilSettled()
+        let kinds = model.suggestedActions.map(\.kind)
+        #expect(kinds.contains(.explainError))
+        #expect(kinds.contains(.findFix))
+        #expect(kinds.contains(.copyText))
+    }
+
+    @Test func aCopyChipNeverCallsTheModel() async {
+        var copies = 0
+        let source = FakeAnalysisSource()
+        let model = makeModel(source: source, copy: { copies += 1 }, recognize: { "hello" })
+        model.start()
+        await model.waitUntilSettled()
+        let before = source.recordedRequests.count
+        model.perform(ScreenshotAction(kind: .copyText))
+        await model.waitUntilSettled()
+        #expect(copies == 1)
+        #expect(source.recordedRequests.count == before)
+    }
+
+    @Test func anExplainChipSendsOneFollowUpPrompt() async {
+        let source = FakeAnalysisSource()
+        let model = makeModel(source: source, recognize: { "Error: boom" })
+        model.start()
+        await model.waitUntilSettled()
+        let before = source.recordedRequests.count
+        model.perform(ScreenshotAction(kind: .explainError))
+        await model.waitUntilSettled()
+        #expect(source.recordedRequests.count == before + 1)
+        #expect(source.recordedPrompts.last == ScreenshotAction.Kind.explainError.prompt)
+        #expect(model.messages.first?.text == ScreenshotAction.Kind.explainError.prompt)
+    }
 
     @Test func copyTextRunsTheActionOnceAtATime() async {
         let probe = CopyProbe()

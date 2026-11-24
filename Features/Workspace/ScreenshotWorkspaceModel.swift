@@ -58,6 +58,8 @@ final class ScreenshotWorkspaceModel {
     private(set) var isCaptureVisible = true
     private(set) var isClosed = false
     private(set) var isCopyingText = false
+    /// Heuristic chips from OCR (M5). Empty until recognition finishes or when the capture is blank.
+    private(set) var suggestedActions: [ScreenshotAction] = []
     var draft = ""
 
     @ObservationIgnored var onEvent: (@MainActor (Event) -> Void)?
@@ -66,8 +68,11 @@ final class ScreenshotWorkspaceModel {
     @ObservationIgnored private var source: any AnalysisSource
     @ObservationIgnored private let consent: ConsentGate?
     @ObservationIgnored private let copyTextAction: @MainActor () async -> Void
+    @ObservationIgnored private let recognizeTextAction: (@MainActor () async -> String)?
     @ObservationIgnored private var analysisTask: Task<Void, Never>?
     @ObservationIgnored private var replyTask: Task<Void, Never>?
+    @ObservationIgnored private var suggestTask: Task<Void, Never>?
+    @ObservationIgnored private var actionTask: Task<Void, Never>?
     @ObservationIgnored private var hasStarted = false
 
     init(
@@ -77,7 +82,8 @@ final class ScreenshotWorkspaceModel {
         appearsBlank: Bool,
         sourceProvider: @escaping @MainActor () -> any AnalysisSource,
         consent: ConsentGate? = nil,
-        copyText: @escaping @MainActor () async -> Void
+        copyText: @escaping @MainActor () async -> Void,
+        recognizeText: (@MainActor () async -> String)? = nil
     ) {
         self.metadata = metadata
         self.savedURL = savedURL
@@ -89,6 +95,7 @@ final class ScreenshotWorkspaceModel {
         self.source = initial
         self.identity = initial.identity
         self.copyTextAction = copyText
+        self.recognizeTextAction = recognizeText
     }
 
     /// Asks the provider for the source to use for the next request.
@@ -132,10 +139,38 @@ final class ScreenshotWorkspaceModel {
     func start() {
         guard !isClosed, !hasStarted else { return }
         hasStarted = true
+        refreshSuggestions()
         guard !appearsBlank else { return }
         refreshSource()
         guard !identity.needsSetup else { return }
         runAnalysis()
+    }
+
+    /// Runs offline OCR and fills ``suggestedActions``. Safe to call when recognition is unavailable.
+    private func refreshSuggestions() {
+        suggestTask?.cancel()
+        guard !appearsBlank, let recognizeTextAction else {
+            suggestedActions = []
+            return
+        }
+        suggestTask = Task { [weak self] in
+            guard let self else { return }
+            let text = await recognizeTextAction()
+            guard !Task.isCancelled, !self.isClosed else { return }
+            self.suggestedActions = HeuristicActionClassifier.actions(for: text)
+        }
+    }
+
+    /// Runs a suggested chip: copy actions stay local; model chips send a fixed prompt.
+    func perform(_ action: ScreenshotAction) {
+        guard !isClosed else { return }
+        if action.kind.needsModel {
+            guard !isResponding, !isAnalyzing, !identity.needsSetup, let prompt = action.kind.prompt else { return }
+            draft = prompt
+            send()
+            return
+        }
+        actionTask = Task { await copyText() }
     }
 
     /// Runs the automatic analysis again after a failure.
@@ -332,11 +367,15 @@ final class ScreenshotWorkspaceModel {
         isClosed = true
         analysisTask?.cancel()
         replyTask?.cancel()
+        suggestTask?.cancel()
+        actionTask?.cancel()
     }
 
-    /// Waits for the analysis and any reply in flight to finish. For tests.
+    /// Waits for the analysis, suggestion OCR, chip actions, and any reply in flight to finish. For tests.
     func waitUntilSettled() async {
         await analysisTask?.value
+        await suggestTask?.value
         await replyTask?.value
+        await actionTask?.value
     }
 }
