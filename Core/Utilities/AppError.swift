@@ -44,6 +44,8 @@ enum AppError: Error, Equatable, Sendable {
     case providerRequestRejected
     /// Provider problem: The provider sent an answer captAI could not read.
     case providerResponseInvalid
+    /// The local history library (SQLite) could not be opened or written. Paths and SQL are never included.
+    case libraryFailed
 
     /// Stable machine-readable code for diagnostics and tests.
     var code: String {
@@ -72,6 +74,7 @@ enum AppError: Error, Equatable, Sendable {
         case .providerServerError: "provider.serverError"
         case .providerRequestRejected: "provider.requestRejected"
         case .providerResponseInvalid: "provider.responseInvalid"
+        case .libraryFailed: "library.failed"
         }
     }
 
@@ -138,6 +141,8 @@ extension AppError: LocalizedError {
             "The provider rejected the request."
         case .providerResponseInvalid:
             "The provider sent an answer captAI could not read."
+        case .libraryFailed:
+            "The history library could not be updated."
         }
     }
 
@@ -189,6 +194,8 @@ extension AppError: LocalizedError {
             "Check the model and endpoint in Settings > Providers."
         case .providerResponseInvalid:
             "Try again. If it keeps happening, try another model."
+        case .libraryFailed:
+            "Try again. If it keeps happening, check that your disk has free space."
         }
     }
 }

@@ -129,6 +129,16 @@ Heuristic chips and non-destructive annotations. Mark PASS only from what you se
 | 9 | Resize/move the assistant; leave the capture where it is | Marks stay locked to the capture pixels | PASS |
 | 10 | Quit and relaunch; open the same PNG from disk | File on disk still has no burned-in marks (vectors are session-only until M6) | PASS |
 
+## Manual: M6 (real Mac)
+
+History library persistence. Mark PASS only from what you see. Scaffold may land before the Library UI is wired.
+
+| # | Step | Expected | Status |
+|---|---|---|---|
+| 1 | Analyze a screenshot, annotate it, quit and relaunch; open Library | Capture, marks, and conversation reopen | NOT PERFORMED |
+| 2 | Change screenshot folder; save a new capture; open an old one | New capture uses the new folder; old capture still opens | NOT PERFORMED |
+| 3 | Delete an asset from the library | Row and associated chat/annotations gone; recovery clear if the folder is missing | NOT PERFORMED |
+
 ## Cross-milestone privacy matrix (M0 slice)
 
 | Scenario | M0 evidence |
