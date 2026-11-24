@@ -13,10 +13,22 @@ struct AppSettingsTests {
         #expect(settings.cloudConsentPolicy == .askEveryTime)
         // PRD FR-O04: Quick Copy history is off by default.
         #expect(settings.saveQuickCopyToHistory == false)
+        #expect(settings.allowWorkspaceScreenCapture == false)
         #expect(settings.recordSystemAudio == false)
         #expect(settings.recordMicrophone == false)
         #expect(settings.screenshotFolderPath == nil)
         #expect(settings.recordingFolderPath == nil)
+        #expect(settings.analysisProvider == .mock)
+        #expect(settings.ollamaModel == "")
+        #expect(settings.ollamaEndpoint == "http://localhost:11434")
+        #expect(settings.openAIEndpoint == "https://api.openai.com/v1")
+        #expect(settings.openAIModel == "gpt-4o")
+        #expect(settings.anthropicEndpoint == "https://api.anthropic.com")
+        #expect(settings.anthropicModel == AnthropicAnalysisSource.defaultModel)
+        #expect(settings.providerProfiles.isEmpty)
+        #expect(settings.activeProviderProfileID == nil)
+        #expect(settings.approvedCloudProviderIDs.isEmpty)
+        #expect(settings.cloudConsentPolicy == .askEveryTime)
     }
 
     @Test func codableRoundTripPreservesEveryField() throws {
@@ -34,6 +46,10 @@ struct AppSettingsTests {
         settings.recordMicrophone = true
         settings.cloudConsentPolicy = .localOnly
         settings.saveQuickCopyToHistory = true
+        settings.allowWorkspaceScreenCapture = true
+        settings.analysisProvider = .ollama
+        settings.ollamaModel = "gemma4:e4b-mlx"
+        settings.ollamaEndpoint = "http://127.0.0.1:11500"
 
         let data = try JSONEncoder().encode(settings)
         let decoded = try JSONDecoder().decode(AppSettings.self, from: data)

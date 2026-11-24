@@ -20,7 +20,14 @@ struct ScreenshotWorkspaceModelTests {
         savedURL: URL? = URL(fileURLWithPath: "/tmp/captAI-tests/shots/capture.png"),
         copy: @escaping @MainActor () async -> Void = {}
     ) -> ScreenshotWorkspaceModel {
-        ScreenshotWorkspaceModel(metadata: Self.metadata, savedURL: savedURL, appearsBlank: blank, source: source, copyText: copy)
+        ScreenshotWorkspaceModel(
+            metadata: Self.metadata,
+            savedURL: savedURL,
+            imagePNG: Data([0x89, 0x50, 0x4E, 0x47]),
+            appearsBlank: blank,
+            sourceProvider: { source },
+            copyText: copy
+        )
     }
 
     // MARK: Save location
@@ -40,6 +47,37 @@ struct ScreenshotWorkspaceModelTests {
     }
 
     // MARK: Analysis
+
+    @Test func analysisSendsTheScreenshotPNG() async throws {
+        let source = FakeAnalysisSource()
+        let model = makeModel(source: source)
+        model.start()
+        await model.waitUntilSettled()
+        let request = try #require(source.recordedRequests.first)
+        #expect(request.prompt == nil)
+        #expect(request.image == Data([0x89, 0x50, 0x4E, 0x47]))
+        #expect(request.history.isEmpty)
+    }
+
+    @Test func aFollowUpSendsHistoryAndTheSameImage() async throws {
+        let source = FakeAnalysisSource()
+        source.chunks = ["A button."]
+        let model = makeModel(source: source)
+        model.start()
+        await model.waitUntilSettled()
+        source.chunks = ["Blue."]
+        model.draft = "What colour is it?"
+        model.send()
+        await model.waitUntilSettled()
+
+        let followUp = try #require(source.recordedRequests.last)
+        #expect(followUp.prompt == "What colour is it?")
+        #expect(followUp.image == Data([0x89, 0x50, 0x4E, 0x47]))
+        #expect(followUp.history == [
+            AnalysisTurn(role: .user, text: AnalysisRequest.automaticPrompt),
+            AnalysisTurn(role: .assistant, text: "A button."),
+        ])
+    }
 
     @Test func aNewWorkspaceIsIdleAndOpen() {
         let model = makeModel()
@@ -67,6 +105,8 @@ struct ScreenshotWorkspaceModelTests {
 
         model.start()
         #expect(model.analysis == .loading)
+        // Consent runs first inside the task, so wait until the source has the request before pushing.
+        await settle { source.recordedPrompts.count == 1 }
 
         source.push("Hel")
         await settle { model.analysis == .streaming("Hel") }
@@ -183,6 +223,7 @@ struct ScreenshotWorkspaceModelTests {
         let model = makeModel(source: source)
         model.draft = "first"
         model.send()
+        await settle { source.recordedPrompts.count == 1 }
         #expect(model.isResponding)
 
         model.draft = "second"
@@ -195,6 +236,25 @@ struct ScreenshotWorkspaceModelTests {
         await model.waitUntilSettled()
         #expect(!model.isResponding)
         #expect(model.canSend)
+    }
+
+    @Test func aProviderChangeAppliesToTheNextRequestOnly() async {
+        let box = SourceBox(NamedSource(name: "First", reply: "one"))
+        let model = ScreenshotWorkspaceModel(
+            metadata: Self.metadata, savedURL: nil, imagePNG: Data([0x01, 0x02]), appearsBlank: false,
+            sourceProvider: { box.source }, copyText: {}
+        )
+        model.start()
+        await model.waitUntilSettled()
+        #expect(model.identity.name == "First")
+
+        box.source = NamedSource(name: "Second", reply: "two")
+        model.draft = "hello"
+        model.send()
+        await model.waitUntilSettled()
+        #expect(model.identity.name == "Second")
+        #expect(model.messages[1].text == "two")
+        #expect(model.messages[1].provider == ScreenshotWorkspaceModel.attribution(of: model.identity))
     }
 
     @Test func aFailedReplyIsMarkedOnItsMessage() async {
@@ -238,6 +298,70 @@ struct ScreenshotWorkspaceModelTests {
         model.start()
         #expect(model.analysis == .idle)
         #expect(source.recordedPrompts.isEmpty)
+    }
+
+    // MARK: Stop and setup
+
+    @Test func stopKeepsPartialAnalysisText() async {
+        let source = FakeAnalysisSource()
+        source.holdsOpen = true
+        let model = makeModel(source: source)
+        model.start()
+        await settle { source.recordedPrompts.count == 1 }
+        source.push("Hel")
+        await settle { model.analysis == .streaming("Hel") }
+        #expect(model.canStop)
+        model.stop()
+        #expect(model.analysis == .ready("Hel"))
+        #expect(!model.canStop)
+        source.finishHeld()
+        await model.waitUntilSettled()
+        #expect(model.analysis == .ready("Hel"))
+    }
+
+    @Test func stopDuringLoadingReturnsToIdle() async {
+        let source = FakeAnalysisSource()
+        source.holdsOpen = true
+        let model = makeModel(source: source)
+        model.start()
+        await settle { source.recordedPrompts.count == 1 }
+        #expect(model.analysis == .loading)
+        model.stop()
+        #expect(model.analysis == .idle)
+        #expect(!model.canStop)
+    }
+
+    @Test func stopKeepsAPartialReply() async {
+        let source = FakeAnalysisSource()
+        source.holdsOpen = true
+        let model = makeModel(source: source)
+        model.draft = "hi"
+        model.send()
+        await settle { source.recordedPrompts.count == 1 }
+        source.push("partial")
+        await settle { model.messages.last?.text == "partial" }
+        model.stop()
+        #expect(model.messages.last?.status == .complete)
+        #expect(model.messages.last?.text == "partial")
+        #expect(!model.canStop)
+    }
+
+    @Test func setupNeededLeavesAnalysisIdle() async {
+        let model = ScreenshotWorkspaceModel(
+            metadata: Self.metadata,
+            savedURL: nil,
+            imagePNG: Data([0x01]),
+            appearsBlank: false,
+            sourceProvider: { SetupNeededSource() },
+            copyText: {}
+        )
+        #expect(model.identity.needsSetup)
+        model.start()
+        await model.waitUntilSettled()
+        #expect(model.analysis == .idle)
+        #expect(!model.canSend)
+        model.draft = "hello"
+        #expect(!model.canSend)
     }
 
     // MARK: Panel controls
@@ -348,3 +472,29 @@ private extension AnalysisSource {
         }
     }
 }
+
+/// Holds the source a test wants the model to use, so the test can change it between requests.
+@MainActor
+final class SourceBox {
+    var source: any AnalysisSource
+    init(_ source: any AnalysisSource) { self.source = source }
+}
+
+/// A source that replies with fixed text and carries a name, so a test can tell which one answered.
+struct NamedSource: AnalysisSource {
+    let identity: AnalysisSourceIdentity
+    let reply: String
+
+    init(name: String, reply: String) {
+        self.identity = AnalysisSourceIdentity(name: name, detail: "test", providerID: name, isMock: false, locality: .local)
+        self.reply = reply
+    }
+
+    func analyze(_ request: AnalysisRequest) -> AsyncThrowingStream<String, any Error> {
+        AsyncThrowingStream { continuation in
+            continuation.yield(reply)
+            continuation.finish()
+        }
+    }
+}
+

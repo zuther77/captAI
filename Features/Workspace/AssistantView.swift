@@ -1,20 +1,18 @@
 import AppKit
 import SwiftUI
 
-/// The floating assistant (Design Spec S2): one semi-transparent Liquid Glass window holding a header, a reading
-/// card, a composer and a footer.
+/// The floating assistant (Design Spec S2): one frosted window holding a header, a reading card, a composer
+/// and a footer.
 ///
-/// The whole assistant sits on a single glass surface, so every label, including the footer, has the window
-/// behind it instead of whatever is on the desktop. Controls inside it are flat rather than glass, because glass
-/// on glass is hard to read. The analysis and conversation sit on a nearly opaque card, which becomes fully
-/// opaque with Reduce Transparency on.
+/// Panel chrome is AppKit `NSVisualEffectView` (hudWindow), clipped to a corner radius — Liquid Glass left a
+/// faint rim at every curve. Controls inside are flat. The analysis and conversation sit on a nearly opaque
+/// card, which becomes fully opaque with Reduce Transparency.
 struct AssistantView: View {
     let model: ScreenshotWorkspaceModel
 
     @FocusState private var composerFocused: Bool
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
-    private static let windowRadius: CGFloat = 28
     private static let innerRadius: CGFloat = 18
 
     var body: some View {
@@ -27,8 +25,6 @@ struct AssistantView: View {
         .padding(10)
         // Behind everything: any part of the window that is not a control or the reading card drags the window.
         .background(WindowDragHandle())
-        .glassEffect(.regular, in: .rect(cornerRadius: Self.windowRadius))
-        .overlay(RoundedRectangle(cornerRadius: Self.windowRadius).strokeBorder(.separator))
         .onExitCommand { model.requestClose() }
         .onAppear { composerFocused = true }
         .accessibilityElement(children: .contain)
@@ -85,9 +81,10 @@ struct AssistantView: View {
             Divider()
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    if model.identity.isMock { mockBanner }
+                    if model.identity.needsSetup { setupBanner }
+                    else if model.identity.isMock { mockBanner }
                     if model.appearsBlank { blankNotice }
-                    analysisSection
+                    if !model.identity.needsSetup { analysisSection }
                     ForEach(model.messages) { message in
                         MessageView(message: message)
                     }
@@ -150,6 +147,20 @@ struct AssistantView: View {
             .accessibilityIdentifier("workspace.mockBanner")
     }
 
+    private var setupBanner: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("Set up a provider to analyze this screenshot.", systemImage: "sparkles")
+                .font(.callout.weight(.medium))
+            Text("Choose Ollama on this Mac, or add an OpenAI or Anthropic key in Settings.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Button("Open Providers…") { model.openProviders() }
+                .buttonStyle(.borderedProminent)
+                .accessibilityIdentifier("workspace.setupProviders")
+        }
+        .accessibilityIdentifier("workspace.setupBanner")
+    }
+
     private var blankNotice: some View {
         Label {
             Text("This capture looks blank. Protected content, or a Screen Recording permission that is not active yet, shows up this way, so nothing was analyzed.")
@@ -164,7 +175,7 @@ struct AssistantView: View {
     private var analysisSection: some View {
         switch model.analysis {
         case .idle:
-            if !model.appearsBlank {
+            if !model.appearsBlank && !model.identity.needsSetup {
                 placeholder("Preparing analysis…")
             }
         case .loading:
@@ -242,19 +253,33 @@ struct AssistantView: View {
                 }
                 .accessibilityLabel("Message")
                 .accessibilityIdentifier("workspace.composer")
-            Button {
-                model.send()
-            } label: {
-                Image(systemName: "arrow.up")
-                    .frame(width: 28, height: 28)
+            if model.canStop {
+                Button {
+                    model.stop()
+                } label: {
+                    Image(systemName: "stop.fill")
+                        .frame(width: 28, height: 28)
+                }
+                .buttonStyle(.borderedProminent)
+                .buttonBorderShape(.circle)
+                .help("Stop")
+                .accessibilityLabel("Stop")
+                .accessibilityIdentifier("workspace.stop")
+            } else {
+                Button {
+                    model.send()
+                } label: {
+                    Image(systemName: "arrow.up")
+                        .frame(width: 28, height: 28)
+                }
+                .buttonStyle(.borderedProminent)
+                .buttonBorderShape(.circle)
+                .disabled(!model.canSend)
+                .keyboardShortcut(.return, modifiers: .command)
+                .help("Send (Return)")
+                .accessibilityLabel("Send")
+                .accessibilityIdentifier("workspace.send")
             }
-            .buttonStyle(.borderedProminent)
-            .buttonBorderShape(.circle)
-            .disabled(!model.canSend)
-            .keyboardShortcut(.return, modifiers: .command)
-            .help("Send (Return)")
-            .accessibilityLabel("Send")
-            .accessibilityIdentifier("workspace.send")
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)

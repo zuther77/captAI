@@ -47,11 +47,20 @@ final class AppEnvironment {
             clipboard: PasteboardTextClipboard(),
             diagnostics: diagnostics
         )
+        let secrets = KeychainSecretStore()
+        let chatGPTStore = FileChatGPTSessionStore(secrets: secrets)
         let workspace = ScreenshotWorkspaceController(
-            analysis: MockAnalysisSource(),
+            analysisProvider: { AnalysisSourceFactory.source(for: settings.settings, secrets: secrets, chatGPTStore: chatGPTStore) },
             textCopier: textCopier,
             feedback: feedback,
             settings: { settings.settings },
+            rememberCloudApproval: { id in
+                settings.update { current in
+                    if !current.approvedCloudProviderIDs.contains(id) {
+                        current.approvedCloudProviderIDs.append(id)
+                    }
+                }
+            },
             diagnostics: diagnostics
         )
         let capture = CaptureCoordinator(
@@ -78,9 +87,13 @@ final class AppEnvironment {
         )
 
         let navigation = SettingsNavigation()
-        let factory = AppKitWindowFactory(settings: settings, navigation: navigation, permissions: permissions, shortcuts: shortcuts)
+        let factory = AppKitWindowFactory(settings: settings, navigation: navigation, permissions: permissions, shortcuts: shortcuts, secrets: secrets, chatGPTStore: chatGPTStore)
         let windows = WindowCoordinator(factory: factory, navigation: navigation, diagnostics: diagnostics)
         workspace.openProviders = { windows.showSettings(pane: .providers) }
+        settings.onSettingsSaved = { [shortcuts, workspace] saved in
+            shortcuts.apply(saved)
+            workspace.applyScreenSharing(allowCapture: saved.allowWorkspaceScreenCapture)
+        }
         return AppEnvironment(
             diagnostics: diagnostics,
             settings: settings,
@@ -91,9 +104,8 @@ final class AppEnvironment {
         )
     }
 
-    /// Registers the global shortcuts and keeps them in step with later settings changes.
+    /// Registers the global shortcuts. Later settings changes are already wired in ``live()``.
     func startShortcuts() {
         shortcuts.start(with: settings.settings)
-        settings.onSettingsSaved = { [shortcuts] saved in shortcuts.apply(saved) }
     }
 }

@@ -1,10 +1,23 @@
 import Foundation
 
 /// What the assistant asks of an analysis source. `prompt` is nil for the automatic first analysis of a new
-/// capture. The image itself is added when real providers arrive (M4); the mock never needs it.
+/// capture. Real providers receive the capture as PNG in `image`.
 struct AnalysisRequest: Sendable {
+    /// The first-turn prompt when the assistant analyzes a new capture automatically.
+    static let automaticPrompt = "Describe what is in this screenshot and point out any text or details that matter."
     let prompt: String?
     let metadata: CaptureMetadata
+    /// Earlier turns of the conversation, oldest first. Empty for the automatic first analysis.
+    var history: [AnalysisTurn] = []
+    /// The capture as PNG data, for sources that accept images. Nil for the mock.
+    var image: Data?
+}
+
+/// One earlier message in the assistant conversation, sent back to a source for follow-ups.
+struct AnalysisTurn: Equatable, Sendable {
+    enum Role: Equatable, Sendable { case user, assistant }
+    let role: Role
+    let text: String
 }
 
 /// Who answers, shown in the assistant footer so it is always clear where analysis happens (Design Spec S2).
@@ -17,6 +30,9 @@ struct AnalysisSourceIdentity: Equatable, Sendable {
 
     let name: String
     let detail: String
+    /// A stable identifier for the provider (for example "ollama" or "openai"). Consent is recorded per
+    /// provider ID, so two providers never share approval even if their display names are similar.
+    let providerID: String
     /// True for the built-in stand-in. The assistant labels mock output so it is never mistaken for a model.
     let isMock: Bool
     let locality: Locality
@@ -42,6 +58,7 @@ struct MockAnalysisSource: AnalysisSource {
     let identity = AnalysisSourceIdentity(
         name: "Mock analysis",
         detail: "No model connected",
+        providerID: "mock",
         isMock: true,
         locality: .local
     )

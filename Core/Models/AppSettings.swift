@@ -39,6 +39,15 @@ enum CloudConsentPolicy: String, Codable, CaseIterable, Sendable {
     case askOncePerProvider
     /// Never transmit; cloud providers are unusable.
     case localOnly
+    /// Send to the selected cloud provider without a prompt. Local-only still blocks sending.
+    case allowWithoutAsking
+}
+
+enum AnalysisProviderChoice: String, Codable, CaseIterable, Sendable {
+    case mock
+    case ollama
+    case openAI
+    case anthropic
 }
 
 enum DefaultRecordingTarget: String, Codable, CaseIterable, Sendable {
@@ -82,6 +91,21 @@ struct AppSettings: Equatable, Codable, Sendable {
     /// BCP-47 identifiers in priority order. Empty means automatic language detection.
     var ocrLanguages: [String] = []
 
+    // Analysis provider (Settings > Providers). Prefer named ``providerProfiles``; the fields below remain for
+    // migration from earlier M4 builds.
+    var analysisProvider: AnalysisProviderChoice = .mock
+    var ollamaModel: String = ""
+    var ollamaEndpoint: String = "http://localhost:11434"
+    var openAIEndpoint: String = "https://api.openai.com/v1"
+    var openAIModel: String = "gpt-4o"
+    var anthropicEndpoint: String = "https://api.anthropic.com"
+    var anthropicModel: String = AnthropicAnalysisSource.defaultModel
+    /// Named provider configurations. The active one is ``activeProviderProfileID``.
+    var providerProfiles: [ProviderProfile] = []
+    var activeProviderProfileID: UUID?
+    /// Provider IDs the user has approved under "Ask once per provider". Never holds secrets.
+    var approvedCloudProviderIDs: [String] = []
+
     // Storage (Settings > Storage). nil means "use the default location".
     var screenshotFolderPath: String?
     var recordingFolderPath: String?
@@ -101,6 +125,9 @@ struct AppSettings: Equatable, Codable, Sendable {
     var cloudConsentPolicy: CloudConsentPolicy = .askEveryTime
     /// Quick Copy history is off by default (PRD FR-O04).
     var saveQuickCopyToHistory = false
+    /// When false (default), the assistant and frozen capture use `sharingType = .none` so macOS
+    /// screenshots/recordings skip them. Turn on for demos so ⌘⇧3/4/5 can capture the workspace.
+    var allowWorkspaceScreenCapture = false
 
     static let overlayDimRange: ClosedRange<Double> = 0.30...0.40
     static let captureBorderWidthRange: ClosedRange<Double> = 0...8
@@ -130,6 +157,48 @@ struct AppSettings: Equatable, Codable, Sendable {
         }
     }
 
+    /// Moves the older single-provider fields into named profiles once, so existing setups keep working.
+    /// Clears ``analysisProvider`` to `.mock` afterward so deleting every profile cannot resurrect the legacy
+    /// choice on the next launch.
+    /// Returns whether anything changed.
+    @discardableResult
+    mutating func migrateProviderProfilesIfNeeded() -> Bool {
+        guard providerProfiles.isEmpty else {
+            if let id = activeProviderProfileID, !providerProfiles.contains(where: { $0.id == id }) {
+                activeProviderProfileID = providerProfiles.first?.id
+                return true
+            }
+            return false
+        }
+        switch analysisProvider {
+        case .mock:
+            return false
+        case .ollama:
+            let profile = ProviderProfile(name: "Ollama", kind: .ollama, endpoint: ollamaEndpoint, model: ollamaModel)
+            providerProfiles = [profile]
+            activeProviderProfileID = profile.id
+            analysisProvider = .mock
+            return true
+        case .openAI:
+            let profile = ProviderProfile(name: "OpenAI", kind: .openAI, endpoint: openAIEndpoint, model: openAIModel)
+            providerProfiles = [profile]
+            activeProviderProfileID = profile.id
+            analysisProvider = .mock
+            return true
+        case .anthropic:
+            let profile = ProviderProfile(name: "Anthropic", kind: .anthropic, endpoint: anthropicEndpoint, model: anthropicModel)
+            providerProfiles = [profile]
+            activeProviderProfileID = profile.id
+            analysisProvider = .mock
+            return true
+        }
+    }
+
+    var activeProviderProfile: ProviderProfile? {
+        guard let id = activeProviderProfileID else { return nil }
+        return providerProfiles.first { $0.id == id }
+    }
+
     init() {}
 
     /// Decodes tolerantly: any missing key falls back to its default, so adding a field never invalidates old files.
@@ -152,5 +221,16 @@ struct AppSettings: Equatable, Codable, Sendable {
         recordMicrophone = try container.decodeIfPresent(Bool.self, forKey: .recordMicrophone) ?? defaults.recordMicrophone
         cloudConsentPolicy = try container.decodeIfPresent(CloudConsentPolicy.self, forKey: .cloudConsentPolicy) ?? defaults.cloudConsentPolicy
         saveQuickCopyToHistory = try container.decodeIfPresent(Bool.self, forKey: .saveQuickCopyToHistory) ?? defaults.saveQuickCopyToHistory
+        allowWorkspaceScreenCapture = try container.decodeIfPresent(Bool.self, forKey: .allowWorkspaceScreenCapture) ?? defaults.allowWorkspaceScreenCapture
+        analysisProvider = try container.decodeIfPresent(AnalysisProviderChoice.self, forKey: .analysisProvider) ?? defaults.analysisProvider
+        ollamaModel = try container.decodeIfPresent(String.self, forKey: .ollamaModel) ?? defaults.ollamaModel
+        ollamaEndpoint = try container.decodeIfPresent(String.self, forKey: .ollamaEndpoint) ?? defaults.ollamaEndpoint
+        openAIEndpoint = try container.decodeIfPresent(String.self, forKey: .openAIEndpoint) ?? defaults.openAIEndpoint
+        openAIModel = try container.decodeIfPresent(String.self, forKey: .openAIModel) ?? defaults.openAIModel
+        anthropicEndpoint = try container.decodeIfPresent(String.self, forKey: .anthropicEndpoint) ?? defaults.anthropicEndpoint
+        anthropicModel = try container.decodeIfPresent(String.self, forKey: .anthropicModel) ?? defaults.anthropicModel
+        providerProfiles = try container.decodeIfPresent([ProviderProfile].self, forKey: .providerProfiles) ?? defaults.providerProfiles
+        activeProviderProfileID = try container.decodeIfPresent(UUID.self, forKey: .activeProviderProfileID)
+        approvedCloudProviderIDs = try container.decodeIfPresent([String].self, forKey: .approvedCloudProviderIDs) ?? defaults.approvedCloudProviderIDs
     }
 }

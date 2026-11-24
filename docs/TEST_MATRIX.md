@@ -6,11 +6,11 @@ Status values: **PASS**, **FAIL**, **NOT PERFORMED** (no one has run it), **BLOC
 
 | Suite | Command | Result |
 |---|---|---|
-| Unit (234 tests, 24 suites) | `scripts/test.sh unit` | PASS (2026-11-20, M3 branch; run through `xcrun xctest` because the scheme `test` action cannot run in the agent sandbox) |
-| Integration (17 tests, 3 suites) | `scripts/test.sh integration` | PASS (2026-11-20, M3 branch; same note) |
-| UI (6 tests) | `scripts/test.sh ui` | PASS on M0 and M1 (2026-11-18), on M2 (2026-11-19) and on M3 (2026-11-20), all on the product owner's Mac. |
-| Debug build, warnings as errors | `scripts/build.sh Debug` | PASS (2026-11-20, M3 branch) |
-| Release build, warnings as errors | `scripts/build.sh Release` | PASS (2026-11-20, M3 branch) |
+| Unit (308 tests, 33 suites) | `scripts/test.sh unit` | PASS (2026-11-23, M4 gate; Keychain tests need a non-sandbox run, KI-025) |
+| Integration (17 tests, 3 suites) | `scripts/test.sh integration` | PASS (2026-11-23, M4 gate) |
+| UI (6 tests) | `scripts/test.sh ui` | PASS on M0–M3 (product owner's Mac) and on M4 (2026-11-23). |
+| Debug build, warnings as errors | `scripts/build.sh Debug` | PASS (2026-11-23, M4 gate) |
+| Release build, warnings as errors | `scripts/build.sh Release` | PASS (2026-11-23, M4 gate) |
 
 ## Manual: M0 (real Mac)
 
@@ -92,6 +92,25 @@ A screenshot (⌘⇧8 or Menu > Capture Screenshot) now saves the PNG as before 
 | 18 | Capture a protected (DRM) window, if you have a source | The capture is black and the assistant shows "This capture looks blank…" and does not run the analysis | SKIPPED (a DRM source was not available in M1 either, KI-018) |
 | 19 | Unpin, open other apps so one sits under the assistant, then click the app under the assistant, then click the capture, then click the assistant | Clicking the app raises it over both. Clicking the capture raises the capture and the assistant together, with the assistant on top and ready for typing. Clicking the assistant raises both | PASS |
 | 20 | Settings > Capture & Recording > Screenshot border: switch off "Use system accent color", pick a color, set the width to 0, 1 and 8, then take a screenshot each time | The preview matches the capture's outline; width 0 shows no outline; the color and width persist after relaunching the app | PASS |
+
+## Manual: M4 (real Mac, provider configured)
+
+Providers, consent, Stop, and the set-up empty state. The agent cannot observe a screen or call your API keys. Run `scripts/run.sh`. Mark PASS only from what you see.
+
+| # | Step | Expected | Status |
+|---|---|---|---|
+| 1 | Fresh settings (no profiles). Take a screenshot | Assistant shows "Set up a provider…" with Open Providers; no mock stream; footer says No provider | PASS |
+| 2 | Settings > Providers: Add Ollama, set model (for example gemma4:e4b-mlx), Save, Test connection | Test succeeds; profile is Active | PASS |
+| 3 | Screenshot with Ollama active; ask a follow-up | Analysis streams; reply streams; footer Local; PNG was used (answer refers to the image) | PASS |
+| 4 | Quit Ollama (or wrong model), screenshot | Clear provider error; Retry works after fixing | PASS |
+| 5 | Add OpenAI profile with a real key; Privacy = Ask every time; screenshot | Consent alert; Allow → analysis; Deny → nothing sent, declined message | PASS |
+| 6 | Privacy: Don't ask before sending; screenshot with OpenAI | No consent alert; analysis runs | PASS |
+| 7 | Privacy: Local only; screenshot with OpenAI active | Cloud blocked; local Ollama still works if switched | PASS |
+| 8 | Add Anthropic profile with a real key; screenshot and follow-up | Consent (unless skip-ask); streams; Cloud badge | PASS |
+| 9 | During streaming analysis or a reply, press Stop | Streaming stops; partial text remains; Send returns | PASS |
+| 10 | Remove all profiles (or clear Active); screenshot | Set-up empty state again | PASS |
+| 11 | Add ChatGPT account profile → Continue with ChatGPT; allow plan usage; screenshot | Browser sign-in; analysis streams via ChatGPT plan; Cloud badge; Manage usage opens ChatGPT settings | PASS |
+| 12 | Sign out of ChatGPT; screenshot with that profile still active | Clear “sign in” refusal / set-up, nothing sent | PASS |
 
 ## Cross-milestone privacy matrix (M0 slice)
 

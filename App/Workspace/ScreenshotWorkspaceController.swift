@@ -13,29 +13,33 @@ final class ScreenshotWorkspaceController: ScreenshotWorkspacePresenting {
     /// Opens Settings > Providers. Set after the window coordinator exists.
     var openProviders: (@MainActor () -> Void)?
 
-    private let analysis: any AnalysisSource
+    private let analysisProvider: @MainActor () -> any AnalysisSource
     private let textCopier: any TextCopying
     private let feedback: any CaptureFeedback
     private let settings: @MainActor () -> AppSettings
+    private let rememberCloudApproval: @MainActor (String) -> Void
     private let diagnostics: Diagnostics
 
     private var model: ScreenshotWorkspaceModel?
     private var assistant: AssistantPanel?
     private var frozen: FrozenCapturePanel?
     private var screenObserver: (any NSObjectProtocol)?
+    private var spaceObserver: (any NSObjectProtocol)?
     private var previousApplication: NSRunningApplication?
 
     init(
-        analysis: any AnalysisSource,
+        analysisProvider: @escaping @MainActor () -> any AnalysisSource,
         textCopier: any TextCopying,
         feedback: any CaptureFeedback,
         settings: @escaping @MainActor () -> AppSettings,
+        rememberCloudApproval: @escaping @MainActor (String) -> Void,
         diagnostics: Diagnostics
     ) {
-        self.analysis = analysis
+        self.analysisProvider = analysisProvider
         self.textCopier = textCopier
         self.feedback = feedback
         self.settings = settings
+        self.rememberCloudApproval = rememberCloudApproval
         self.diagnostics = diagnostics
     }
 
@@ -62,8 +66,15 @@ final class ScreenshotWorkspaceController: ScreenshotWorkspacePresenting {
         let model = ScreenshotWorkspaceModel(
             metadata: capture.metadata,
             savedURL: savedAt,
+            imagePNG: capture.image.pngData(),
             appearsBlank: appearsBlank,
-            source: analysis,
+            sourceProvider: analysisProvider,
+            consent: ConsentGate(
+                policy: { [weak self] in self?.settings().cloudConsentPolicy ?? .askEveryTime },
+                approvedIDs: { [weak self] in Set(self?.settings().approvedCloudProviderIDs ?? []) },
+                rememberApproval: { [weak self] id in self?.rememberCloudApproval(id) },
+                asker: self
+            ),
             copyText: { [weak self] in
                 guard let self else { return }
                 feedback.showToast(QuickCopyService.progressToast)
@@ -90,6 +101,7 @@ final class ScreenshotWorkspaceController: ScreenshotWorkspacePresenting {
         self.frozen = frozen
         self.assistant = assistant
         applyLevels(pinned: model.isPinned)
+        applyScreenSharing(allowCapture: preferences.allowWorkspaceScreenCapture)
 
         screenObserver = NotificationCenter.default.addObserver(
             forName: NSApplication.didChangeScreenParametersNotification,
@@ -98,6 +110,14 @@ final class ScreenshotWorkspaceController: ScreenshotWorkspacePresenting {
         ) { [weak self] _ in
             // The saved geometry no longer matches the displays, so close rather than show a stray panel.
             MainActor.assumeIsolated { self?.dismiss() }
+        }
+        spaceObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.activeSpaceDidChangeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            // Floating + fullScreenAuxiliary can otherwise sit on top of a different full-screen app.
+            MainActor.assumeIsolated { self?.syncSpaceVisibility() }
         }
 
         frozen.orderFrontRegardless()
@@ -157,12 +177,46 @@ final class ScreenshotWorkspaceController: ScreenshotWorkspacePresenting {
         }
     }
 
+    /// Lets macOS screenshot/recording tools include the workspace when enabled in Privacy settings.
+    /// captAI’s own captures still exclude these windows by ID.
+    func applyScreenSharing(allowCapture: Bool) {
+        let sharing: NSWindow.SharingType = allowCapture ? .readOnly : .none
+        assistant?.sharingType = sharing
+        frozen?.sharingType = sharing
+    }
+
+    /// Shows the workspace only on the Space it belongs to, so it does not block another full-screen app.
+    private func syncSpaceVisibility() {
+        guard model != nil, let frozen, let assistant else { return }
+        let frozenHere = frozen.isOnActiveSpace
+        let assistantHere = assistant.isOnActiveSpace
+        if !frozenHere && !assistantHere {
+            frozen.orderOut(nil)
+            assistant.orderOut(nil)
+            return
+        }
+        if frozenHere {
+            if model?.isCaptureVisible == true { frozen.orderFrontRegardless() }
+        } else {
+            frozen.orderOut(nil)
+        }
+        if assistantHere {
+            assistant.orderFrontRegardless()
+        } else {
+            assistant.orderOut(nil)
+        }
+    }
+
     private func teardown(restoreFocus: Bool) {
         model?.close()
         model = nil
         if let screenObserver {
             NotificationCenter.default.removeObserver(screenObserver)
             self.screenObserver = nil
+        }
+        if let spaceObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(spaceObserver)
+            self.spaceObserver = nil
         }
         for panel in [assistant, frozen] as [NSPanel?] {
             panel?.orderOut(nil)
@@ -174,6 +228,23 @@ final class ScreenshotWorkspaceController: ScreenshotWorkspacePresenting {
             _ = previous.activate(from: NSRunningApplication.current)
         }
         if restoreFocus { previousApplication = nil }
+    }
+}
+
+// MARK: - Consent
+
+extension ScreenshotWorkspaceController: ConsentAsking {
+    func askToSend(to identity: AnalysisSourceIdentity) async -> Bool {
+        await withCheckedContinuation { continuation in
+            let alert = NSAlert()
+            alert.messageText = "Send this screenshot to \(identity.name)?"
+            alert.informativeText = "The image and your message will leave this Mac and go to \(identity.detail). Nothing is sent if you cancel."
+            alert.alertStyle = .warning
+            alert.addButton(withTitle: "Send")
+            alert.addButton(withTitle: "Cancel")
+            let response = alert.runModal()
+            continuation.resume(returning: response == .alertFirstButtonReturn)
+        }
     }
 }
 
@@ -199,13 +270,16 @@ final class AssistantPanel: NSPanel {
         )
         isOpaque = false
         backgroundColor = .clear
-        hasShadow = true
+        // AppKit's rectangular shadow sat outside the rounded glass as a hard black border.
+        hasShadow = false
         isMovableByWindowBackground = true
         hidesOnDeactivate = false
         isReleasedWhenClosed = false
         animationBehavior = .none
+        // Default hidden from system capture; ``applyScreenSharing`` may open this for demos.
         sharingType = .none
-        collectionBehavior = [.fullScreenAuxiliary, .ignoresCycle]
+        // stationary keeps the panel on the Space where the capture happened (not every full-screen app).
+        collectionBehavior = [.fullScreenAuxiliary, .stationary, .ignoresCycle]
         minSize = NSSize(width: PanelPlacer.minimumWidth, height: PanelPlacer.minimumHeight)
         maxSize = NSSize(width: PanelPlacer.maximumWidth, height: max(maximumHeight, PanelPlacer.minimumHeight))
 
@@ -214,7 +288,25 @@ final class AssistantPanel: NSPanel {
         host.sizingOptions = []
         // Focusing the composer would otherwise draw AppKit's square focus ring around the whole window.
         host.focusRingType = .none
-        contentView = host
+
+        // Liquid Glass (`NSGlassEffectView` / SwiftUI `.glassEffect`) draws a soft rim outside the fill at
+        // every curve (product owner, 2026-11-23). A clipped material view keeps frost without that ghost edge.
+        let chrome = NSVisualEffectView()
+        chrome.material = .hudWindow
+        chrome.blendingMode = .behindWindow
+        chrome.state = .active
+        chrome.wantsLayer = true
+        chrome.layer?.cornerRadius = 28
+        chrome.layer?.masksToBounds = true
+        host.translatesAutoresizingMaskIntoConstraints = false
+        chrome.addSubview(host)
+        NSLayoutConstraint.activate([
+            host.leadingAnchor.constraint(equalTo: chrome.leadingAnchor),
+            host.trailingAnchor.constraint(equalTo: chrome.trailingAnchor),
+            host.topAnchor.constraint(equalTo: chrome.topAnchor),
+            host.bottomAnchor.constraint(equalTo: chrome.bottomAnchor),
+        ])
+        contentView = chrome
         setFrame(frame, display: false)
     }
 
@@ -252,11 +344,14 @@ final class FrozenCapturePanel: NSPanel {
         isOpaque = true
         backgroundColor = .black
         hasShadow = true
+        isMovableByWindowBackground = true
         hidesOnDeactivate = false
         isReleasedWhenClosed = false
         animationBehavior = .none
+        // Default hidden from system capture; ``applyScreenSharing`` may open this for demos.
         sharingType = .none
-        collectionBehavior = [.fullScreenAuxiliary, .ignoresCycle]
+        // stationary keeps the panel on the Space where the capture happened (not every full-screen app).
+        collectionBehavior = [.fullScreenAuxiliary, .stationary, .ignoresCycle]
         contentView = FrozenCaptureView(image: image, scale: scale, borderColor: borderColor, borderWidth: borderWidth)
         setFrame(frame, display: false)
     }
@@ -296,6 +391,14 @@ final class FrozenCaptureView: NSView {
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) is not supported")
+    }
+
+    override var mouseDownCanMoveWindow: Bool { true }
+
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
+    override func mouseDown(with event: NSEvent) {
+        window?.performDrag(with: event)
     }
 
     override func viewDidChangeEffectiveAppearance() {

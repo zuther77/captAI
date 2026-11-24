@@ -22,6 +22,28 @@ enum AppError: Error, Equatable, Sendable {
     case ocrFailed
     /// The assistant's analysis or reply could not be produced.
     case analysisFailed
+    /// A secret (such as an API key) could not be read or saved in the Keychain. The value is never included.
+    case keychainFailed
+    /// The user declined the cloud-consent prompt. Nothing was sent.
+    case cloudConsentDeclined
+    /// Settings > Privacy is set to never send captures to cloud providers.
+    case cloudBlocked
+    /// Provider problem: captAI could not reach the model provider.
+    case providerUnavailable
+    /// Provider problem: The model is not installed on the provider.
+    case providerModelNotFound
+    /// Provider problem: This model cannot read images.
+    case providerModelLacksVision
+    /// Provider problem: The provider rejected the API key.
+    case providerAuthFailed
+    /// Provider problem: The provider is busy or the usage limit was reached.
+    case providerRateLimited
+    /// Provider problem: The provider failed to produce an answer.
+    case providerServerError
+    /// Provider problem: The provider rejected the request.
+    case providerRequestRejected
+    /// Provider problem: The provider sent an answer captAI could not read.
+    case providerResponseInvalid
 
     /// Stable machine-readable code for diagnostics and tests.
     var code: String {
@@ -39,6 +61,17 @@ enum AppError: Error, Equatable, Sendable {
         case .captureSaveFailed: "capture.saveFailed"
         case .ocrFailed: "ocr.failed"
         case .analysisFailed: "analysis.failed"
+        case .keychainFailed: "keychain.failed"
+        case .cloudConsentDeclined: "cloud.consentDeclined"
+        case .cloudBlocked: "cloud.blocked"
+        case .providerUnavailable: "provider.unavailable"
+        case .providerModelNotFound: "provider.modelNotFound"
+        case .providerModelLacksVision: "provider.modelLacksVision"
+        case .providerAuthFailed: "provider.authFailed"
+        case .providerRateLimited: "provider.rateLimited"
+        case .providerServerError: "provider.serverError"
+        case .providerRequestRejected: "provider.requestRejected"
+        case .providerResponseInvalid: "provider.responseInvalid"
         }
     }
 
@@ -83,6 +116,28 @@ extension AppError: LocalizedError {
             "The text in the screenshot could not be read."
         case .analysisFailed:
             "The analysis could not be completed."
+        case .keychainFailed:
+            "captAI could not access the Keychain."
+        case .cloudConsentDeclined:
+            "This screenshot was not sent."
+        case .cloudBlocked:
+            "Cloud providers are turned off."
+        case .providerUnavailable:
+            "captAI could not reach the model provider."
+        case .providerModelNotFound:
+            "The model is not installed on the provider."
+        case .providerModelLacksVision:
+            "This model cannot read images."
+        case .providerAuthFailed:
+            "The provider rejected the sign-in or API key."
+        case .providerRateLimited:
+            "The provider is busy or the usage limit was reached."
+        case .providerServerError:
+            "The provider failed to produce an answer."
+        case .providerRequestRejected:
+            "The provider rejected the request."
+        case .providerResponseInvalid:
+            "The provider sent an answer captAI could not read."
         }
     }
 
@@ -112,6 +167,28 @@ extension AppError: LocalizedError {
             "Try again. Quick Copy runs on this Mac and needs no account or network connection."
         case .analysisFailed:
             "Try again."
+        case .keychainFailed:
+            "Check that captAI may use the login Keychain, then try again."
+        case .cloudConsentDeclined:
+            "Nothing left this Mac."
+        case .cloudBlocked:
+            "Choose a local provider, or change Settings > Privacy."
+        case .providerUnavailable:
+            "Start Ollama, or check the endpoint in Settings > Providers."
+        case .providerModelNotFound:
+            "Install or pull the model, or choose another in Settings > Providers."
+        case .providerModelLacksVision:
+            "Choose a vision model in Settings > Providers."
+        case .providerAuthFailed:
+            "Sign in again or check the key in Settings > Providers."
+        case .providerRateLimited:
+            "Wait a moment and try again."
+        case .providerServerError:
+            "Try again in a moment."
+        case .providerRequestRejected:
+            "Check the model and endpoint in Settings > Providers."
+        case .providerResponseInvalid:
+            "Try again. If it keeps happening, try another model."
         }
     }
 }

@@ -221,12 +221,13 @@ final class FakeAnalysisSource: AnalysisSource, @unchecked Sendable {
 
     private let lock = NSLock()
     private var prompts: [String?] = []
+    private var requests: [AnalysisRequest] = []
     private var held: [Continuation] = []
     private var storedChunks = ["Hello ", "world"]
     private var storedFailure: AppError?
     private var storedHoldsOpen = false
 
-    let identity = AnalysisSourceIdentity(name: "Test source", detail: "Scripted", isMock: true, locality: .local)
+    let identity = AnalysisSourceIdentity(name: "Test source", detail: "Scripted", providerID: "test", isMock: true, locality: .local)
 
     var chunks: [String] {
         get { lock.withLock { storedChunks } }
@@ -241,9 +242,13 @@ final class FakeAnalysisSource: AnalysisSource, @unchecked Sendable {
         set { lock.withLock { storedHoldsOpen = newValue } }
     }
     var recordedPrompts: [String?] { lock.withLock { prompts } }
+    var recordedRequests: [AnalysisRequest] { lock.withLock { requests } }
 
     func analyze(_ request: AnalysisRequest) -> AsyncThrowingStream<String, any Error> {
-        lock.withLock { prompts.append(request.prompt) }
+        lock.withLock {
+            prompts.append(request.prompt)
+            requests.append(request)
+        }
         return AsyncThrowingStream { continuation in
             let (hold, script, error) = lock.withLock { (storedHoldsOpen, storedChunks, storedFailure) }
             if hold {
@@ -346,3 +351,69 @@ final class FakeTextClipboard: TextClipboard {
         return true
     }
 }
+
+/// A scripted HTTP transport. Records each request; the tests choose the status, body lines or failure.
+final class FakeHTTPTransport: HTTPTransport, @unchecked Sendable {
+    private let lock = NSLock()
+    private var recorded: [URLRequest] = []
+    private var storedShow: (status: Int, body: Data) = (200, Data(#"{"capabilities":["completion","vision"]}"#.utf8))
+    private var storedChatStatus = 200
+    private var storedChatLines: [String] = []
+    private var storedFailure: (any Error)?
+
+    var requests: [URLRequest] { lock.withLock { recorded } }
+    var showResponse: (status: Int, body: Data) {
+        get { lock.withLock { storedShow } }
+        set { lock.withLock { storedShow = newValue } }
+    }
+    var chatStatus: Int {
+        get { lock.withLock { storedChatStatus } }
+        set { lock.withLock { storedChatStatus = newValue } }
+    }
+    var chatLines: [String] {
+        get { lock.withLock { storedChatLines } }
+        set { lock.withLock { storedChatLines = newValue } }
+    }
+    /// When set, every request fails with this error before any response.
+    var failure: (any Error)? {
+        get { lock.withLock { storedFailure } }
+        set { lock.withLock { storedFailure = newValue } }
+    }
+
+    func streamLines(for request: URLRequest) async throws -> HTTPStreamResponse {
+        lock.withLock { recorded.append(request) }
+        if let failure { throw failure }
+        let status = chatStatus
+        let lines = chatLines
+        let stream = AsyncThrowingStream<String, any Error> { continuation in
+            for line in lines { continuation.yield(line) }
+            continuation.finish()
+        }
+        return HTTPStreamResponse(status: status, lines: stream)
+    }
+
+    func data(for request: URLRequest) async throws -> (status: Int, body: Data) {
+        lock.withLock { recorded.append(request) }
+        if let failure { throw failure }
+        return showResponse
+    }
+}
+
+/// In-memory secret store for tests. Never touches the Keychain.
+final class MemorySecretStore: SecretStore, @unchecked Sendable {
+    private let lock = NSLock()
+    private var values: [String: String] = [:]
+
+    func read(account: String) throws(AppError) -> String? {
+        lock.withLock { values[account] }
+    }
+
+    func write(_ value: String, account: String) throws(AppError) {
+        lock.withLock { values[account] = value }
+    }
+
+    func delete(account: String) throws(AppError) {
+        lock.withLock { _ = values.removeValue(forKey: account) }
+    }
+}
+
