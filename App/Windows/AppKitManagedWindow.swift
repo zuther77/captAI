@@ -56,6 +56,7 @@ struct AppKitWindowFactory: WindowFactory {
     let permissions: PermissionStore
     let shortcuts: ShortcutRegistrar
     let secrets: any SecretStore
+    let chatGPTStore: any ChatGPTSessionStore
 
     func makeWindow(for kind: WindowKind) -> any ManagedWindow {
         switch kind {
@@ -66,7 +67,7 @@ struct AppKitWindowFactory: WindowFactory {
                 size: NSSize(width: 720, height: 480),
                 minSize: NSSize(width: 640, height: 420),
                 autosaveName: "captAI.settingsWindow",
-                content: SettingsView(navigation: navigation, model: settings, permissions: permissions, shortcuts: shortcuts, secrets: secrets)
+                content: SettingsView(navigation: navigation, model: settings, permissions: permissions, shortcuts: shortcuts, secrets: secrets, chatGPTStore: chatGPTStore)
             )
         }
     }

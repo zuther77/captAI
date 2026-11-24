@@ -1,11 +1,13 @@
+import AppKit
 import SwiftUI
 
-/// Settings > Providers: named profiles for Ollama, OpenAI-compatible, and Anthropic.
+/// Settings > Providers: named profiles for Ollama, OpenAI-compatible, Anthropic, and Sign in with ChatGPT.
 ///
 /// Changes take effect on the next request. Cloud providers obey Settings > Privacy before anything is sent.
 struct ProvidersSettingsPane: View {
     let model: SettingsModel
     let secrets: any SecretStore
+    let chatGPTStore: any ChatGPTSessionStore
 
     @State private var draftName = ""
     @State private var draftKind: ProviderKind = .ollama
@@ -14,8 +16,10 @@ struct ProvidersSettingsPane: View {
     @State private var draftAPIKey = ""
     @State private var keyIsSaved = false
     @State private var checking = false
+    @State private var signingIn = false
     @State private var checkResult: String?
     @State private var selectedID: UUID?
+    @State private var chatGPTSession: ChatGPTSession?
 
     private var profiles: [ProviderProfile] { model.settings.providerProfiles }
     private var activeID: UUID? { model.settings.activeProviderProfileID }
@@ -24,7 +28,7 @@ struct ProvidersSettingsPane: View {
         Form {
             Section("Profiles") {
                 if profiles.isEmpty {
-                    Text("No providers yet. Add Ollama on this Mac, or an OpenAI or Anthropic key.")
+                    Text("No providers yet. Add Ollama, an API key, or Continue with ChatGPT.")
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(profiles) { profile in
@@ -59,6 +63,7 @@ struct ProvidersSettingsPane: View {
                     Button("Ollama") { addProfile(kind: .ollama) }
                     Button("OpenAI / compatible") { addProfile(kind: .openAI) }
                     Button("Anthropic") { addProfile(kind: .anthropic) }
+                    Button("ChatGPT account") { addProfile(kind: .chatGPT) }
                 }
                 .accessibilityIdentifier("settings.providers.add")
             }
@@ -91,16 +96,80 @@ struct ProvidersSettingsPane: View {
                 checkResult = nil
             }
             .accessibilityIdentifier("settings.providers.kind")
-            TextField("Model", text: $draftModel, prompt: Text(modelPrompt))
-                .accessibilityIdentifier("settings.providers.model")
-            TextField(endpointLabel, text: $draftEndpoint)
-                .accessibilityIdentifier("settings.providers.endpoint")
-            if draftKind.needsAPIKey {
-                SecureField(keyIsSaved && draftAPIKey.isEmpty ? "API key saved — enter a new key to replace it" : "API key", text: $draftAPIKey)
-                    .accessibilityIdentifier("settings.providers.key")
+
+            if draftKind.usesChatGPTSignIn {
+                chatGPTSection
+            } else {
+                TextField("Model", text: $draftModel, prompt: Text(modelPrompt))
+                    .accessibilityIdentifier("settings.providers.model")
+                TextField(endpointLabel, text: $draftEndpoint)
+                    .accessibilityIdentifier("settings.providers.endpoint")
+                if draftKind.needsAPIKey {
+                    SecureField(keyIsSaved && draftAPIKey.isEmpty ? "API key saved — enter a new key to replace it" : "API key", text: $draftAPIKey)
+                        .accessibilityIdentifier("settings.providers.key")
+                }
+                localityHint
+                actionRow
             }
-            localityHint
-            actionRow
+        }
+    }
+
+    @ViewBuilder
+    private var chatGPTSection: some View {
+        if let session = chatGPTSession {
+            Label(session.displayLabel, systemImage: "person.crop.circle")
+                .accessibilityIdentifier("settings.providers.chatgpt.account")
+            if session.planUsageEnabled {
+                Label("Using ChatGPT plan for analysis", systemImage: "checkmark.circle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.green)
+            } else {
+                Label("Signed in, but ChatGPT plan usage was not enabled. Sign in again and allow plan usage.", systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+            }
+            TextField("Model", text: $draftModel, prompt: Text("for example \(ChatGPTAuth.defaultModel)"))
+                .accessibilityIdentifier("settings.providers.model")
+            Label("Cloud: screenshots leave this Mac when you analyze. Privacy settings still apply.", systemImage: "cloud")
+                .font(.caption).foregroundStyle(.orange)
+            HStack {
+                Button("Save") { saveSelected() }
+                    .disabled(!dirty || draftName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .accessibilityIdentifier("settings.providers.save")
+                Button("Test connection") { Task { await testSelected() } }
+                    .disabled(dirty || checking)
+                    .accessibilityIdentifier("settings.providers.test")
+                if checking { ProgressView().controlSize(.small) }
+            }
+            HStack {
+                Button("Manage usage") {
+                    NSWorkspace.shared.open(ChatGPTAuth.manageUsageURL)
+                }
+                .accessibilityIdentifier("settings.providers.chatgpt.usage")
+                Button("Sign out", role: .destructive) { signOutChatGPT() }
+                    .accessibilityIdentifier("settings.providers.chatgpt.signOut")
+            }
+        } else {
+            Text("Eligible ChatGPT Go, Plus, Pro, or Business plans can power analysis without an API key.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Button {
+                Task { await signInChatGPT() }
+            } label: {
+                if signingIn {
+                    ProgressView().controlSize(.small)
+                } else {
+                    Text("Continue with ChatGPT")
+                }
+            }
+            .disabled(signingIn)
+            .accessibilityIdentifier("settings.providers.chatgpt.signIn")
+            Button("Save profile") { saveSelected() }
+                .disabled(draftName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .accessibilityIdentifier("settings.providers.save")
+        }
+        if let checkResult {
+            Text(checkResult).font(.caption).accessibilityIdentifier("settings.providers.result")
         }
     }
 
@@ -109,6 +178,7 @@ struct ProvidersSettingsPane: View {
         case .ollama: "for example gemma4:e4b-mlx"
         case .openAI: "for example gpt-4o"
         case .anthropic: "for example \(AnthropicAnalysisSource.defaultModel)"
+        case .chatGPT: "for example \(ChatGPTAuth.defaultModel)"
         }
     }
 
@@ -136,6 +206,7 @@ struct ProvidersSettingsPane: View {
     }
 
     private var addressProblem: String? {
+        if draftKind.usesChatGPTSignIn { return nil }
         let address = draftEndpoint.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let url = URL(string: address) else {
             return "Enter a valid server address."
@@ -153,6 +224,8 @@ struct ProvidersSettingsPane: View {
             guard AnthropicAnalysisSource.isUsable(url) else {
                 return "Enter a server address such as https://api.anthropic.com."
             }
+        case .chatGPT:
+            break
         }
         return nil
     }
@@ -198,7 +271,7 @@ struct ProvidersSettingsPane: View {
     }
 
     private func appear() {
-        model.update { $0.migrateProviderProfilesIfNeeded() }
+        model.update { settings in settings.migrateProviderProfilesIfNeeded() }
         selectedID = activeID ?? profiles.first?.id
         loadDrafts()
     }
@@ -233,6 +306,10 @@ struct ProvidersSettingsPane: View {
         if profile.kind.needsAPIKey {
             try? secrets.delete(account: profile.secretAccount)
         }
+        if profile.kind.usesChatGPTSignIn {
+            try? chatGPTStore.clear()
+            chatGPTSession = nil
+        }
         model.update { settings in
             settings.providerProfiles.removeAll { $0.id == profile.id }
             if settings.activeProviderProfileID == profile.id {
@@ -247,6 +324,7 @@ struct ProvidersSettingsPane: View {
     private func loadDrafts() {
         guard let profile = selectedProfile else {
             draftName = ""; draftModel = ""; draftEndpoint = ""; draftAPIKey = ""; keyIsSaved = false
+            chatGPTSession = nil
             return
         }
         draftName = profile.name
@@ -254,6 +332,7 @@ struct ProvidersSettingsPane: View {
         draftModel = profile.model
         draftEndpoint = profile.endpoint
         draftAPIKey = ""
+        chatGPTSession = (try? chatGPTStore.load())
         if profile.kind.needsAPIKey {
             let primary = (try? secrets.read(account: profile.secretAccount))?.isEmpty == false
             let legacyOpenAI = profile.kind == .openAI
@@ -270,7 +349,9 @@ struct ProvidersSettingsPane: View {
         guard let id = selectedID else { return }
         let name = draftName.trimmingCharacters(in: .whitespacesAndNewlines)
         let modelName = draftModel.trimmingCharacters(in: .whitespacesAndNewlines)
-        let endpoint = draftEndpoint.trimmingCharacters(in: .whitespacesAndNewlines)
+        let endpoint = draftKind.usesChatGPTSignIn
+            ? ChatGPTAuth.apiBase.absoluteString
+            : draftEndpoint.trimmingCharacters(in: .whitespacesAndNewlines)
         let kind = draftKind
         model.update { settings in
             guard let index = settings.providerProfiles.firstIndex(where: { $0.id == id }) else { return }
@@ -292,6 +373,44 @@ struct ProvidersSettingsPane: View {
         }
         checkResult = nil
         loadDrafts()
+    }
+
+    private func signInChatGPT() async {
+        signingIn = true
+        defer { signingIn = false }
+        let auth = ChatGPTAuthClient(openURL: { url in
+            DispatchQueue.main.async { NSWorkspace.shared.open(url) }
+        })
+        do {
+            let session = try await auth.signIn(store: chatGPTStore)
+            chatGPTSession = session
+            if draftModel.isEmpty {
+                draftModel = ChatGPTAuth.defaultModel
+            }
+            // Prefer an account-listed model when available.
+            let source = ChatGPTAnalysisSource(
+                model: draftModel.isEmpty ? ChatGPTAuth.defaultModel : draftModel,
+                store: chatGPTStore,
+                auth: auth
+            )
+            if let first = try? await source.listModels().first {
+                draftModel = first.slug
+            }
+            saveSelected()
+            if session.planUsageEnabled {
+                checkResult = "Connected as \(session.displayLabel). ChatGPT plan usage is on."
+            } else {
+                checkResult = "Connected, but plan usage was not granted. Sign in again and allow it."
+            }
+        } catch {
+            checkResult = error.errorDescription ?? "Sign in with ChatGPT could not be completed."
+        }
+    }
+
+    private func signOutChatGPT() {
+        try? chatGPTStore.clear()
+        chatGPTSession = nil
+        checkResult = "Signed out of ChatGPT."
     }
 
     private func testSelected() async {
@@ -345,6 +464,19 @@ struct ProvidersSettingsPane: View {
             do {
                 try await source.verifyConnection()
                 checkResult = "Ready: \(profile.model) answers at this endpoint."
+            } catch {
+                checkResult = error.errorDescription ?? "The connection could not be checked."
+            }
+        case .chatGPT:
+            let auth = ChatGPTAuthClient(openURL: { _ in })
+            let source = ChatGPTAnalysisSource(
+                model: profile.model.isEmpty ? ChatGPTAuth.defaultModel : profile.model,
+                store: chatGPTStore,
+                auth: auth
+            )
+            do {
+                try await source.verifyConnection()
+                checkResult = "Ready: \(profile.model) answers with your ChatGPT plan."
             } catch {
                 checkResult = error.errorDescription ?? "The connection could not be checked."
             }

@@ -6,7 +6,7 @@ Status values: **PASS**, **FAIL**, **NOT PERFORMED** (no one has run it), **BLOC
 
 | Suite | Command | Result |
 |---|---|---|
-| Unit (297 tests, 31 suites) | `scripts/test.sh unit` | PASS (2026-11-23, M4 branch remaining items; Keychain tests need a non-sandbox run, KI-025) |
+| Unit (305 tests, 33 suites) | `scripts/test.sh unit` | PASS (2026-11-23, M4 Sign in with ChatGPT; Keychain tests need a non-sandbox run, KI-025) |
 | Integration (17 tests, 3 suites) | `scripts/test.sh integration` | PASS (2026-11-20, M3 branch; same note) |
 | UI (6 tests) | `scripts/test.sh ui` | PASS on M0 and M1 (2026-11-18), on M2 (2026-11-19) and on M3 (2026-11-20), all on the product owner's Mac. |
 | Debug build, warnings as errors | `scripts/build.sh Debug` | PASS (2026-11-20, M3 branch) |
@@ -99,9 +99,9 @@ Providers, consent, Stop, and the set-up empty state. The agent cannot observe a
 
 | # | Step | Expected | Status |
 |---|---|---|---|
-| 1 | Fresh settings (no profiles). Take a screenshot | Assistant shows "Set up a provider…" with Open Providers; no mock stream; footer says No provider | NOT PERFORMED |
-| 2 | Settings > Providers: Add Ollama, set model (for example gemma4:e4b-mlx), Save, Test connection | Test succeeds; profile is Active | NOT PERFORMED |
-| 3 | Screenshot with Ollama active; ask a follow-up | Analysis streams; reply streams; footer Local; PNG was used (answer refers to the image) | NOT PERFORMED |
+| 1 | Fresh settings (no profiles). Take a screenshot | Assistant shows "Set up a provider…" with Open Providers; no mock stream; footer says No provider | PASS |
+| 2 | Settings > Providers: Add Ollama, set model (for example gemma4:e4b-mlx), Save, Test connection | Test succeeds; profile is Active | PASS |
+| 3 | Screenshot with Ollama active; ask a follow-up | Analysis streams; reply streams; footer Local; PNG was used (answer refers to the image) | PASS |
 | 4 | Quit Ollama (or wrong model), screenshot | Clear provider error; Retry works after fixing | NOT PERFORMED |
 | 5 | Add OpenAI profile with a real key; Privacy = Ask every time; screenshot | Consent alert; Allow → analysis; Deny → nothing sent, declined message | NOT PERFORMED |
 | 6 | Privacy: Don't ask before sending; screenshot with OpenAI | No consent alert; analysis runs | NOT PERFORMED |
@@ -109,6 +109,8 @@ Providers, consent, Stop, and the set-up empty state. The agent cannot observe a
 | 8 | Add Anthropic profile with a real key; screenshot and follow-up | Consent (unless skip-ask); streams; Cloud badge | NOT PERFORMED |
 | 9 | During streaming analysis or a reply, press Stop | Streaming stops; partial text remains; Send returns | NOT PERFORMED |
 | 10 | Remove all profiles (or clear Active); screenshot | Set-up empty state again | NOT PERFORMED |
+| 11 | Add ChatGPT account profile → Continue with ChatGPT; allow plan usage; screenshot | Browser sign-in; analysis streams via ChatGPT plan; Cloud badge; Manage usage opens ChatGPT settings | NOT PERFORMED |
+| 12 | Sign out of ChatGPT; screenshot with that profile still active | Clear “sign in” refusal / set-up, nothing sent | NOT PERFORMED |
 
 ## Cross-milestone privacy matrix (M0 slice)
 

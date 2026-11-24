@@ -5,12 +5,14 @@ enum ProviderKind: String, Codable, CaseIterable, Sendable {
     case ollama
     case openAI
     case anthropic
+    case chatGPT
 
     var displayName: String {
         switch self {
         case .ollama: "Ollama"
         case .openAI: "OpenAI / compatible"
         case .anthropic: "Anthropic"
+        case .chatGPT: "ChatGPT account"
         }
     }
 
@@ -19,6 +21,7 @@ enum ProviderKind: String, Codable, CaseIterable, Sendable {
         case .ollama: "http://localhost:11434"
         case .openAI: "https://api.openai.com/v1"
         case .anthropic: "https://api.anthropic.com"
+        case .chatGPT: ChatGPTAuth.apiBase.absoluteString
         }
     }
 
@@ -27,15 +30,18 @@ enum ProviderKind: String, Codable, CaseIterable, Sendable {
         case .ollama: ""
         case .openAI: "gpt-4o"
         case .anthropic: AnthropicAnalysisSource.defaultModel
+        case .chatGPT: ChatGPTAuth.defaultModel
         }
     }
 
     var needsAPIKey: Bool {
         switch self {
-        case .ollama: false
+        case .ollama, .chatGPT: false
         case .openAI, .anthropic: true
         }
     }
+
+    var usesChatGPTSignIn: Bool { self == .chatGPT }
 }
 
 /// A named, selectable provider configuration (plan M4). The API key, when needed, is stored in the Keychain

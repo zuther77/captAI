@@ -67,6 +67,29 @@
 		43B0C69E42E5A94EBD7C2EC8 /* ScreenshotWorkspaceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53483F04EB69C53C6DFC5A60 /* ScreenshotWorkspaceController.swift */; };
 		443212474729A577D0F4513C /* OpenAIAnalysisSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21CECF8D43EDD156E7BEC714 /* OpenAIAnalysisSource.swift */; };
 		E1F19684C8270C4AFB994EAD /* AnthropicAnalysisSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0B6D3FD4A595D1E2685189 /* AnthropicAnalysisSource.swift */; };
+		9D620AE1DADB21E568C5567E /* ChatGPTSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7887CE34358EB14C7B384729 /* ChatGPTSession.swift */; };
+		D2E37EDEE800A406884DDA24 /* ChatGPTSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7887CE34358EB14C7B384729 /* ChatGPTSession.swift */; };
+		962660F57453BFE0D587359F /* ChatGPTSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7887CE34358EB14C7B384729 /* ChatGPTSession.swift */; };
+		238555914A27A262FE6F0758 /* ChatGPTSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21723B801B0BBDF010B150B5 /* ChatGPTSessionStore.swift */; };
+		3117E8569CAFD838248A8C16 /* ChatGPTSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21723B801B0BBDF010B150B5 /* ChatGPTSessionStore.swift */; };
+		B6456710B41334A3FDFA2C79 /* ChatGPTSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21723B801B0BBDF010B150B5 /* ChatGPTSessionStore.swift */; };
+		A64C2F1DDD330B99FEE9B3E8 /* ChatGPTPKCE.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CF1332FBC67B8BC45410A88 /* ChatGPTPKCE.swift */; };
+		BB95E805383B44FAE3EBCD4D /* ChatGPTPKCE.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CF1332FBC67B8BC45410A88 /* ChatGPTPKCE.swift */; };
+		12079DACBBEF12C83089FFD8 /* ChatGPTPKCE.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CF1332FBC67B8BC45410A88 /* ChatGPTPKCE.swift */; };
+		093B827A555A4355533211A9 /* OpenIDTokenVerifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF0E6B1EF66FECA3D8ADCBBB /* OpenIDTokenVerifier.swift */; };
+		12572699A061449FE65178C5 /* OpenIDTokenVerifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF0E6B1EF66FECA3D8ADCBBB /* OpenIDTokenVerifier.swift */; };
+		C0C3811677BEDB8866B6FD68 /* OpenIDTokenVerifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF0E6B1EF66FECA3D8ADCBBB /* OpenIDTokenVerifier.swift */; };
+		B4920E5E979AF772E07FE3DC /* LoopbackAuthServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C0F6852C22A81BB08B81D9 /* LoopbackAuthServer.swift */; };
+		C74663A064F9B38B435B2E98 /* LoopbackAuthServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C0F6852C22A81BB08B81D9 /* LoopbackAuthServer.swift */; };
+		60FA75B51C7607E34C8371FF /* LoopbackAuthServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C0F6852C22A81BB08B81D9 /* LoopbackAuthServer.swift */; };
+		D8CBF017B8A334595952F4F1 /* ChatGPTAuthClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A3550A229C7EE1C9B80DCA3 /* ChatGPTAuthClient.swift */; };
+		7DF91703013C1813F3E236C4 /* ChatGPTAuthClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A3550A229C7EE1C9B80DCA3 /* ChatGPTAuthClient.swift */; };
+		D494D231AA96FB321192BE23 /* ChatGPTAuthClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A3550A229C7EE1C9B80DCA3 /* ChatGPTAuthClient.swift */; };
+		2D9E82B472B0EBC1D895D1DA /* ChatGPTAnalysisSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = D185B2E549C728D261D20AC5 /* ChatGPTAnalysisSource.swift */; };
+		59D649EF9D1E3141635D6222 /* ChatGPTAnalysisSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = D185B2E549C728D261D20AC5 /* ChatGPTAnalysisSource.swift */; };
+		4555044D5B8FF3CDF6DF3C7E /* ChatGPTAnalysisSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = D185B2E549C728D261D20AC5 /* ChatGPTAnalysisSource.swift */; };
+		194B6935B0F196544161CE3C /* ChatGPTAnalysisSourceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB78103B548FE576C2822C6B /* ChatGPTAnalysisSourceTests.swift */; };
+		5CA9713C702495B5CAEA10EF /* OpenIDTokenVerifierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1879C8DE89B571136E671321 /* OpenIDTokenVerifierTests.swift */; };
 		5C61D1234C74ADF2BBACF96F /* ProviderProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BCFD02E90DADDFDE77DC028 /* ProviderProfile.swift */; };
 		E188E57DECB1E5110C7B1D6B /* AnthropicAnalysisSourceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8B7EC376E64FD21D8185B22 /* AnthropicAnalysisSourceTests.swift */; };
 		1DABA77B26B10267F0860255 /* AnthropicAnalysisSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0B6D3FD4A595D1E2685189 /* AnthropicAnalysisSource.swift */; };
@@ -268,6 +291,15 @@
 		219ED40AD8CDD65F3F66854E /* PermissionProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PermissionProvider.swift; sourceTree = "<group>"; };
 		21CECF8D43EDD156E7BEC714 /* OpenAIAnalysisSource.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Core/Providers/OpenAIAnalysisSource.swift; sourceTree = SOURCE_ROOT; };
 		FF0B6D3FD4A595D1E2685189 /* AnthropicAnalysisSource.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Core/Providers/AnthropicAnalysisSource.swift; sourceTree = SOURCE_ROOT; };
+		7887CE34358EB14C7B384729 /* ChatGPTSession.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Core/Providers/ChatGPTSession.swift; sourceTree = SOURCE_ROOT; };
+		21723B801B0BBDF010B150B5 /* ChatGPTSessionStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Core/Providers/ChatGPTSessionStore.swift; sourceTree = SOURCE_ROOT; };
+		2CF1332FBC67B8BC45410A88 /* ChatGPTPKCE.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Core/Providers/ChatGPTPKCE.swift; sourceTree = SOURCE_ROOT; };
+		CF0E6B1EF66FECA3D8ADCBBB /* OpenIDTokenVerifier.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Core/Providers/OpenIDTokenVerifier.swift; sourceTree = SOURCE_ROOT; };
+		B2C0F6852C22A81BB08B81D9 /* LoopbackAuthServer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Core/Providers/LoopbackAuthServer.swift; sourceTree = SOURCE_ROOT; };
+		3A3550A229C7EE1C9B80DCA3 /* ChatGPTAuthClient.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Core/Providers/ChatGPTAuthClient.swift; sourceTree = SOURCE_ROOT; };
+		D185B2E549C728D261D20AC5 /* ChatGPTAnalysisSource.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Core/Providers/ChatGPTAnalysisSource.swift; sourceTree = SOURCE_ROOT; };
+		AB78103B548FE576C2822C6B /* ChatGPTAnalysisSourceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ChatGPTAnalysisSourceTests.swift; sourceTree = "<group>"; };
+		1879C8DE89B571136E671321 /* OpenIDTokenVerifierTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OpenIDTokenVerifierTests.swift; sourceTree = "<group>"; };
 		9BCFD02E90DADDFDE77DC028 /* ProviderProfile.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Core/Providers/ProviderProfile.swift; sourceTree = SOURCE_ROOT; };
 		B8B7EC376E64FD21D8185B22 /* AnthropicAnalysisSourceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AnthropicAnalysisSourceTests.swift; sourceTree = "<group>"; };
 		2312F5032F05B1EDC8973815 /* CaptAIApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CaptAIApp.swift; sourceTree = "<group>"; };
@@ -450,6 +482,13 @@
 				21CECF8D43EDD156E7BEC714 /* OpenAIAnalysisSource.swift */,
 				FF0B6D3FD4A595D1E2685189 /* AnthropicAnalysisSource.swift */,
 				9BCFD02E90DADDFDE77DC028 /* ProviderProfile.swift */,
+				7887CE34358EB14C7B384729 /* ChatGPTSession.swift */,
+				21723B801B0BBDF010B150B5 /* ChatGPTSessionStore.swift */,
+				2CF1332FBC67B8BC45410A88 /* ChatGPTPKCE.swift */,
+				CF0E6B1EF66FECA3D8ADCBBB /* OpenIDTokenVerifier.swift */,
+				B2C0F6852C22A81BB08B81D9 /* LoopbackAuthServer.swift */,
+				3A3550A229C7EE1C9B80DCA3 /* ChatGPTAuthClient.swift */,
+				D185B2E549C728D261D20AC5 /* ChatGPTAnalysisSource.swift */,
 				0E91070ED3D7388FA4442267 /* ConsentGate.swift */,
 			);
 			name = Providers;
@@ -630,6 +669,8 @@
 				67786B7772F5FA32A4AEC32E /* AnalysisSourceFactoryTests.swift */,
 				4CA66656F95147D3DC136920 /* OpenAIAnalysisSourceTests.swift */,
 				B8B7EC376E64FD21D8185B22 /* AnthropicAnalysisSourceTests.swift */,
+				AB78103B548FE576C2822C6B /* ChatGPTAnalysisSourceTests.swift */,
+				1879C8DE89B571136E671321 /* OpenIDTokenVerifierTests.swift */,
 				F9F56BD5CC4A2E914FB7E094 /* ConsentGateTests.swift */,
 			);
 			name = captAIUnitTests;
@@ -1341,6 +1382,15 @@
 				E1F19684C8270C4AFB994EAD /* AnthropicAnalysisSource.swift in Sources */,
 				5C61D1234C74ADF2BBACF96F /* ProviderProfile.swift in Sources */,
 				E188E57DECB1E5110C7B1D6B /* AnthropicAnalysisSourceTests.swift in Sources */,
+				9D620AE1DADB21E568C5567E /* ChatGPTSession.swift in Sources */,
+				238555914A27A262FE6F0758 /* ChatGPTSessionStore.swift in Sources */,
+				A64C2F1DDD330B99FEE9B3E8 /* ChatGPTPKCE.swift in Sources */,
+				093B827A555A4355533211A9 /* OpenIDTokenVerifier.swift in Sources */,
+				B4920E5E979AF772E07FE3DC /* LoopbackAuthServer.swift in Sources */,
+				D8CBF017B8A334595952F4F1 /* ChatGPTAuthClient.swift in Sources */,
+				2D9E82B472B0EBC1D895D1DA /* ChatGPTAnalysisSource.swift in Sources */,
+				194B6935B0F196544161CE3C /* ChatGPTAnalysisSourceTests.swift in Sources */,
+				5CA9713C702495B5CAEA10EF /* OpenIDTokenVerifierTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1415,6 +1465,13 @@
 				0AF57BD2AA9A27F4B1F0988D /* ConsentGate.swift in Sources */,
 				1DABA77B26B10267F0860255 /* AnthropicAnalysisSource.swift in Sources */,
 				3C87C627E8C6402E3140CE98 /* ProviderProfile.swift in Sources */,
+				D2E37EDEE800A406884DDA24 /* ChatGPTSession.swift in Sources */,
+				3117E8569CAFD838248A8C16 /* ChatGPTSessionStore.swift in Sources */,
+				BB95E805383B44FAE3EBCD4D /* ChatGPTPKCE.swift in Sources */,
+				12572699A061449FE65178C5 /* OpenIDTokenVerifier.swift in Sources */,
+				C74663A064F9B38B435B2E98 /* LoopbackAuthServer.swift in Sources */,
+				7DF91703013C1813F3E236C4 /* ChatGPTAuthClient.swift in Sources */,
+				59D649EF9D1E3141635D6222 /* ChatGPTAnalysisSource.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1486,6 +1543,13 @@
 				A8838AE15C4010191FA117E3 /* ConsentGate.swift in Sources */,
 				CC66B372C0BF1E0DA980BDF9 /* AnthropicAnalysisSource.swift in Sources */,
 				208251CE187378E489E03C27 /* ProviderProfile.swift in Sources */,
+				962660F57453BFE0D587359F /* ChatGPTSession.swift in Sources */,
+				B6456710B41334A3FDFA2C79 /* ChatGPTSessionStore.swift in Sources */,
+				12079DACBBEF12C83089FFD8 /* ChatGPTPKCE.swift in Sources */,
+				C0C3811677BEDB8866B6FD68 /* OpenIDTokenVerifier.swift in Sources */,
+				60FA75B51C7607E34C8371FF /* LoopbackAuthServer.swift in Sources */,
+				D494D231AA96FB321192BE23 /* ChatGPTAuthClient.swift in Sources */,
+				4555044D5B8FF3CDF6DF3C7E /* ChatGPTAnalysisSource.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

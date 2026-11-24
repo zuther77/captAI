@@ -129,7 +129,7 @@ extension AppError: LocalizedError {
         case .providerModelLacksVision:
             "This model cannot read images."
         case .providerAuthFailed:
-            "The provider rejected the API key."
+            "The provider rejected the sign-in or API key."
         case .providerRateLimited:
             "The provider is busy or the usage limit was reached."
         case .providerServerError:
@@ -180,7 +180,7 @@ extension AppError: LocalizedError {
         case .providerModelLacksVision:
             "Choose a vision model in Settings > Providers."
         case .providerAuthFailed:
-            "Check the key in Settings > Providers."
+            "Sign in again or check the key in Settings > Providers."
         case .providerRateLimited:
             "Wait a moment and try again."
         case .providerServerError:

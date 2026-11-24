@@ -7,6 +7,7 @@ struct SettingsView: View {
     let permissions: PermissionStore
     let shortcuts: ShortcutRegistrar
     let secrets: any SecretStore
+    let chatGPTStore: any ChatGPTSessionStore
 
     var body: some View {
         NavigationSplitView {
@@ -33,7 +34,7 @@ struct SettingsView: View {
     @ViewBuilder
     private func detail(for pane: SettingsPane) -> some View {
         switch pane {
-        case .providers: ProvidersSettingsPane(model: model, secrets: secrets)
+        case .providers: ProvidersSettingsPane(model: model, secrets: secrets, chatGPTStore: chatGPTStore)
         case .ocr: OCRSettingsPane(model: model)
         case .shortcuts: ShortcutsSettingsPane(model: model, shortcuts: shortcuts)
         case .storage: StorageSettingsPane(model: model)

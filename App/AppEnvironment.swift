@@ -48,8 +48,9 @@ final class AppEnvironment {
             diagnostics: diagnostics
         )
         let secrets = KeychainSecretStore()
+        let chatGPTStore = FileChatGPTSessionStore(secrets: secrets)
         let workspace = ScreenshotWorkspaceController(
-            analysisProvider: { AnalysisSourceFactory.source(for: settings.settings, secrets: secrets) },
+            analysisProvider: { AnalysisSourceFactory.source(for: settings.settings, secrets: secrets, chatGPTStore: chatGPTStore) },
             textCopier: textCopier,
             feedback: feedback,
             settings: { settings.settings },
@@ -86,7 +87,7 @@ final class AppEnvironment {
         )
 
         let navigation = SettingsNavigation()
-        let factory = AppKitWindowFactory(settings: settings, navigation: navigation, permissions: permissions, shortcuts: shortcuts, secrets: secrets)
+        let factory = AppKitWindowFactory(settings: settings, navigation: navigation, permissions: permissions, shortcuts: shortcuts, secrets: secrets, chatGPTStore: chatGPTStore)
         let windows = WindowCoordinator(factory: factory, navigation: navigation, diagnostics: diagnostics)
         workspace.openProviders = { windows.showSettings(pane: .providers) }
         return AppEnvironment(
