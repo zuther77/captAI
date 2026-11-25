@@ -8,10 +8,8 @@ struct LibraryView: View {
     var body: some View {
         NavigationSplitView {
             List(selection: Binding(
-                get: { model.selectedID },
-                set: { id in
-                    if let id { model.select(id) }
-                }
+                get: { model.selectedIDs },
+                set: { model.setSelection($0) }
             )) {
                 ForEach(model.captures) { asset in
                     VStack(alignment: .leading, spacing: 2) {
@@ -38,14 +36,33 @@ struct LibraryView: View {
         } detail: {
             if let asset = model.selected {
                 detail(asset)
+            } else if model.selectionCount > 1 {
+                multiSelectDetail
             } else {
                 ContentUnavailableView("Select a capture", systemImage: "sidebar.left")
             }
         }
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Button("Refresh") { model.refresh() }
-                    .accessibilityIdentifier("library.refresh")
+                Button {
+                    model.refresh()
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                }
+                .help("Refresh")
+                .accessibilityLabel("Refresh")
+                .accessibilityIdentifier("library.refresh")
+            }
+            ToolbarItem(placement: .destructiveAction) {
+                Button(role: .destructive) {
+                    confirmDelete()
+                } label: {
+                    Image(systemName: "trash")
+                }
+                .disabled(model.selectionCount == 0)
+                .help("Delete")
+                .accessibilityLabel("Delete")
+                .accessibilityIdentifier("library.delete")
             }
         }
         .onAppear { model.refresh() }
@@ -53,6 +70,21 @@ struct LibraryView: View {
             model.refresh()
         }
         .accessibilityIdentifier("library.window.content")
+    }
+
+    @ViewBuilder
+    private var multiSelectDetail: some View {
+        VStack(spacing: 16) {
+            ContentUnavailableView(
+                "\(model.selectionCount) captures selected",
+                systemImage: "checkmark.circle",
+                description: Text("Cmd-click or Shift-click in the list to change the selection. Delete removes every selected capture, its chat, annotations, and PNG.")
+            )
+            Button("Delete \(model.selectionCount)…", role: .destructive) { confirmDelete() }
+                .accessibilityIdentifier("library.delete.bulk")
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     @ViewBuilder
@@ -103,7 +135,7 @@ struct LibraryView: View {
                     }
                     .disabled(model.selectedFileMissing)
                     Button("Delete…", role: .destructive) { confirmDelete() }
-                        .accessibilityIdentifier("library.delete")
+                        .accessibilityIdentifier("library.delete.detail")
                 }
             }
             .padding(20)
@@ -112,11 +144,18 @@ struct LibraryView: View {
     }
 
     private func confirmDelete() {
+        let count = model.selectionCount
+        guard count > 0 else { return }
         let alert = NSAlert()
-        alert.messageText = "Delete this capture from the library?"
-        alert.informativeText = "The chat, annotations, and the PNG file on disk will be removed."
+        if count == 1 {
+            alert.messageText = "Delete this capture from the library?"
+            alert.informativeText = "The chat, annotations, and the PNG file on disk will be removed."
+        } else {
+            alert.messageText = "Delete \(count) captures from the library?"
+            alert.informativeText = "Chats, annotations, and PNG files on disk will be removed for every selected capture."
+        }
         alert.alertStyle = .warning
-        alert.addButton(withTitle: "Delete")
+        alert.addButton(withTitle: count == 1 ? "Delete" : "Delete \(count)")
         alert.addButton(withTitle: "Cancel")
         if alert.runModal() == .alertFirstButtonReturn {
             model.deleteSelected()

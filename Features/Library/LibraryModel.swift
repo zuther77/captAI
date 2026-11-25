@@ -6,11 +6,12 @@ import Observation
 @Observable
 final class LibraryModel {
     private(set) var captures: [CaptureAssetRecord] = []
-    private(set) var selectedID: CaptureAssetID?
+    /// One or more rows selected in the sidebar (Cmd/Shift-click on macOS).
+    private(set) var selectedIDs: Set<CaptureAssetID> = []
     private(set) var conversation: (ConversationRecord, [MessageRecord])?
     private(set) var annotations: [AnnotationRecord] = []
     private(set) var lastError: AppError?
-    /// True when the selected file is missing on disk.
+    /// True when the single selected file is missing on disk.
     private(set) var selectedFileMissing = false
 
     @ObservationIgnored private let store: any LibraryStore
@@ -28,22 +29,24 @@ final class LibraryModel {
         refresh()
     }
 
+    /// The sole selected capture, when exactly one row is selected.
     var selected: CaptureAssetRecord? {
-        guard let selectedID else { return nil }
-        return captures.first { $0.id == selectedID }
+        guard selectedIDs.count == 1, let id = selectedIDs.first else { return nil }
+        return captures.first { $0.id == id }
     }
+
+    var selectionCount: Int { selectedIDs.count }
 
     func refresh() {
         do {
             captures = try store.fetchCaptures(limit: 200)
             lastError = nil
-            if let selectedID, !captures.contains(where: { $0.id == selectedID }) {
-                self.selectedID = nil
-                conversation = nil
-                annotations = []
-                selectedFileMissing = false
-            } else if let selectedID {
-                select(selectedID)
+            let valid = Set(captures.map(\.id))
+            selectedIDs = selectedIDs.intersection(valid)
+            if selectedIDs.count == 1, let id = selectedIDs.first {
+                loadDetail(for: id)
+            } else {
+                clearDetail()
             }
         } catch {
             lastError = error as? AppError ?? .libraryFailed
@@ -51,8 +54,44 @@ final class LibraryModel {
         }
     }
 
+    func setSelection(_ ids: Set<CaptureAssetID>) {
+        selectedIDs = ids
+        if ids.count == 1, let id = ids.first {
+            loadDetail(for: id)
+        } else {
+            clearDetail()
+        }
+    }
+
+    /// Selects a single capture (detail loads). Prefer ``setSelection`` for multi-select bindings.
     func select(_ id: CaptureAssetID) {
-        selectedID = id
+        setSelection([id])
+    }
+
+    func openSelected() {
+        guard let id = selected?.id else { return }
+        openCapture(id)
+    }
+
+    /// Removes every selected capture (chat, marks, and media file).
+    func deleteSelected() {
+        let ids = selectedIDs
+        guard !ids.isEmpty else { return }
+        do {
+            for id in ids {
+                try store.deleteCapture(id: id, deleteFile: true)
+            }
+            selectedIDs = []
+            clearDetail()
+            refresh()
+        } catch {
+            lastError = error as? AppError ?? .libraryFailed
+            diagnostics.error(.windows, "library.deleteFailed", error: lastError!)
+            refresh()
+        }
+    }
+
+    private func loadDetail(for id: CaptureAssetID) {
         do {
             conversation = try store.fetchConversation(for: id)
             annotations = try store.fetchAnnotations(for: id)
@@ -67,24 +106,9 @@ final class LibraryModel {
         }
     }
 
-    func openSelected() {
-        guard let selectedID else { return }
-        openCapture(selectedID)
-    }
-
-    /// Removes the row (and chat/marks) and deletes the media file.
-    func deleteSelected() {
-        guard let selectedID else { return }
-        do {
-            try store.deleteCapture(id: selectedID, deleteFile: true)
-            self.selectedID = nil
-            conversation = nil
-            annotations = []
-            selectedFileMissing = false
-            refresh()
-        } catch {
-            lastError = error as? AppError ?? .libraryFailed
-            diagnostics.error(.windows, "library.deleteFailed", error: lastError!)
-        }
+    private func clearDetail() {
+        conversation = nil
+        annotations = []
+        selectedFileMissing = false
     }
 }

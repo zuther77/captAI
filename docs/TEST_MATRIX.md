@@ -135,11 +135,12 @@ History library persistence. Mark PASS only from what you see. Run `scripts/run.
 
 | # | Step | Expected | Status |
 |---|---|---|---|
-| 1 | Screenshot, wait for analysis, annotate, ask a follow-up; close workspace; Open Library | Capture listed; detail shows chat and annotation count; Open in Workspace restores marks and chat without re-analyzing | NOT PERFORMED |
-| 2 | Quit and relaunch; Open Library; open the same capture | Same chat and marks return | NOT PERFORMED |
-| 3 | Settings > Storage → Choose screenshot folder; capture again | New PNG lands in the chosen folder; older library entries still open | NOT PERFORMED |
-| 4 | Delete a capture in Library | Confirm; row gone; PNG removed; chat/annotations gone | NOT PERFORMED |
-| 5 | Quick Copy text | Clipboard updates; Library unchanged | NOT PERFORMED |
+| 1 | Screenshot, wait for analysis, annotate, ask a follow-up; close workspace; Open Library | Capture listed; detail shows chat and annotation count; Open in Workspace restores marks and chat without re-analyzing | PASS |
+| 2 | Quit and relaunch; Open Library; open the same capture | Same chat and marks return | PASS |
+| 3 | Settings > Storage → Choose screenshot folder; capture again | New PNG lands in the chosen folder; older library entries still open | PASS |
+| 4 | Delete a capture in Library | Confirm; row gone; PNG removed; chat/annotations gone | PASS |
+| 5 | Quick Copy text | Clipboard updates; Library unchanged | PASS |
+| 6 | Cmd/Shift-select several Library rows → Delete… | Confirm shows count; all selected rows and PNGs gone; remaining rows stay | PASS |
 
 ## Cross-milestone privacy matrix (M0 slice)
 

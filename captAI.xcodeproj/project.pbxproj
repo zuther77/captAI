@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		00249FFAA260FF45B43D6194 /* WorkspaceLibrarySyncTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74235EFCE24BEEAF9954ECD9 /* WorkspaceLibrarySyncTests.swift */; };
+		C09452DFB40040D69EC75DB0 /* LibraryModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10148B986B524FCBA72BB4EC /* LibraryModelTests.swift */; };
 		0233A765486D217196F99510 /* CaptureSettingsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AD7AF85B181614019DFE046 /* CaptureSettingsPane.swift */; };
 		046C74F1942321D79DFC4A75 /* SelectionOverlayController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 082DA20B545DA2714B92E04A /* SelectionOverlayController.swift */; };
 		051D4E01F5F1DC9E5B4E2C38 /* SelectionOverlayController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 082DA20B545DA2714B92E04A /* SelectionOverlayController.swift */; };
@@ -403,6 +404,7 @@
 		72DD597469C564B70A2715F1 /* WindowCoordinator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WindowCoordinator.swift; sourceTree = "<group>"; };
 		737A5202C7A468D1662A4B27 /* OllamaAnalysisSource.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Core/Providers/OllamaAnalysisSource.swift; sourceTree = SOURCE_ROOT; };
 		74235EFCE24BEEAF9954ECD9 /* WorkspaceLibrarySyncTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WorkspaceLibrarySyncTests.swift; sourceTree = "<group>"; };
+		10148B986B524FCBA72BB4EC /* LibraryModelTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LibraryModelTests.swift; sourceTree = "<group>"; };
 		746326B1F83D6226DDC6903A /* CapturedImage.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CapturedImage.swift; sourceTree = "<group>"; };
 		751C7C1630AD659700FAED87 /* CaptureCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureCoordinator.swift; sourceTree = "<group>"; };
 		77F0BB8A4B684350BA2B89A5 /* SettingsUITests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SettingsUITests.swift; sourceTree = "<group>"; };
@@ -774,6 +776,7 @@
 				F9F56BD5CC4A2E914FB7E094 /* ConsentGateTests.swift */,
 				E79F62E9401A943E7B4B641F /* SQLiteLibraryStoreTests.swift */,
 				74235EFCE24BEEAF9954ECD9 /* WorkspaceLibrarySyncTests.swift */,
+				10148B986B524FCBA72BB4EC /* LibraryModelTests.swift */,
 			);
 			name = captAIUnitTests;
 			path = Tests/Unit;
@@ -1546,6 +1549,7 @@
 				280A9BF228347259D577EDFD /* LibraryModel.swift in Sources */,
 				C1E6AB886E8B09B198D7EAAC /* LibraryView.swift in Sources */,
 				00249FFAA260FF45B43D6194 /* WorkspaceLibrarySyncTests.swift in Sources */,
+				C09452DFB40040D69EC75DB0 /* LibraryModelTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
