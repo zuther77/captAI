@@ -9,6 +9,7 @@ struct MenuBarContent: View {
     let capture: CaptureCoordinator
     let shortcuts: ShortcutRegistrar
     let openSettings: (SettingsPane) -> Void
+    let openLibrary: () -> Void
     let startCapture: () -> Void
     let startQuickCopy: () -> Void
 
@@ -39,8 +40,7 @@ struct MenuBarContent: View {
 
             Divider()
 
-            Button("Open Library — Coming Soon") {}
-                .disabled(true)
+            Button("Open Library") { openLibrary() }
 
             Divider()
 

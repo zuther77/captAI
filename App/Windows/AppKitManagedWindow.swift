@@ -57,17 +57,34 @@ struct AppKitWindowFactory: WindowFactory {
     let shortcuts: ShortcutRegistrar
     let secrets: any SecretStore
     let chatGPTStore: any ChatGPTSessionStore
+    let libraryStore: any LibraryStore
+    let openLibraryCapture: @MainActor (CaptureAssetID) -> Void
+    let diagnostics: Diagnostics
 
     func makeWindow(for kind: WindowKind) -> any ManagedWindow {
         switch kind {
         case .settings:
-            AppKitManagedWindow(
+            return AppKitManagedWindow(
                 title: "captAI Settings",
                 identifier: "settings.window",
                 size: NSSize(width: 720, height: 480),
                 minSize: NSSize(width: 640, height: 420),
                 autosaveName: "captAI.settingsWindow",
                 content: SettingsView(navigation: navigation, model: settings, permissions: permissions, shortcuts: shortcuts, secrets: secrets, chatGPTStore: chatGPTStore)
+            )
+        case .library:
+            let model = LibraryModel(
+                store: libraryStore,
+                openCapture: openLibraryCapture,
+                diagnostics: diagnostics
+            )
+            return AppKitManagedWindow(
+                title: "captAI Library",
+                identifier: "library.window",
+                size: NSSize(width: 860, height: 560),
+                minSize: NSSize(width: 720, height: 420),
+                autosaveName: "captAI.libraryWindow",
+                content: LibraryView(model: model)
             )
         }
     }

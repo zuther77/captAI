@@ -6,7 +6,7 @@ Status values: **PASS**, **FAIL**, **NOT PERFORMED** (no one has run it), **BLOC
 
 | Suite | Command | Result |
 |---|---|---|
-| Unit (330 tests, 36 suites) | `scripts/test.sh unit` | PASS (2026-11-24, M5 annotations; Keychain OK outside agent sandbox, KI-025) |
+| Unit (336 tests, 38 suites) | `scripts/test.sh unit` | PASS (2026-11-24, M6 library; Keychain OK outside agent sandbox, KI-025) |
 | Integration (17 tests, 3 suites) | `scripts/test.sh integration` | PASS (2026-11-24, M5 gate) |
 | UI (6 tests) | `scripts/test.sh ui` | PASS on M0–M3 (product owner's Mac) and on M4 (2026-11-23). |
 | Debug build, warnings as errors | `scripts/build.sh Debug` | PASS (2026-11-24, M5 gate) |
@@ -128,6 +128,19 @@ Heuristic chips and non-destructive annotations. Mark PASS only from what you se
 | 8 | Type a normal follow-up while marks remain | Reply streams; badge still shown; full capture context still used | PASS |
 | 9 | Resize/move the assistant; leave the capture where it is | Marks stay locked to the capture pixels | PASS |
 | 10 | Quit and relaunch; open the same PNG from disk | File on disk still has no burned-in marks (vectors are session-only until M6) | PASS |
+
+## Manual: M6 (real Mac)
+
+History library persistence. Mark PASS only from what you see. Run `scripts/run.sh`.
+
+| # | Step | Expected | Status |
+|---|---|---|---|
+| 1 | Screenshot, wait for analysis, annotate, ask a follow-up; close workspace; Open Library | Capture listed; detail shows chat and annotation count; Open in Workspace restores marks and chat without re-analyzing | PASS |
+| 2 | Quit and relaunch; Open Library; open the same capture | Same chat and marks return | PASS |
+| 3 | Settings > Storage → Choose screenshot folder; capture again | New PNG lands in the chosen folder; older library entries still open | PASS |
+| 4 | Delete a capture in Library | Confirm; row gone; PNG removed; chat/annotations gone | PASS |
+| 5 | Quick Copy text | Clipboard updates; Library unchanged | PASS |
+| 6 | Cmd/Shift-select several Library rows → Delete… | Confirm shows count; all selected rows and PNGs gone; remaining rows stay | PASS |
 
 ## Cross-milestone privacy matrix (M0 slice)
 

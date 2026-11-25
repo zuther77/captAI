@@ -49,6 +49,14 @@ final class AppEnvironment {
         )
         let secrets = KeychainSecretStore()
         let chatGPTStore = FileChatGPTSessionStore(secrets: secrets)
+        let libraryStore: any LibraryStore
+        do {
+            libraryStore = try SQLiteLibraryStore(url: SQLiteLibraryStore.defaultURL())
+        } catch {
+            diagnostics.error(.windows, "library.openFailed", error: error as? AppError ?? .libraryFailed)
+            // In-memory fallback so capture still works if the DB cannot be created.
+            libraryStore = EphemeralLibraryStore()
+        }
         let workspace = ScreenshotWorkspaceController(
             analysisProvider: { AnalysisSourceFactory.source(for: settings.settings, secrets: secrets, chatGPTStore: chatGPTStore) },
             textCopier: textCopier,
@@ -61,6 +69,7 @@ final class AppEnvironment {
                     }
                 }
             },
+            library: libraryStore,
             diagnostics: diagnostics
         )
         let capture = CaptureCoordinator(
@@ -87,7 +96,17 @@ final class AppEnvironment {
         )
 
         let navigation = SettingsNavigation()
-        let factory = AppKitWindowFactory(settings: settings, navigation: navigation, permissions: permissions, shortcuts: shortcuts, secrets: secrets, chatGPTStore: chatGPTStore)
+        let factory = AppKitWindowFactory(
+            settings: settings,
+            navigation: navigation,
+            permissions: permissions,
+            shortcuts: shortcuts,
+            secrets: secrets,
+            chatGPTStore: chatGPTStore,
+            libraryStore: libraryStore,
+            openLibraryCapture: { [weak workspace] id in workspace?.presentFromLibrary(assetID: id) },
+            diagnostics: diagnostics
+        )
         let windows = WindowCoordinator(factory: factory, navigation: navigation, diagnostics: diagnostics)
         workspace.openProviders = { windows.showSettings(pane: .providers) }
         settings.onSettingsSaved = { [shortcuts, workspace] saved in

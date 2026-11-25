@@ -76,6 +76,13 @@ struct WindowCoordinatorTests {
         #expect(factory.created.count == 1)
     }
 
+    @Test func showLibraryOpensASeparateWindow() {
+        let (coordinator, factory) = makeCoordinator()
+        coordinator.showLibrary()
+        #expect(coordinator.isOpen(.library))
+        #expect(factory.created.map(\.kind) == [.library])
+    }
+
     @Test func closeAllClosesEveryWindow() {
         let (coordinator, factory) = makeCoordinator()
         coordinator.show(.settings)

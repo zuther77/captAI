@@ -4,6 +4,7 @@ import Observation
 /// assistant panels and recording HUD here so one coordinator owns window lifecycle.
 enum WindowKind: Hashable, Sendable {
     case settings
+    case library
 }
 
 /// Minimal surface of a window the coordinator needs. The AppKit implementation is `AppKitManagedWindow`;
@@ -66,6 +67,10 @@ final class WindowCoordinator {
     func showSettings(pane: SettingsPane = .providers) {
         settingsNavigation.selected = pane
         show(.settings)
+    }
+
+    func showLibrary() {
+        show(.library)
     }
 
     func close(_ kind: WindowKind) {

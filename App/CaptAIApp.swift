@@ -33,6 +33,7 @@ struct CaptAIApp: App {
                 capture: environment.capture,
                 shortcuts: environment.shortcuts,
                 openSettings: { pane in environment.windows.showSettings(pane: pane) },
+                openLibrary: { environment.windows.showLibrary() },
                 startCapture: { Task { await environment.capture.startScreenshot() } },
                 startQuickCopy: { Task { await environment.capture.startQuickCopy() } }
             )

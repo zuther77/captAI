@@ -106,6 +106,15 @@ final class AnnotationDocument {
         selectedID = nil
     }
 
+    /// Replaces all marks (used when reopening a saved capture). Clears undo/redo.
+    func replaceAll(_ marks: [CaptureAnnotation]) {
+        annotations = marks
+        selectedID = nil
+        draft = nil
+        undoStack.removeAll()
+        redoStack.removeAll()
+    }
+
     // MARK: Undo / redo
 
     func undo() {
