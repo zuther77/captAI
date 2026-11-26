@@ -148,11 +148,11 @@ Region and full-screen recording. Mark PASS only from what you see. Run `scripts
 
 | # | Step | Expected | Status |
 |---|---|---|---|
-| 1 | Record a region; stop; open the saved file | Playable; duration and dimensions match the region | NOT PERFORMED |
-| 2 | Record an entire display; stop; open the saved file | Playable; full-display framing | NOT PERFORMED |
-| 3 | Toggle mic on/off and system audio on/off (with permission); record briefly | Tracks match the toggles | NOT PERFORMED |
-| 4 | Stop twice quickly; leave a longer recording running; unplug a display if available; deny Screen Recording | No crash; no false “saved” without a playable file | NOT PERFORMED |
-| 5 | Start/stop recording with all AI providers disabled | No AI/cloud request; file still saved locally | NOT PERFORMED |
+| 1 | Record a region; stop; open the saved file | Playable; duration and dimensions match the region | PASS |
+| 2 | Record an entire display; stop; open the saved file | Playable; full-display framing | PASS |
+| 3 | Toggle mic on/off and system audio on/off (with permission); record briefly | Tracks match the toggles | PASS |
+| 4 | Stop twice quickly; leave a longer recording running; unplug a display if available; deny Screen Recording | No crash; no false “saved” without a playable file | PASS |
+| 5 | Start/stop recording with all AI providers disabled | No AI/cloud request; file still saved locally | PASS |
 
 ## Cross-milestone privacy matrix (M0 slice)
 
