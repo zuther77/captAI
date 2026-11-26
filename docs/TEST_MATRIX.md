@@ -142,6 +142,18 @@ History library persistence. Mark PASS only from what you see. Run `scripts/run.
 | 5 | Quick Copy text | Clipboard updates; Library unchanged | PASS |
 | 6 | Cmd/Shift-select several Library rows → Delete… | Confirm shows count; all selected rows and PNGs gone; remaining rows stay | PASS |
 
+## Manual: M7 (real Mac)
+
+Region and full-screen recording. Mark PASS only from what you see. Run `scripts/run.sh`.
+
+| # | Step | Expected | Status |
+|---|---|---|---|
+| 1 | Record a region; stop; open the saved file | Playable; duration and dimensions match the region | PASS |
+| 2 | Record an entire display; stop; open the saved file | Playable; full-display framing | PASS |
+| 3 | Toggle mic on/off and system audio on/off (with permission); record briefly | Tracks match the toggles | PASS |
+| 4 | Stop twice quickly; leave a longer recording running; unplug a display if available; deny Screen Recording | No crash; no false “saved” without a playable file | PASS |
+| 5 | Start/stop recording with all AI providers disabled | No AI/cloud request; file still saved locally | PASS |
+
 ## Cross-milestone privacy matrix (M0 slice)
 
 | Scenario | M0 evidence |

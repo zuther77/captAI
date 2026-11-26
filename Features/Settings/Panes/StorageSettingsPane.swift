@@ -10,7 +10,7 @@ struct StorageSettingsPane: View {
             Section {
                 LabeledContent("Screenshots") {
                     HStack {
-                        Text(folderDisplay(model.settings.screenshotFolderPath))
+                        Text(folderDisplay(model.settings.screenshotFolderPath, defaultLabel: "Default (~/Pictures/captAI)"))
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
                             .truncationMode(.middle)
@@ -23,36 +23,56 @@ struct StorageSettingsPane: View {
                         }
                     }
                 }
-                LabeledContent("Recordings", value: folderDisplay(model.settings.recordingFolderPath))
+                LabeledContent("Recordings") {
+                    HStack {
+                        Text(folderDisplay(model.settings.recordingFolderPath, defaultLabel: "Default (~/Movies/captAI)"))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                        Button("Choose…") { chooseRecordingFolder() }
+                            .accessibilityIdentifier("settings.storage.chooseRecordings")
+                        if model.settings.recordingFolderPath != nil {
+                            Button("Use Default") {
+                                model.update { $0.recordingFolderPath = nil }
+                            }
+                        }
+                    }
+                }
                 LabeledContent("History library", value: "Application Support / captAI / library.sqlite")
                 LabeledContent("Settings file", value: "Application Support / captAI / settings.json")
             } footer: {
-                Text("Quick Copy never saves screenshots or history. Changing the screenshot folder only affects new captures; existing files stay where they are.")
-            }
-            Section {
-                PendingFeatureNote(text: "Recording folder and retention controls arrive with recording (M7).")
+                Text("Quick Copy never saves screenshots or history. Changing a folder only affects new files; existing files stay where they are.")
             }
         }
         .formStyle(.grouped)
         .accessibilityIdentifier("settings.pane.storage")
     }
 
-    private func folderDisplay(_ path: String?) -> String {
-        guard let path else { return "Default (~/Pictures/captAI)" }
+    private func folderDisplay(_ path: String?, defaultLabel: String) -> String {
+        guard let path else { return defaultLabel }
         return (path as NSString).abbreviatingWithTildeInPath
     }
 
     private func chooseScreenshotFolder() {
+        chooseFolder(message: "New screenshots will be saved in this folder.") { url in
+            model.update { $0.screenshotFolderPath = url.path(percentEncoded: false) }
+        }
+    }
+
+    private func chooseRecordingFolder() {
+        chooseFolder(message: "New recordings will be saved in this folder.") { url in
+            model.update { $0.recordingFolderPath = url.path(percentEncoded: false) }
+        }
+    }
+
+    private func chooseFolder(message: String, onPick: (URL) -> Void) {
         let panel = NSOpenPanel()
         panel.canChooseFiles = false
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = false
         panel.prompt = "Choose"
-        panel.message = "New screenshots will be saved in this folder."
-        if let path = model.settings.screenshotFolderPath {
-            panel.directoryURL = URL(fileURLWithPath: path, isDirectory: true)
-        }
+        panel.message = message
         guard panel.runModal() == .OK, let url = panel.url else { return }
-        model.update { $0.screenshotFolderPath = url.path(percentEncoded: false) }
+        onPick(url)
     }
 }

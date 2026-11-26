@@ -46,6 +46,10 @@ enum AppError: Error, Equatable, Sendable {
     case providerResponseInvalid
     /// The local history library (SQLite) could not be opened or written. Paths and SQL are never included.
     case libraryFailed
+    /// Screen recording could not start or stay running.
+    case recordingFailed
+    /// A recording finished but the movie file could not be written or is not playable.
+    case recordingSaveFailed
 
     /// Stable machine-readable code for diagnostics and tests.
     var code: String {
@@ -75,6 +79,8 @@ enum AppError: Error, Equatable, Sendable {
         case .providerRequestRejected: "provider.requestRejected"
         case .providerResponseInvalid: "provider.responseInvalid"
         case .libraryFailed: "library.failed"
+        case .recordingFailed: "recording.failed"
+        case .recordingSaveFailed: "recording.saveFailed"
         }
     }
 
@@ -143,6 +149,10 @@ extension AppError: LocalizedError {
             "The provider sent an answer captAI could not read."
         case .libraryFailed:
             "The history library could not be updated."
+        case .recordingFailed:
+            "The screen recording could not be started."
+        case .recordingSaveFailed:
+            "The recording could not be saved as a playable movie."
         }
     }
 
@@ -196,6 +206,10 @@ extension AppError: LocalizedError {
             "Try again. If it keeps happening, try another model."
         case .libraryFailed:
             "Try again. If it keeps happening, check that your disk has free space."
+        case .recordingFailed:
+            "Try again. If it keeps happening, check that captAI is turned on in System Settings > Privacy & Security > Screen Recording."
+        case .recordingSaveFailed:
+            "Check that the recordings folder exists and that your disk has free space."
         }
     }
 }

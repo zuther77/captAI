@@ -15,7 +15,7 @@ struct LibraryView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(Self.dateString(asset.creationTime))
                             .font(.body)
-                        Text("\(asset.widthPx) × \(asset.heightPx)")
+                        Text(asset.kind == .video ? "Recording · \(asset.widthPx) × \(asset.heightPx)" : "\(asset.widthPx) × \(asset.heightPx)")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -91,7 +91,10 @@ struct LibraryView: View {
     private func detail(_ asset: CaptureAssetRecord) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                if let image = WorkspaceLibrarySync.loadImage(at: asset.filePath) {
+                if asset.kind == .video {
+                    Label("Recording", systemImage: "video")
+                        .font(.title3)
+                } else if let image = WorkspaceLibrarySync.loadImage(at: asset.filePath) {
                     Image(nsImage: NSImage(cgImage: image, size: NSSize(width: image.width, height: image.height)))
                         .resizable()
                         .scaledToFit()
@@ -105,31 +108,37 @@ struct LibraryView: View {
                 LabeledContent("Captured", value: Self.dateString(asset.creationTime))
                 LabeledContent("Size", value: "\(asset.widthPx) × \(asset.heightPx) px")
                 LabeledContent("File", value: (asset.filePath as NSString).abbreviatingWithTildeInPath)
-                LabeledContent("Annotations", value: "\(model.annotations.count)")
+                if asset.kind == .image {
+                    LabeledContent("Annotations", value: "\(model.annotations.count)")
+                }
 
-                if let conversation = model.conversation {
-                    Text("Conversation")
-                        .font(.headline)
-                    ForEach(conversation.1) { message in
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(message.role == .user ? "You" : (message.provider ?? "Assistant"))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            Text(message.text)
-                                .textSelection(.enabled)
+                if asset.kind == .image {
+                    if let conversation = model.conversation {
+                        Text("Conversation")
+                            .font(.headline)
+                        ForEach(conversation.1) { message in
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(message.role == .user ? "You" : (message.provider ?? "Assistant"))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Text(message.text)
+                                    .textSelection(.enabled)
+                            }
+                            .padding(.vertical, 4)
                         }
-                        .padding(.vertical, 4)
+                    } else {
+                        Text("No conversation saved for this capture.")
+                            .foregroundStyle(.secondary)
                     }
-                } else {
-                    Text("No conversation saved for this capture.")
-                        .foregroundStyle(.secondary)
                 }
 
                 HStack {
-                    Button("Open in Workspace") { model.openSelected() }
-                        .buttonStyle(.borderedProminent)
-                        .disabled(model.selectedFileMissing)
-                        .accessibilityIdentifier("library.open")
+                    if asset.kind == .image {
+                        Button("Open in Workspace") { model.openSelected() }
+                            .buttonStyle(.borderedProminent)
+                            .disabled(model.selectedFileMissing)
+                            .accessibilityIdentifier("library.open")
+                    }
                     Button("Reveal in Finder") {
                         NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: asset.filePath)])
                     }

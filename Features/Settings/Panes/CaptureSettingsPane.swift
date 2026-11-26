@@ -85,9 +85,16 @@ struct CaptureSettingsPane: View {
                     Text("Region").tag(DefaultRecordingTarget.region)
                     Text("Entire display").tag(DefaultRecordingTarget.display)
                 }
-            }
-            Section {
-                PendingFeatureNote(text: "Recording options take effect once recording is added.")
+                Toggle("System audio", isOn: Binding(
+                    get: { model.settings.recordSystemAudio },
+                    set: { value in model.update { $0.recordSystemAudio = value } }
+                ))
+                .accessibilityIdentifier("settings.capture.systemAudio")
+                Toggle("Microphone", isOn: Binding(
+                    get: { model.settings.recordMicrophone },
+                    set: { value in model.update { $0.recordMicrophone = value } }
+                ))
+                .accessibilityIdentifier("settings.capture.microphone")
             }
         }
         .formStyle(.grouped)
