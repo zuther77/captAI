@@ -126,6 +126,9 @@ The assistant shows suggested chips derived from offline OCR text via `Heuristic
 ## D-031 Non-destructive annotations and region-aware ask — Accepted for M5 (2026-11-24)
 Vector marks (highlight, arrow) live in an `AnnotationDocument` on the workspace model and draw over the frozen capture. Coordinates are normalized 0…1 with a **top-left** origin so they stay attached when the panel moves or resizes. Undo/redo snapshots the mark list. The PNG on disk is never rewritten; Ask about selection may crop in memory (`ImageCropper`) and set `AnalysisRequest.imageIsAnnotationCrop`. Ordinary composer sends keep the full PNG and append mark geometry to the prompt. Persistence of marks is M6.
 
+## D-033 Local ScreenCaptureKit recording — Accepted for M7 (2026-11-25)
+Recording uses `SCStream` with `SCRecordingOutput` to a local `.mov` (H.264). Region capture is single-display only; multi-display regions are rejected. The floating HUD window is excluded from the content filter. Pause/resume is not offered while `SCRecordingOutput` cannot pause mid-file. System audio and microphone are optional settings; microphone requires TCC + the hardened-runtime audio-input entitlement. Files land in `~/Movies/captAI` (or a chosen folder) and upsert as `CaptureAssetRecord.kind == .video`. Success is reported only after AVFoundation reports a positive duration.
+
 ## D-032 SQLite history library (no GRDB) — Accepted for M6 (2026-11-24)
 History uses Apple’s `SQLite3` module directly in `SQLiteLibraryStore` at `~/Library/Application Support/captAI/library.sqlite`. Schema version 1 covers `capture_assets`, `conversations`, `messages`, and `annotations` with `ON DELETE CASCADE`. No third-party ORM. A screenshot upserts on save; chat and marks are written when the workspace closes. Library Delete removes the DB rows and the PNG. Quick Copy never writes. If the DB cannot open, `EphemeralLibraryStore` keeps the session usable without durability.
 

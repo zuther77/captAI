@@ -44,6 +44,8 @@ final class CaptureCoordinator {
     @ObservationIgnored private let now: @MainActor () -> Date
     @ObservationIgnored private let minimumTriggerInterval: TimeInterval
     @ObservationIgnored private var lastTrigger: Date?
+    /// True when another feature (recording) owns the screen; capture must wait.
+    @ObservationIgnored var isExternalBusy: @MainActor () -> Bool = { false }
 
     init(
         permissions: PermissionStore,
@@ -89,7 +91,7 @@ final class CaptureCoordinator {
     }
 
     private func start(_ purpose: CapturePurpose) async {
-        guard state == .idle else {
+        guard state == .idle, !isExternalBusy() else {
             diagnostics.debug(.capture, "capture.ignored.busy")
             return
         }

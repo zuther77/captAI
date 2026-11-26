@@ -2,8 +2,9 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<!-- M0 requests no entitlements. Screen Recording is a TCC permission, not an entitlement.
-	     Microphone entitlement (com.apple.security.device.audio-input) is added in M7 together with
-	     the hardened-runtime release build. The App Sandbox decision is recorded in docs/DECISIONS.md (D-003). -->
+	<!-- Screen Recording is a TCC permission, not an entitlement. Microphone input requires this
+	     entitlement under the hardened runtime (Release). The App Sandbox decision is D-003. -->
+	<key>com.apple.security.device.audio-input</key>
+	<true/>
 </dict>
 </plist>

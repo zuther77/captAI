@@ -9,6 +9,7 @@ final class AppEnvironment {
     let permissions: PermissionStore
     let windows: WindowCoordinator
     let capture: CaptureCoordinator
+    let recording: RecordingCoordinator
     let shortcuts: ShortcutRegistrar
 
     init(
@@ -17,6 +18,7 @@ final class AppEnvironment {
         permissions: PermissionStore,
         windows: WindowCoordinator,
         capture: CaptureCoordinator,
+        recording: RecordingCoordinator,
         shortcuts: ShortcutRegistrar
     ) {
         self.diagnostics = diagnostics
@@ -24,6 +26,7 @@ final class AppEnvironment {
         self.permissions = permissions
         self.windows = windows
         self.capture = capture
+        self.recording = recording
         self.shortcuts = shortcuts
     }
 
@@ -57,6 +60,7 @@ final class AppEnvironment {
             // In-memory fallback so capture still works if the DB cannot be created.
             libraryStore = EphemeralLibraryStore()
         }
+        let overlay = SelectionOverlayController()
         let workspace = ScreenshotWorkspaceController(
             analysisProvider: { AnalysisSourceFactory.source(for: settings.settings, secrets: secrets, chatGPTStore: chatGPTStore) },
             textCopier: textCopier,
@@ -74,7 +78,7 @@ final class AppEnvironment {
         )
         let capture = CaptureCoordinator(
             permissions: permissions,
-            overlay: SelectionOverlayController(),
+            overlay: overlay,
             capturer: ScreenCaptureKitCapturer(),
             store: PNGScreenshotStore(),
             feedback: feedback,
@@ -84,6 +88,18 @@ final class AppEnvironment {
             settings: { settings.settings },
             layout: { displays.currentLayout() }
         )
+        let recording = RecordingCoordinator(
+            permissions: permissions,
+            overlay: overlay,
+            recorder: ScreenCaptureKitRecorder(),
+            feedback: feedback,
+            library: libraryStore,
+            diagnostics: diagnostics,
+            settings: { settings.settings },
+            layout: { displays.currentLayout() },
+            isCaptureBusy: { capture.isBusy }
+        )
+        capture.isExternalBusy = { recording.isBusy }
 
         let shortcuts = ShortcutRegistrar(
             service: shortcutService,
@@ -91,7 +107,8 @@ final class AppEnvironment {
             diagnostics: diagnostics,
             actions: [
                 .screenshot: { Task { await capture.startScreenshot() } },
-                .quickCopy: { Task { await capture.startQuickCopy() } }
+                .quickCopy: { Task { await capture.startQuickCopy() } },
+                .recording: { Task { await recording.toggle() } }
             ]
         )
 
@@ -119,6 +136,7 @@ final class AppEnvironment {
             permissions: permissions,
             windows: windows,
             capture: capture,
+            recording: recording,
             shortcuts: shortcuts
         )
     }

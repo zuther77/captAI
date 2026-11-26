@@ -31,11 +31,13 @@ struct CaptAIApp: App {
                 settings: environment.settings,
                 permissions: environment.permissions,
                 capture: environment.capture,
+                recording: environment.recording,
                 shortcuts: environment.shortcuts,
                 openSettings: { pane in environment.windows.showSettings(pane: pane) },
                 openLibrary: { environment.windows.showLibrary() },
                 startCapture: { Task { await environment.capture.startScreenshot() } },
-                startQuickCopy: { Task { await environment.capture.startQuickCopy() } }
+                startQuickCopy: { Task { await environment.capture.startQuickCopy() } },
+                toggleRecording: { Task { await environment.recording.toggle() } }
             )
         }
         .menuBarExtraStyle(.menu)

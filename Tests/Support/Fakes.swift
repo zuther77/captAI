@@ -405,6 +405,52 @@ final class FakeHTTPTransport: HTTPTransport, @unchecked Sendable {
     }
 }
 
+/// Controllable screen recorder for unit tests. Does not touch ScreenCaptureKit.
+@MainActor
+final class FakeRecorder: ScreenRecording {
+    var supportsPause: Bool = true
+    var startError: AppError?
+    var stopError: AppError?
+    private(set) var started: [RecordingStartRequest] = []
+    private(set) var stopCount = 0
+    private(set) var abortCount = 0
+    private(set) var pauseCount = 0
+    private(set) var resumeCount = 0
+    private var currentURL: URL?
+
+    func start(_ request: RecordingStartRequest) async throws(AppError) {
+        if let startError { throw startError }
+        started.append(request)
+        FileManager.default.createFile(atPath: request.outputURL.path, contents: Data([0x00]), attributes: nil)
+        currentURL = request.outputURL
+    }
+
+    func stop() async throws(AppError) -> URL {
+        stopCount += 1
+        if let stopError { throw stopError }
+        guard let currentURL else { throw .recordingFailed }
+        return currentURL
+    }
+
+    func pause() async throws(AppError) {
+        pauseCount += 1
+        if !supportsPause { throw .recordingFailed }
+    }
+
+    func resume() async throws(AppError) {
+        resumeCount += 1
+        if !supportsPause { throw .recordingFailed }
+    }
+
+    func abort() async {
+        abortCount += 1
+        if let currentURL {
+            try? FileManager.default.removeItem(at: currentURL)
+        }
+        currentURL = nil
+    }
+}
+
 /// In-memory secret store for tests. Never touches the Keychain.
 final class MemorySecretStore: SecretStore, @unchecked Sendable {
     private let lock = NSLock()
