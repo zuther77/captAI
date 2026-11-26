@@ -75,6 +75,7 @@ struct RecordingCoordinatorTests {
         #expect(h.coordinator.state == .recording)
         #expect(h.recorder.started.count == 1)
         #expect(h.overlay.dismissCount >= 1)
+        #expect(!h.recorder.started[0].excludeWindowIDs.isEmpty)
 
         await h.coordinator.stop()
         #expect(h.coordinator.state == .idle)

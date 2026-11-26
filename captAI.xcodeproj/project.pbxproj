@@ -78,6 +78,7 @@
 		92F19F55558849D6BCA3ACBD /* MOVRecordingStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A51544CA6294C1CBA810893 /* MOVRecordingStore.swift */; };
 		E2D8686F9DCC4766896917AC /* RecordingCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07AC26C0D8294C61ABD81122 /* RecordingCoordinator.swift */; };
 		AD4D6684B6FB4AD78E07D71E /* RecordingHUDController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFA6186EA5324734AD47DB6E /* RecordingHUDController.swift */; };
+		16BDCC763B154867B6BEDB64 /* RecordingShadeController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D3DD87AA1FA41E9BA0CB159 /* RecordingShadeController.swift */; };
 		B93EB0CD653440CF95078DD5 /* RecordingSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DD9A48CA60E4C0FB2D6DCDC /* RecordingSession.swift */; };
 		34CC24B560869DFBE59A7220 /* FileSettingsStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BF82CB3E3EB33A3735B00E5 /* FileSettingsStoreTests.swift */; };
 		34EA8134EAB127AC92DEC2AC /* SecretStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD2AAB2CAF446FBA65879447 /* SecretStore.swift */; };
@@ -171,6 +172,7 @@
 		1FC6183F3233494C8F567739 /* MOVRecordingStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A51544CA6294C1CBA810893 /* MOVRecordingStore.swift */; };
 		9DD4A3760A3D464FA97784D4 /* RecordingCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07AC26C0D8294C61ABD81122 /* RecordingCoordinator.swift */; };
 		DB6339AB9BDB42669A2E5DFE /* RecordingHUDController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFA6186EA5324734AD47DB6E /* RecordingHUDController.swift */; };
+		8381DBA1861446FD951FBA25 /* RecordingShadeController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D3DD87AA1FA41E9BA0CB159 /* RecordingShadeController.swift */; };
 		2AFCE81B11064E939F9FA2C6 /* RecordingSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DD9A48CA60E4C0FB2D6DCDC /* RecordingSession.swift */; };
 		7539BB78E9F736DF6187A01C /* CaptureAnnotation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CE004C4DC466CC3E9055A17 /* CaptureAnnotation.swift */; };
 		777164F0D5C0983368814920 /* CaptureServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28DC0EF9BF144B6600070CE5 /* CaptureServices.swift */; };
@@ -274,6 +276,7 @@
 		83A3109D7BFB420DB09C383F /* MOVRecordingStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A51544CA6294C1CBA810893 /* MOVRecordingStore.swift */; };
 		CB490321F15846759C0A1D43 /* RecordingCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07AC26C0D8294C61ABD81122 /* RecordingCoordinator.swift */; };
 		BF9351CE6A1842CD9C11C271 /* RecordingHUDController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFA6186EA5324734AD47DB6E /* RecordingHUDController.swift */; };
+		A95EEDEBE3A84BE998FFCAD5 /* RecordingShadeController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D3DD87AA1FA41E9BA0CB159 /* RecordingShadeController.swift */; };
 		31194B17348240558E44A0C9 /* RecordingSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DD9A48CA60E4C0FB2D6DCDC /* RecordingSession.swift */; };
 		D0D2456771AE068173E0B781 /* LibraryRecords.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C4B10346967560DE788151A /* LibraryRecords.swift */; };
 		D25E4D485ECC83043B7844E7 /* AnnotationDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27E3880021B16B59018FBB93 /* AnnotationDocument.swift */; };
@@ -437,6 +440,7 @@
 		1A51544CA6294C1CBA810893 /* MOVRecordingStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MOVRecordingStore.swift; sourceTree = "<group>"; };
 		07AC26C0D8294C61ABD81122 /* RecordingCoordinator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecordingCoordinator.swift; sourceTree = "<group>"; };
 		CFA6186EA5324734AD47DB6E /* RecordingHUDController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecordingHUDController.swift; sourceTree = "<group>"; };
+		4D3DD87AA1FA41E9BA0CB159 /* RecordingShadeController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecordingShadeController.swift; sourceTree = "<group>"; };
 		2DD9A48CA60E4C0FB2D6DCDC /* RecordingSession.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecordingSession.swift; sourceTree = "<group>"; };
 		DA245F37BFEC4C16A4A1AF15 /* RecordingCoordinatorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecordingCoordinatorTests.swift; sourceTree = "<group>"; };
 		204B858B319840988CF960DF /* MOVRecordingStoreTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MOVRecordingStoreTests.swift; sourceTree = "<group>"; };
@@ -1216,6 +1220,7 @@
 				1A51544CA6294C1CBA810893 /* MOVRecordingStore.swift */,
 				07AC26C0D8294C61ABD81122 /* RecordingCoordinator.swift */,
 				CFA6186EA5324734AD47DB6E /* RecordingHUDController.swift */,
+				4D3DD87AA1FA41E9BA0CB159 /* RecordingShadeController.swift */,
 			);
 			path = Recording;
 			sourceTree = "<group>";
@@ -1537,6 +1542,7 @@
 				92F19F55558849D6BCA3ACBD /* MOVRecordingStore.swift in Sources */,
 				E2D8686F9DCC4766896917AC /* RecordingCoordinator.swift in Sources */,
 				AD4D6684B6FB4AD78E07D71E /* RecordingHUDController.swift in Sources */,
+				16BDCC763B154867B6BEDB64 /* RecordingShadeController.swift in Sources */,
 				B93EB0CD653440CF95078DD5 /* RecordingSession.swift in Sources */,
 				EAFE75EA7B46522A41CD9E56 /* SelectionGeometry.swift in Sources */,
 				FDF3FD43A261367B4248AAB1 /* SelectionStateMachine.swift in Sources */,
@@ -1665,6 +1671,7 @@
 				83A3109D7BFB420DB09C383F /* MOVRecordingStore.swift in Sources */,
 				CB490321F15846759C0A1D43 /* RecordingCoordinator.swift in Sources */,
 				BF9351CE6A1842CD9C11C271 /* RecordingHUDController.swift in Sources */,
+				A95EEDEBE3A84BE998FFCAD5 /* RecordingShadeController.swift in Sources */,
 				31194B17348240558E44A0C9 /* RecordingSession.swift in Sources */,
 				7214EBF9AB06AB1D330CA0F7 /* SelectionGeometry.swift in Sources */,
 				5BDB8697C15FF4FE09F10F07 /* SelectionStateMachine.swift in Sources */,
@@ -1741,6 +1748,7 @@
 				1FC6183F3233494C8F567739 /* MOVRecordingStore.swift in Sources */,
 				9DD4A3760A3D464FA97784D4 /* RecordingCoordinator.swift in Sources */,
 				DB6339AB9BDB42669A2E5DFE /* RecordingHUDController.swift in Sources */,
+				8381DBA1861446FD951FBA25 /* RecordingShadeController.swift in Sources */,
 				2AFCE81B11064E939F9FA2C6 /* RecordingSession.swift in Sources */,
 				8191E884DD78935EF3BD40C9 /* PermissionStore.swift in Sources */,
 				93FEF2A6DFD38CBF625DC913 /* UITestSupport.swift in Sources */,

@@ -27,6 +27,7 @@ final class RecordingCoordinator {
     @ObservationIgnored private let overlay: any SelectionOverlayPresenting
     @ObservationIgnored private let recorder: any ScreenRecording
     @ObservationIgnored private let hud: RecordingHUDController
+    @ObservationIgnored private let shade: RecordingShadeController
     @ObservationIgnored private let feedback: any CaptureFeedback
     @ObservationIgnored private let library: (any LibraryStore)?
     @ObservationIgnored private let diagnostics: Diagnostics
@@ -49,6 +50,7 @@ final class RecordingCoordinator {
         overlay: any SelectionOverlayPresenting,
         recorder: any ScreenRecording,
         hud: RecordingHUDController = RecordingHUDController(),
+        shade: RecordingShadeController = RecordingShadeController(),
         feedback: any CaptureFeedback,
         library: (any LibraryStore)?,
         diagnostics: Diagnostics,
@@ -65,6 +67,7 @@ final class RecordingCoordinator {
         self.overlay = overlay
         self.recorder = recorder
         self.hud = hud
+        self.shade = shade
         self.feedback = feedback
         self.library = library
         self.diagnostics = diagnostics
@@ -159,6 +162,7 @@ final class RecordingCoordinator {
         limitTask = nil
         removeScreenObserver()
         hud.dismiss()
+        shade.dismiss()
 
         do throws(AppError) {
             let url = try await recorder.stop()
@@ -232,17 +236,25 @@ final class RecordingCoordinator {
             outputURL = try MOVRecordingStore.prepareOutputURL(in: folder, for: now())
         } catch {
             overlay.dismiss()
+            shade.dismiss()
             failSelection(error, present: true)
             return
         }
 
-        // Present HUD first so its window can be excluded from the stream.
+        // Present HUD (and region shade) first so their windows can be excluded from the stream.
         hud.present(
             supportsPause: recorder.supportsPause,
             onStop: { [weak self] in Task { await self?.stop() } },
             onPauseResume: { [weak self] in Task { await self?.togglePause() } }
         )
-        let excluded = overlay.overlayWindowIDs + hud.windowIDs
+        if case .region(let selection) = scope {
+            shade.present(
+                hole: selection.appKitRect,
+                layout: layout(),
+                dimOpacity: settings.clampedOverlayDimOpacity
+            )
+        }
+        let excluded = overlay.overlayWindowIDs + hud.windowIDs + shade.windowIDs
         let request = RecordingStartRequest(
             scope: scope,
             outputURL: outputURL,
@@ -256,6 +268,7 @@ final class RecordingCoordinator {
         } catch {
             overlay.dismiss()
             hud.dismiss()
+            shade.dismiss()
             failSelection(error, present: true)
             return
         }
@@ -307,6 +320,7 @@ final class RecordingCoordinator {
         limitTask?.cancel()
         removeScreenObserver()
         hud.dismiss()
+        shade.dismiss()
         await recorder.abort()
         state = .idle
         activeScope = nil
