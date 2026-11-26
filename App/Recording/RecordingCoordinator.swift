@@ -3,10 +3,11 @@ import CoreGraphics
 import Foundation
 import Observation
 
-/// Runs a recording end to end: permission, target selection, ScreenCaptureKit capture, HUD, finalize, library.
+/// Runs a recording end to end: permission, target selection, arm HUD, ScreenCaptureKit capture, finalize, library.
 ///
-/// The recording shortcut toggles: while a session is active it stops; otherwise it starts. Only one session
-/// runs at a time. Success is reported only after a playable `.mov` exists.
+/// After a region (or display) is chosen, capture waits for Record on the HUD. The recording shortcut toggles:
+/// while recording it stops; while armed it cancels; otherwise it starts selection. Success is reported only
+/// after a playable `.mov` exists.
 @MainActor
 @Observable
 final class RecordingCoordinator {
@@ -14,6 +15,8 @@ final class RecordingCoordinator {
         case idle
         case checkingPermission
         case selecting
+        /// Region/display chosen; waiting for Record.
+        case armed
         case recording
         case paused
         case stopping
@@ -83,11 +86,13 @@ final class RecordingCoordinator {
 
     var isBusy: Bool { state != .idle }
 
-    /// Menu / shortcut entry. Starts a new recording, or stops the one in progress.
+    /// Menu / shortcut entry. Starts selection, confirms nothing while armed (cancels), or stops a live recording.
     func toggle() async {
         switch state {
         case .recording, .paused:
             await stop()
+        case .armed:
+            cancelArmed()
         case .idle:
             await start()
         case .checkingPermission, .selecting, .stopping:
@@ -151,7 +156,51 @@ final class RecordingCoordinator {
             scope = .display(id: display.id, frame: display.frame, backingScale: display.backingScale)
         }
 
-        await beginCapture(scope: scope, settings: current)
+        arm(scope: scope, settings: current)
+    }
+
+    /// Starts ScreenCaptureKit after the user presses Record on the armed HUD.
+    func confirmRecord() async {
+        guard state == .armed, let scope = activeScope else { return }
+        let current = settings()
+        let folder = current.recordingFolderPath.map { URL(fileURLWithPath: $0, isDirectory: true) } ?? defaultFolder
+        let outputURL: URL
+        do throws(AppError) {
+            outputURL = try MOVRecordingStore.prepareOutputURL(in: folder, for: now())
+        } catch {
+            cancelArmed()
+            feedback.present(error)
+            return
+        }
+
+        let excluded = hud.windowIDs + shade.windowIDs
+        let request = RecordingStartRequest(
+            scope: scope,
+            outputURL: outputURL,
+            excludeWindowIDs: excluded,
+            capturesSystemAudio: current.recordSystemAudio,
+            capturesMicrophone: current.recordMicrophone
+        )
+
+        do throws(AppError) {
+            try await recorder.start(request)
+        } catch {
+            cancelArmed()
+            feedback.present(error)
+            return
+        }
+
+        _ = machine.handle(.startCapture)
+        startedAt = now()
+        state = .recording
+        hud.enterRecording(
+            supportsPause: recorder.supportsPause,
+            onStop: { [weak self] in Task { await self?.stop() } },
+            onPauseResume: { [weak self] in Task { await self?.togglePause() } }
+        )
+        installScreenObserver()
+        startDurationLimit()
+        diagnostics.info(.capture, "recording.started")
     }
 
     func stop() async {
@@ -229,24 +278,12 @@ final class RecordingCoordinator {
 
     // MARK: Private
 
-    private func beginCapture(scope: RecordingScope, settings: AppSettings) async {
-        let folder = settings.recordingFolderPath.map { URL(fileURLWithPath: $0, isDirectory: true) } ?? defaultFolder
-        let outputURL: URL
-        do throws(AppError) {
-            outputURL = try MOVRecordingStore.prepareOutputURL(in: folder, for: now())
-        } catch {
-            overlay.dismiss()
-            shade.dismiss()
-            failSelection(error, present: true)
-            return
-        }
+    private func arm(scope: RecordingScope, settings: AppSettings) {
+        overlay.dismiss()
+        _ = machine.handle(.selectionCommitted)
+        activeScope = scope
+        state = .armed
 
-        // Present HUD (and region shade) first so their windows can be excluded from the stream.
-        hud.present(
-            supportsPause: recorder.supportsPause,
-            onStop: { [weak self] in Task { await self?.stop() } },
-            onPauseResume: { [weak self] in Task { await self?.togglePause() } }
-        )
         if case .region(let selection) = scope {
             shade.present(
                 hole: selection.appKitRect,
@@ -254,33 +291,22 @@ final class RecordingCoordinator {
                 dimOpacity: settings.clampedOverlayDimOpacity
             )
         }
-        let excluded = overlay.overlayWindowIDs + hud.windowIDs + shade.windowIDs
-        let request = RecordingStartRequest(
-            scope: scope,
-            outputURL: outputURL,
-            excludeWindowIDs: excluded,
-            capturesSystemAudio: settings.recordSystemAudio,
-            capturesMicrophone: settings.recordMicrophone
+
+        hud.presentArmed(
+            onRecord: { [weak self] in Task { await self?.confirmRecord() } },
+            onCancel: { [weak self] in self?.cancelArmed() }
         )
+        diagnostics.info(.capture, "recording.armed")
+    }
 
-        do throws(AppError) {
-            try await recorder.start(request)
-        } catch {
-            overlay.dismiss()
-            hud.dismiss()
-            shade.dismiss()
-            failSelection(error, present: true)
-            return
-        }
-
-        overlay.dismiss()
-        _ = machine.handle(.selectionCommitted)
-        activeScope = scope
-        startedAt = now()
-        state = .recording
-        installScreenObserver()
-        startDurationLimit()
-        diagnostics.info(.capture, "recording.started")
+    private func cancelArmed() {
+        guard state == .armed else { return }
+        _ = machine.handle(.cancelSelection)
+        hud.dismiss()
+        shade.dismiss()
+        activeScope = nil
+        state = .idle
+        diagnostics.info(.capture, "recording.armedCancelled")
     }
 
     private func startDurationLimit() {
@@ -315,18 +341,25 @@ final class RecordingCoordinator {
     }
 
     private func handleDisplayChange() async {
-        guard state == .recording || state == .paused else { return }
-        _ = machine.handle(.abort("displayChanged"))
-        limitTask?.cancel()
-        removeScreenObserver()
-        hud.dismiss()
-        shade.dismiss()
-        await recorder.abort()
-        state = .idle
-        activeScope = nil
-        startedAt = nil
-        diagnostics.error(.capture, "recording.displayChanged", error: .captureDisplayChanged)
-        feedback.present(.captureDisplayChanged)
+        switch state {
+        case .armed:
+            cancelArmed()
+            feedback.present(.captureDisplayChanged)
+        case .recording, .paused:
+            _ = machine.handle(.abort("displayChanged"))
+            limitTask?.cancel()
+            removeScreenObserver()
+            hud.dismiss()
+            shade.dismiss()
+            await recorder.abort()
+            state = .idle
+            activeScope = nil
+            startedAt = nil
+            diagnostics.error(.capture, "recording.displayChanged", error: .captureDisplayChanged)
+            feedback.present(.captureDisplayChanged)
+        default:
+            break
+        }
     }
 
     private func persist(_ artifact: RecordingArtifact) {
@@ -355,7 +388,10 @@ final class RecordingCoordinator {
     }
 
     private func failSelection(_ error: AppError, present: Bool) {
-        _ = machine.handle(.abort(error.code))
+        _ = machine.handle(.cancelSelection)
+        hud.dismiss()
+        shade.dismiss()
+        activeScope = nil
         state = .idle
         diagnostics.error(.capture, "recording.failed", error: error)
         if present { feedback.present(error) }

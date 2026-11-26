@@ -2,13 +2,14 @@ import Foundation
 
 /// Pure recording session lifecycle, independent of ScreenCaptureKit / HUD windows so it can be unit-tested.
 ///
-/// `idle → selecting → recording ↔ paused → stopping → saved | failed`, with `cancelled` from idle/selecting
-/// and failure reachable while recording/paused/stopping. Terminal phases ignore further events. Duplicate
-/// Stop / hotkey while already stopping is a no-op (`.ignored`).
+/// `idle → selecting → armed → recording ↔ paused → stopping → saved | failed`, with `cancelled` from
+/// idle/selecting/armed. Terminal phases ignore further events. Duplicate Stop while stopping is `.ignored`.
 struct RecordingStateMachine: Sendable, Equatable {
     enum Phase: Equatable, Sendable {
         case idle
         case selecting
+        /// Region/display chosen; waiting for the user to press Record.
+        case armed
         case recording
         case paused
         case stopping
@@ -19,8 +20,10 @@ struct RecordingStateMachine: Sendable, Equatable {
 
     enum Event: Equatable, Sendable {
         case beginSelection
-        /// Region or display chosen; start capture.
+        /// Region or display chosen; wait for Record.
         case selectionCommitted
+        /// User pressed Record on the armed HUD.
+        case startCapture
         case cancelSelection
         case pause
         case resume
@@ -43,7 +46,7 @@ struct RecordingStateMachine: Sendable, Equatable {
     var isTerminal: Bool {
         switch phase {
         case .saved, .failed, .cancelled: true
-        case .idle, .selecting, .recording, .paused, .stopping: false
+        case .idle, .selecting, .armed, .recording, .paused, .stopping: false
         }
     }
 
@@ -62,10 +65,14 @@ struct RecordingStateMachine: Sendable, Equatable {
             return .transitioned
 
         case (.selecting, .selectionCommitted):
+            phase = .armed
+            return .transitioned
+
+        case (.armed, .startCapture):
             phase = .recording
             return .transitioned
 
-        case (.selecting, .cancelSelection), (.idle, .cancelSelection):
+        case (.selecting, .cancelSelection), (.idle, .cancelSelection), (.armed, .cancelSelection):
             phase = .cancelled
             return .transitioned
 
@@ -81,7 +88,6 @@ struct RecordingStateMachine: Sendable, Equatable {
             phase = .stopping
             return .transitioned
 
-        // Rapid / duplicate Stop while already stopping must not re-enter finalize.
         case (.stopping, .stop):
             return .ignored
 
@@ -95,12 +101,12 @@ struct RecordingStateMachine: Sendable, Equatable {
 
         case (.recording, .abort(let message)),
              (.paused, .abort(let message)),
-             (.stopping, .abort(let message)):
+             (.stopping, .abort(let message)),
+             (.armed, .abort(let message)):
             phase = .failed(message)
             return .transitioned
 
-        // Hotkey / Stop while idle does nothing useful until selection starts elsewhere.
-        case (.idle, .stop), (.selecting, .stop):
+        case (.idle, .stop), (.selecting, .stop), (.armed, .stop):
             return .ignored
 
         default:

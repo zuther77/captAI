@@ -75,6 +75,8 @@ struct MenuBarContent: View {
         switch recording.state {
         case .recording, .paused:
             return "Stop Recording  \(combo)"
+        case .armed:
+            return "Cancel Recording  \(combo)"
         default:
             return "Record Screen  \(combo)"
         }

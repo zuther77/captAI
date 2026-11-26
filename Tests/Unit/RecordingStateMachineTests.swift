@@ -15,6 +15,10 @@ struct RecordingStateMachineTests {
         #expect(machine.phase == .selecting)
 
         #expect(machine.handle(.selectionCommitted) == .transitioned)
+        #expect(machine.phase == .armed)
+        #expect(machine.isActiveRecording == false)
+
+        #expect(machine.handle(.startCapture) == .transitioned)
         #expect(machine.phase == .recording)
         #expect(machine.isActiveRecording)
 
@@ -33,19 +37,27 @@ struct RecordingStateMachineTests {
         #expect(machine.isTerminal)
     }
 
-    @Test func cancelDuringSelectionEndsWithoutRecording() {
-        var machine = RecordingStateMachine()
-        _ = machine.handle(.beginSelection)
-        #expect(machine.handle(.cancelSelection) == .transitioned)
-        #expect(machine.phase == .cancelled)
-        #expect(machine.isTerminal)
-        #expect(machine.handle(.selectionCommitted) == .ignored)
+    @Test func cancelDuringSelectionOrArmedEndsWithoutRecording() {
+        var selecting = RecordingStateMachine()
+        _ = selecting.handle(.beginSelection)
+        #expect(selecting.handle(.cancelSelection) == .transitioned)
+        #expect(selecting.phase == .cancelled)
+        #expect(selecting.handle(.selectionCommitted) == .ignored)
+
+        var armed = RecordingStateMachine()
+        _ = armed.handle(.beginSelection)
+        _ = armed.handle(.selectionCommitted)
+        #expect(armed.phase == .armed)
+        #expect(armed.handle(.cancelSelection) == .transitioned)
+        #expect(armed.phase == .cancelled)
+        #expect(armed.handle(.startCapture) == .ignored)
     }
 
     @Test func rapidDuplicateStopIsIgnoredWhileStopping() {
         var machine = RecordingStateMachine()
         _ = machine.handle(.beginSelection)
         _ = machine.handle(.selectionCommitted)
+        _ = machine.handle(.startCapture)
         #expect(machine.handle(.stop) == .transitioned)
         #expect(machine.phase == .stopping)
         #expect(machine.handle(.stop) == .ignored)
@@ -60,6 +72,7 @@ struct RecordingStateMachineTests {
         var machine = RecordingStateMachine()
         _ = machine.handle(.beginSelection)
         _ = machine.handle(.selectionCommitted)
+        _ = machine.handle(.startCapture)
         _ = machine.handle(.pause)
         #expect(machine.handle(.stop) == .transitioned)
         #expect(machine.phase == .stopping)
@@ -69,6 +82,7 @@ struct RecordingStateMachineTests {
         var stopping = RecordingStateMachine()
         _ = stopping.handle(.beginSelection)
         _ = stopping.handle(.selectionCommitted)
+        _ = stopping.handle(.startCapture)
         _ = stopping.handle(.stop)
         #expect(stopping.handle(.finalizeFailed("disk full")) == .transitioned)
         #expect(stopping.phase == .failed("disk full"))
@@ -76,6 +90,7 @@ struct RecordingStateMachineTests {
         var midSession = RecordingStateMachine()
         _ = midSession.handle(.beginSelection)
         _ = midSession.handle(.selectionCommitted)
+        _ = midSession.handle(.startCapture)
         #expect(midSession.handle(.abort("display unplugged")) == .transitioned)
         #expect(midSession.phase == .failed("display unplugged"))
         #expect(midSession.isTerminal)
@@ -93,11 +108,14 @@ struct RecordingStateMachineTests {
         #expect(machine.handle(.beginSelection) == .transitioned)
     }
 
-    @Test func stopWhileIdleOrSelectingIsIgnored() {
+    @Test func stopWhileIdleSelectingOrArmedIsIgnored() {
         var machine = RecordingStateMachine()
         #expect(machine.handle(.stop) == .ignored)
         _ = machine.handle(.beginSelection)
         #expect(machine.handle(.stop) == .ignored)
         #expect(machine.phase == .selecting)
+        _ = machine.handle(.selectionCommitted)
+        #expect(machine.handle(.stop) == .ignored)
+        #expect(machine.phase == .armed)
     }
 }

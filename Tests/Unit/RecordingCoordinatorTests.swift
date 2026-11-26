@@ -69,12 +69,22 @@ struct RecordingCoordinatorTests {
         )
     }
 
-    @Test func regionRecordingSavesAndWritesLibrary() async throws {
+    @Test func regionSelectionArmsWithoutStartingRecorder() async throws {
         let h = try makeHarness()
         await h.coordinator.start()
+        #expect(h.coordinator.state == .armed)
+        #expect(h.recorder.started.isEmpty)
+        #expect(h.overlay.dismissCount >= 1)
+    }
+
+    @Test func confirmRecordThenStopSavesAndWritesLibrary() async throws {
+        let h = try makeHarness()
+        await h.coordinator.start()
+        #expect(h.coordinator.state == .armed)
+
+        await h.coordinator.confirmRecord()
         #expect(h.coordinator.state == .recording)
         #expect(h.recorder.started.count == 1)
-        #expect(h.overlay.dismissCount >= 1)
         #expect(!h.recorder.started[0].excludeWindowIDs.isEmpty)
 
         await h.coordinator.stop()
@@ -88,9 +98,19 @@ struct RecordingCoordinatorTests {
         #expect(captures[0].kind == .video)
     }
 
+    @Test func toggleWhileArmedCancelsWithoutRecording() async throws {
+        let h = try makeHarness()
+        await h.coordinator.start()
+        #expect(h.coordinator.state == .armed)
+        await h.coordinator.toggle()
+        #expect(h.coordinator.state == .idle)
+        #expect(h.recorder.started.isEmpty)
+    }
+
     @Test func toggleWhileRecordingStops() async throws {
         let h = try makeHarness()
         await h.coordinator.start()
+        await h.coordinator.confirmRecord()
         #expect(h.coordinator.state == .recording)
         await h.coordinator.toggle()
         #expect(h.coordinator.state == .idle)
@@ -100,6 +120,7 @@ struct RecordingCoordinatorTests {
     @Test func duplicateStopWhileStoppingIsHarmless() async throws {
         let h = try makeHarness()
         await h.coordinator.start()
+        await h.coordinator.confirmRecord()
         async let first: Void = h.coordinator.stop()
         await h.coordinator.stop()
         await first
@@ -122,13 +143,16 @@ struct RecordingCoordinatorTests {
         #expect(h.feedback.errors.contains(.permissionDenied(.screenCapture)))
     }
 
-    @Test func displayTargetSkipsOverlaySelection() async throws {
+    @Test func displayTargetAlsoArmsBeforeRecord() async throws {
         var settings = AppSettings()
         settings.defaultRecordingTarget = .display
         let h = try makeHarness(settings: settings)
         await h.coordinator.start()
+        #expect(h.coordinator.state == .armed)
+        #expect(h.recorder.started.isEmpty)
+
+        await h.coordinator.confirmRecord()
         #expect(h.coordinator.state == .recording)
-        #expect(h.recorder.started.count == 1)
         if case .display = h.recorder.started[0].scope {
             // ok
         } else {
@@ -140,6 +164,7 @@ struct RecordingCoordinatorTests {
     @Test func pauseAndResumeWhenSupported() async throws {
         let h = try makeHarness()
         await h.coordinator.start()
+        await h.coordinator.confirmRecord()
         await h.coordinator.togglePause()
         #expect(h.coordinator.state == .paused)
         #expect(h.recorder.pauseCount == 1)
