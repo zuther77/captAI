@@ -52,7 +52,8 @@ struct OpenAICompatibleOCRRecognizerTests {
 
     @Test func factoryTreatsLocalhostAsLocalAndRequiresKeyForCloud() {
         var settings = AppSettings()
-        settings.ocrEngine = .openAICompatible
+        settings.ocrEngine = .customAPI
+        settings.ocrAPIProtocol = .openAICompatible
         settings.ocrEndpoint = "http://127.0.0.1:11434/v1"
         settings.ocrModel = "llava"
         #expect(TextRecognizerFactory.identity(for: settings).locality == .local)
@@ -61,7 +62,7 @@ struct OpenAICompatibleOCRRecognizerTests {
         #expect(TextRecognizerFactory.identity(for: settings).locality == .cloud)
         #expect(TextRecognizerFactory.identity(for: settings).providerID == "ocr-custom")
 
-        settings.ocrEngine = .anthropic
+        settings.ocrAPIProtocol = .anthropic
         settings.ocrEndpoint = AnthropicAnalysisSource.defaultEndpoint.absoluteString
         #expect(TextRecognizerFactory.identity(for: settings).providerID == "ocr-anthropic")
     }

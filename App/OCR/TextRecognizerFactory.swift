@@ -1,6 +1,6 @@
 import Foundation
 
-/// Builds the OCR recognizer for the current settings (Apple Vision, OpenAI-compatible, or Anthropic).
+/// Builds the OCR recognizer for the current settings (Apple Vision or a Custom API protocol).
 enum TextRecognizerFactory {
     /// Keychain account for the custom OCR API key. Never stored in settings.
     static let apiKeyAccount = "ocr-api"
@@ -13,10 +13,13 @@ enum TextRecognizerFactory {
         switch settings.ocrEngine {
         case .appleVision:
             return VisionTextRecognizer()
-        case .openAICompatible:
-            return openAICompatible(settings: settings, secrets: secrets, transport: transport)
-        case .anthropic:
-            return anthropic(settings: settings, secrets: secrets, transport: transport)
+        case .customAPI:
+            switch settings.ocrAPIProtocol {
+            case .openAICompatible:
+                return openAICompatible(settings: settings, secrets: secrets, transport: transport)
+            case .anthropic:
+                return anthropic(settings: settings, secrets: secrets, transport: transport)
+            }
         }
     }
 
@@ -31,10 +34,13 @@ enum TextRecognizerFactory {
                 isMock: false,
                 locality: .local
             )
-        case .openAICompatible:
-            return customIdentity(name: "Custom OCR", settings: settings, providerID: "ocr-custom")
-        case .anthropic:
-            return customIdentity(name: "Anthropic OCR", settings: settings, providerID: "ocr-anthropic")
+        case .customAPI:
+            switch settings.ocrAPIProtocol {
+            case .openAICompatible:
+                return customIdentity(name: "Custom OCR", settings: settings, providerID: "ocr-custom")
+            case .anthropic:
+                return customIdentity(name: "Anthropic OCR", settings: settings, providerID: "ocr-anthropic")
+            }
         }
     }
 

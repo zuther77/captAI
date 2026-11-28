@@ -30,6 +30,16 @@ struct OCRSettingsPane: View {
                     }
                     .accessibilityIdentifier("settings.ocr.level")
                 } else {
+                    Picker("Protocol", selection: Binding(
+                        get: { model.settings.ocrAPIProtocol },
+                        set: { value in selectProtocol(value) }
+                    )) {
+                        ForEach(OCRAPIProtocol.allCases, id: \.self) { apiProtocol in
+                            Text(apiProtocol.displayName).tag(apiProtocol)
+                        }
+                    }
+                    .accessibilityIdentifier("settings.ocr.protocol")
+
                     TextField("Endpoint", text: Binding(
                         get: { model.settings.ocrEndpoint },
                         set: { value in model.update { $0.ocrEndpoint = value } }
@@ -67,8 +77,7 @@ struct OCRSettingsPane: View {
     }
 
     private var keyPlaceholder: String {
-        switch model.settings.ocrEngine {
-        case .appleVision: "API key"
+        switch model.settings.ocrAPIProtocol {
         case .openAICompatible: "API key (optional for localhost)"
         case .anthropic: "API key"
         }
@@ -78,35 +87,57 @@ struct OCRSettingsPane: View {
         switch model.settings.ocrEngine {
         case .appleVision:
             return "Apple Vision runs entirely on this Mac and never uses the network."
-        case .openAICompatible:
-            return "Sends the capture to an OpenAI-compatible chat-completions endpoint. Cloud endpoints obey Settings > Privacy. Localhost may omit an API key."
-        case .anthropic:
-            return "Sends the capture to Anthropic’s Messages API (`/v1/messages`). Cloud endpoints obey Settings > Privacy. An API key is required."
+        case .customAPI:
+            switch model.settings.ocrAPIProtocol {
+            case .openAICompatible:
+                return "Sends the capture to an OpenAI-compatible chat-completions endpoint. Cloud endpoints obey Settings > Privacy. Localhost may omit an API key."
+            case .anthropic:
+                return "Sends the capture to Anthropic’s Messages API (`/v1/messages`). Cloud endpoints obey Settings > Privacy. An API key is required."
+            }
         }
     }
 
     private func selectEngine(_ value: OCREngineChoice) {
         model.update { settings in
-            let previous = settings.ocrEngine
             settings.ocrEngine = value
-            guard value != .appleVision else { return }
-            // Swap endpoint/model when leaving Apple Vision or switching API families with stock defaults.
-            let previousDefaults = previous.defaultEndpoint
-            let previousModel = previous.defaultModel
-            if settings.ocrEndpoint.isEmpty
-                || settings.ocrEndpoint == previousDefaults
-                || OCREngineChoice.allCases.map(\.defaultEndpoint).contains(settings.ocrEndpoint)
-            {
-                settings.ocrEndpoint = value.defaultEndpoint
-            }
-            if settings.ocrModel.isEmpty
-                || settings.ocrModel == previousModel
-                || OCREngineChoice.allCases.map(\.defaultModel).contains(settings.ocrModel)
-            {
-                settings.ocrModel = value.defaultModel
-            }
+            guard value == .customAPI else { return }
+            applyProtocolDefaults(settings.ocrAPIProtocol, to: &settings, force: settings.ocrEndpoint.isEmpty)
         }
         refreshKeyState()
+    }
+
+    private func selectProtocol(_ value: OCRAPIProtocol) {
+        model.update { settings in
+            let previous = settings.ocrAPIProtocol
+            settings.ocrAPIProtocol = value
+            applyProtocolDefaults(value, to: &settings, previous: previous)
+        }
+        refreshKeyState()
+    }
+
+    /// Swaps endpoint/model when they still look like stock defaults for another protocol.
+    private func applyProtocolDefaults(
+        _ value: OCRAPIProtocol,
+        to settings: inout AppSettings,
+        previous: OCRAPIProtocol? = nil,
+        force: Bool = false
+    ) {
+        let stockEndpoints = OCRAPIProtocol.allCases.map(\.defaultEndpoint)
+        let stockModels = OCRAPIProtocol.allCases.map(\.defaultModel)
+        if force
+            || settings.ocrEndpoint.isEmpty
+            || previous.map({ settings.ocrEndpoint == $0.defaultEndpoint }) == true
+            || stockEndpoints.contains(settings.ocrEndpoint)
+        {
+            settings.ocrEndpoint = value.defaultEndpoint
+        }
+        if force
+            || settings.ocrModel.isEmpty
+            || previous.map({ settings.ocrModel == $0.defaultModel }) == true
+            || stockModels.contains(settings.ocrModel)
+        {
+            settings.ocrModel = value.defaultModel
+        }
     }
 
     private func refreshKeyState() {

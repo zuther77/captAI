@@ -34,25 +34,62 @@ enum OCRRecognitionLevel: String, Codable, CaseIterable, Sendable {
 }
 
 /// Which engine reads text from captures (Settings > OCR).
-enum OCREngineChoice: String, Codable, CaseIterable, Sendable {
+enum OCREngineChoice: String, CaseIterable, Sendable {
     /// Apple Vision on this Mac — never uses the network.
     case appleVision
-    /// OpenAI-compatible chat completions with an image (cloud API or a local server).
-    case openAICompatible
-    /// Anthropic Messages API with an image (`/v1/messages`).
-    case anthropic
+    /// Remote or local HTTP API; wire format is ``OCRAPIProtocol``.
+    case customAPI
 
     var displayName: String {
         switch self {
         case .appleVision: "Apple Vision (on device)"
-        case .openAICompatible: "OpenAI-compatible API"
+        case .customAPI: "Custom API"
+        }
+    }
+}
+
+extension OCREngineChoice: Codable {
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        try self.init(migratingFrom: container.decode(String.self))
+    }
+
+    /// Accepts current raw values and the pre-protocol engine names (`openAICompatible`, `anthropic`).
+    init(migratingFrom raw: String) throws {
+        switch raw {
+        case Self.appleVision.rawValue:
+            self = .appleVision
+        case Self.customAPI.rawValue, "openAICompatible", "anthropic":
+            self = .customAPI
+        default:
+            throw DecodingError.dataCorrupted(
+                .init(codingPath: [], debugDescription: "Unknown OCR engine \(raw)")
+            )
+        }
+    }
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
+/// HTTP wire format for ``OCREngineChoice.customAPI``.
+enum OCRAPIProtocol: String, Codable, CaseIterable, Sendable {
+    /// OpenAI-compatible chat completions with an image.
+    case openAICompatible
+    /// Anthropic Messages API (`/v1/messages`).
+    case anthropic
+
+    var displayName: String {
+        switch self {
+        case .openAICompatible: "OpenAI-compatible"
         case .anthropic: "Anthropic"
         }
     }
 
     var defaultEndpoint: String {
         switch self {
-        case .appleVision: ""
         case .openAICompatible: "https://api.openai.com/v1"
         case .anthropic: AnthropicAnalysisSource.defaultEndpoint.absoluteString
         }
@@ -60,9 +97,17 @@ enum OCREngineChoice: String, Codable, CaseIterable, Sendable {
 
     var defaultModel: String {
         switch self {
-        case .appleVision: ""
         case .openAICompatible: "gpt-4o-mini"
         case .anthropic: AnthropicAnalysisSource.defaultModel
+        }
+    }
+
+    /// Infers the protocol from a pre-migration `ocrEngine` raw value.
+    static func inferred(fromLegacyEngine raw: String?) -> OCRAPIProtocol? {
+        switch raw {
+        case "anthropic": .anthropic
+        case "openAICompatible": .openAICompatible
+        default: nil
         }
     }
 }
@@ -122,13 +167,15 @@ struct AppSettings: Equatable, Codable, Sendable {
 
     // OCR (Settings > OCR)
     var ocrEngine: OCREngineChoice = .appleVision
+    /// Wire format when ``ocrEngine`` is ``OCREngineChoice.customAPI``.
+    var ocrAPIProtocol: OCRAPIProtocol = .openAICompatible
     var ocrRecognitionLevel: OCRRecognitionLevel = .accurate
     /// BCP-47 identifiers in priority order. Empty means automatic language detection.
     var ocrLanguages: [String] = []
-    /// Base URL for custom OCR (`openAICompatible` or `anthropic`).
-    var ocrEndpoint: String = "https://api.openai.com/v1"
+    /// Base URL for custom OCR (interpreted per ``ocrAPIProtocol``).
+    var ocrEndpoint: String = OCRAPIProtocol.openAICompatible.defaultEndpoint
     /// Model id for custom OCR (for example `gpt-4o-mini` or `claude-sonnet-4-5`).
-    var ocrModel: String = "gpt-4o-mini"
+    var ocrModel: String = OCRAPIProtocol.openAICompatible.defaultModel
 
     // Analysis provider (Settings > Providers). Prefer named ``providerProfiles``; the fields below remain for
     // migration from earlier M4 builds.
@@ -263,7 +310,15 @@ struct AppSettings: Equatable, Codable, Sendable {
         screenshotShortcut = try container.decodeIfPresent(KeyCombo.self, forKey: .screenshotShortcut) ?? defaults.screenshotShortcut
         recordingShortcut = try container.decodeIfPresent(KeyCombo.self, forKey: .recordingShortcut) ?? defaults.recordingShortcut
         quickCopyShortcut = try container.decodeIfPresent(KeyCombo.self, forKey: .quickCopyShortcut) ?? defaults.quickCopyShortcut
-        ocrEngine = try container.decodeIfPresent(OCREngineChoice.self, forKey: .ocrEngine) ?? defaults.ocrEngine
+        let legacyEngineRaw = try container.decodeIfPresent(String.self, forKey: .ocrEngine)
+        if let legacyEngineRaw {
+            ocrEngine = try OCREngineChoice(migratingFrom: legacyEngineRaw)
+        } else {
+            ocrEngine = defaults.ocrEngine
+        }
+        ocrAPIProtocol = try container.decodeIfPresent(OCRAPIProtocol.self, forKey: .ocrAPIProtocol)
+            ?? OCRAPIProtocol.inferred(fromLegacyEngine: legacyEngineRaw)
+            ?? defaults.ocrAPIProtocol
         ocrRecognitionLevel = try container.decodeIfPresent(OCRRecognitionLevel.self, forKey: .ocrRecognitionLevel) ?? defaults.ocrRecognitionLevel
         ocrLanguages = try container.decodeIfPresent([String].self, forKey: .ocrLanguages) ?? defaults.ocrLanguages
         ocrEndpoint = try container.decodeIfPresent(String.self, forKey: .ocrEndpoint) ?? defaults.ocrEndpoint

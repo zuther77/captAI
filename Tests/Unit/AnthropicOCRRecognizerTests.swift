@@ -56,7 +56,8 @@ struct AnthropicOCRRecognizerTests {
 
     @Test func factoryUsesAnthropicIdentityAndRequiresKey() {
         var settings = AppSettings()
-        settings.ocrEngine = .anthropic
+        settings.ocrEngine = .customAPI
+        settings.ocrAPIProtocol = .anthropic
         settings.ocrEndpoint = AnthropicAnalysisSource.defaultEndpoint.absoluteString
         settings.ocrModel = AnthropicAnalysisSource.defaultModel
         let identity = TextRecognizerFactory.identity(for: settings)

@@ -34,7 +34,8 @@ struct AppSettingsTests {
     @Test func codableRoundTripPreservesEveryField() throws {
         var settings = AppSettings()
         settings.screenshotShortcut = KeyCombo(keyCode: 5, modifiers: [.control, .option])
-        settings.ocrEngine = .openAICompatible
+        settings.ocrEngine = .customAPI
+        settings.ocrAPIProtocol = .anthropic
         settings.ocrRecognitionLevel = .fast
         settings.ocrLanguages = ["en-US", "de-DE"]
         settings.ocrEndpoint = "https://example.com/v1"
@@ -73,6 +74,23 @@ struct AppSettingsTests {
         #expect(decoded.saveQuickCopyToHistory == true)
         #expect(decoded.cloudConsentPolicy == .askEveryTime)
         #expect(decoded.screenshotShortcut == AppSettings().screenshotShortcut)
+    }
+
+    @Test func legacyOCREnginesMigrateToCustomAPIWithMatchingProtocol() throws {
+        let anthropic = try JSONDecoder().decode(
+            AppSettings.self,
+            from: Data(#"{"ocrEngine":"anthropic","ocrModel":"claude-sonnet-4-5"}"#.utf8)
+        )
+        #expect(anthropic.ocrEngine == .customAPI)
+        #expect(anthropic.ocrAPIProtocol == .anthropic)
+        #expect(anthropic.ocrModel == "claude-sonnet-4-5")
+
+        let openAI = try JSONDecoder().decode(
+            AppSettings.self,
+            from: Data(#"{"ocrEngine":"openAICompatible"}"#.utf8)
+        )
+        #expect(openAI.ocrEngine == .customAPI)
+        #expect(openAI.ocrAPIProtocol == .openAICompatible)
     }
 
     @Test func invalidEnumValueFailsToDecode() {
