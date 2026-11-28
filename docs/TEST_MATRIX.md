@@ -178,6 +178,20 @@ Local FTS5 + optional semantic library search. Mark PASS only from what you see.
 | 4 | Turn Wi‑Fi off; search again; delete a hit | Search still works offline; deleted capture disappears from results | PASS |
 | 5 | Quit and relaunch; repeat a prior query | Same results; empty query shows recent captures | PASS |
 
+## Manual: M10 (real Mac)
+
+Release readiness. Mark PASS only from what you see. Prefer a Release / notarized build when available.
+
+| # | Step | Expected | Status |
+|---|---|---|---|
+| 1 | Fresh install; grant/deny Screen Recording; use Quick Copy before any provider | Permission flow is clear; Quick Copy works with no AI setup | |
+| 2 | Screenshot → OCR chips → chat → annotations → Library search; try local and cloud providers | End-to-end still works; cloud consent cancel uploads nothing | |
+| 3 | Region and full-display record; analyze; seek moments; search history | Playback and post-recording path remain correct | |
+| 4 | Multi-display / scale if available; light/dark; Reduce Transparency; VoiceOver + keyboard | UI remains usable; Reduce Motion avoids toast window animation | |
+| 5 | Settings > Storage: retention, purge missing, Clear All History | Maintenance actions match confirmations; Library updates | |
+| 6 | Interrupted recording / offline / invalid provider / inaccessible folder | Clear errors; no false “saved”; local data preserved | |
+| 7 | Distributed signed build on a clean Mac (when available) | Launches; Gatekeeper OK; permissions and updates documented | |
+
 ## Cross-milestone privacy matrix (M0 slice)
 
 | Scenario | M0 evidence |

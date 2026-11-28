@@ -114,7 +114,10 @@ final class ToastPresenter {
         panel.ignoresMouseEvents = true
         panel.hidesOnDeactivate = false
         panel.isReleasedWhenClosed = false
-        panel.animationBehavior = .utilityWindow
+        // Respect System Settings > Accessibility > Display > Reduce motion.
+        panel.animationBehavior = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+            ? .none
+            : .utilityWindow
         panel.sharingType = .none
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
 

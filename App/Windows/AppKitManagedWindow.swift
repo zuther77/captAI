@@ -71,7 +71,15 @@ struct AppKitWindowFactory: WindowFactory {
                 size: NSSize(width: 720, height: 480),
                 minSize: NSSize(width: 640, height: 420),
                 autosaveName: "captAI.settingsWindow",
-                content: SettingsView(navigation: navigation, model: settings, permissions: permissions, shortcuts: shortcuts, secrets: secrets, chatGPTStore: chatGPTStore)
+                content: SettingsView(
+                    navigation: navigation,
+                    model: settings,
+                    permissions: permissions,
+                    shortcuts: shortcuts,
+                    secrets: secrets,
+                    chatGPTStore: chatGPTStore,
+                    libraryStore: libraryStore
+                )
             )
         case .library:
             let model = LibraryModel(

@@ -7,6 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		f444eac479cd6017fece3c9a /* LibraryHistoryMaintenance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72e9b91b85d9cb7aa4c0ca04 /* LibraryHistoryMaintenance.swift */; };
+		af4dee2358c783cecd75aed3 /* LibraryHistoryMaintenance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72e9b91b85d9cb7aa4c0ca04 /* LibraryHistoryMaintenance.swift */; };
+		57b156c353b9b26b0e66a310 /* LibraryHistoryMaintenance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72e9b91b85d9cb7aa4c0ca04 /* LibraryHistoryMaintenance.swift */; };
+		8055f230259ddfd0044752fd /* AppVersion.swift in Sources */ = {isa = PBXBuildFile; fileRef = f385828bc4cd7c1e4f733be3 /* AppVersion.swift */; };
+		b1f2e7027bda384276532340 /* AppVersion.swift in Sources */ = {isa = PBXBuildFile; fileRef = f385828bc4cd7c1e4f733be3 /* AppVersion.swift */; };
+		38cea84be1d53d60cd7383e2 /* AppVersion.swift in Sources */ = {isa = PBXBuildFile; fileRef = f385828bc4cd7c1e4f733be3 /* AppVersion.swift */; };
+		bae4c2e704860f1991cf2acd /* LibraryHistoryMaintenanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06152a9a9053afe4547fb966 /* LibraryHistoryMaintenanceTests.swift */; };
+		a4e41e8a6bfcd2bcca798f2a /* SchemaMigrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 933bd43f7a6ea23ed399f9d8 /* SchemaMigrationTests.swift */; };
 		794285aac111ea55cfcfc8bd /* TextEmbedding.swift in Sources */ = {isa = PBXBuildFile; fileRef = ea671d3adc9dd9708352b846 /* TextEmbedding.swift */; };
 		1df56bb91f5bfabf195c5469 /* TextEmbedding.swift in Sources */ = {isa = PBXBuildFile; fileRef = ea671d3adc9dd9708352b846 /* TextEmbedding.swift */; };
 		7b769c23d485f86674a200b8 /* TextEmbedding.swift in Sources */ = {isa = PBXBuildFile; fileRef = ea671d3adc9dd9708352b846 /* TextEmbedding.swift */; };
@@ -418,6 +426,10 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		72e9b91b85d9cb7aa4c0ca04 /* LibraryHistoryMaintenance.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LibraryHistoryMaintenance.swift; sourceTree = "<group>"; };
+		f385828bc4cd7c1e4f733be3 /* AppVersion.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppVersion.swift; sourceTree = "<group>"; };
+		06152a9a9053afe4547fb966 /* LibraryHistoryMaintenanceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LibraryHistoryMaintenanceTests.swift; sourceTree = "<group>"; };
+		933bd43f7a6ea23ed399f9d8 /* SchemaMigrationTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SchemaMigrationTests.swift; sourceTree = "<group>"; };
 		ea671d3adc9dd9708352b846 /* TextEmbedding.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TextEmbedding.swift; sourceTree = "<group>"; };
 		07c788b543b48ada1b63226c /* NLSentenceTextEmbedding.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NLSentenceTextEmbedding.swift; sourceTree = "<group>"; };
 		5e3e5961ae34f9b932c0fa73 /* HashTextEmbedding.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HashTextEmbedding.swift; sourceTree = "<group>"; };
@@ -808,6 +820,7 @@
 			isa = PBXGroup;
 			children = (
 				4F0ADB8046CAAE3E98D2C1CC /* AppError.swift */,
+				f385828bc4cd7c1e4f733be3 /* AppVersion.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -932,6 +945,8 @@
 				717F5E03C39CBCB21146D289 /* OpenAICompatibleOCRRecognizerTests.swift */,
 				8f3456b7361ae43af4f986e2 /* AnthropicOCRRecognizerTests.swift */,
 				528d7c389657bc9c8a270374 /* LibrarySearchTests.swift */,
+				06152a9a9053afe4547fb966 /* LibraryHistoryMaintenanceTests.swift */,
+				933bd43f7a6ea23ed399f9d8 /* SchemaMigrationTests.swift */,
 			);
 			name = captAIUnitTests;
 			path = Tests/Unit;
@@ -1033,6 +1048,7 @@
 				3501BCAB19C28427120A1BE7 /* SQLiteLibraryStore.swift */,
 				8A2268C6197A33513F38B3F1 /* LibraryNotifications.swift */,
 				21A5E5122762BED65A81A99C /* EphemeralLibraryStore.swift */,
+				72e9b91b85d9cb7aa4c0ca04 /* LibraryHistoryMaintenance.swift */,
 			);
 			name = Library;
 			path = Library;
@@ -1759,6 +1775,8 @@
 				743473E21E237618267B070F /* AnnotationDocumentTests.swift in Sources */,
 				0933C5FFDCFDF78AE8A6A4DB /* ImageCropperTests.swift in Sources */,
 				29850BAF57CDBC26057136F9 /* LibraryRecords.swift in Sources */,
+				af4dee2358c783cecd75aed3 /* LibraryHistoryMaintenance.swift in Sources */,
+				b1f2e7027bda384276532340 /* AppVersion.swift in Sources */,
 				1df56bb91f5bfabf195c5469 /* TextEmbedding.swift in Sources */,
 				55ea7783a4f70ef9fbb59953 /* NLSentenceTextEmbedding.swift in Sources */,
 				c5789e3afb66bfa8a5c788c4 /* HashTextEmbedding.swift in Sources */,
@@ -1793,6 +1811,8 @@
 				6CC8619E9FF91ACE9AD18F83 /* OpenAICompatibleOCRRecognizerTests.swift in Sources */,
 				c3d16246d6715fa0a9b2325e /* AnthropicOCRRecognizerTests.swift in Sources */,
 				3b43c5c1ac1ca8c1e62b20b5 /* LibrarySearchTests.swift in Sources */,
+				bae4c2e704860f1991cf2acd /* LibraryHistoryMaintenanceTests.swift in Sources */,
+				a4e41e8a6bfcd2bcca798f2a /* SchemaMigrationTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1892,6 +1912,8 @@
 				8FD90BBE3CAD5CC812B8600D /* ImageCropper.swift in Sources */,
 				C221AE3835936B525CFB5D65 /* AnnotationCanvasView.swift in Sources */,
 				D0D2456771AE068173E0B781 /* LibraryRecords.swift in Sources */,
+				57b156c353b9b26b0e66a310 /* LibraryHistoryMaintenance.swift in Sources */,
+				38cea84be1d53d60cd7383e2 /* AppVersion.swift in Sources */,
 				7b769c23d485f86674a200b8 /* TextEmbedding.swift in Sources */,
 				7acbec734e3df1295e825efd /* NLSentenceTextEmbedding.swift in Sources */,
 				6cd3ada4a31f5f3b77b7a934 /* HashTextEmbedding.swift in Sources */,
@@ -2013,6 +2035,8 @@
 				0A729C70DA76502B2D478B10 /* ImageCropper.swift in Sources */,
 				1203B33D098A9E4EB2C926B7 /* AnnotationCanvasView.swift in Sources */,
 				F0749B4A3A534791AE90151F /* LibraryRecords.swift in Sources */,
+				f444eac479cd6017fece3c9a /* LibraryHistoryMaintenance.swift in Sources */,
+				8055f230259ddfd0044752fd /* AppVersion.swift in Sources */,
 				794285aac111ea55cfcfc8bd /* TextEmbedding.swift in Sources */,
 				da0fa0139e2a014bf6900864 /* NLSentenceTextEmbedding.swift in Sources */,
 				9d4adca153e23d835aa3dfa0 /* HashTextEmbedding.swift in Sources */,

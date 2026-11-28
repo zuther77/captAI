@@ -195,6 +195,8 @@ struct AppSettings: Equatable, Codable, Sendable {
     // Storage (Settings > Storage). nil means "use the default location".
     var screenshotFolderPath: String?
     var recordingFolderPath: String?
+    /// Auto-delete library captures older than this many days. `0` keeps forever (default).
+    var libraryRetentionDays: Int = 0
 
     // Capture & Recording (Settings > Capture & Recording)
     /// Outline drawn around the frozen screenshot. nil means the system accent color.
@@ -223,6 +225,12 @@ struct AppSettings: Equatable, Codable, Sendable {
     static let captureBorderWidthRange: ClosedRange<Double> = 0...8
     static let videoSampleMaxFramesRange: ClosedRange<Int> = 4...48
     static let videoSampleIntervalRange: ClosedRange<Double> = 1...15
+    /// Allowed retention window in days (`0` = forever).
+    static let libraryRetentionDaysRange: ClosedRange<Int> = 0...3650
+
+    var clampedLibraryRetentionDays: Int {
+        min(max(libraryRetentionDays, Self.libraryRetentionDaysRange.lowerBound), Self.libraryRetentionDaysRange.upperBound)
+    }
 
     var clampedCaptureBorderWidth: Double {
         guard captureBorderWidth.isFinite else { return Self.captureBorderWidthRange.lowerBound }
@@ -325,6 +333,7 @@ struct AppSettings: Equatable, Codable, Sendable {
         ocrModel = try container.decodeIfPresent(String.self, forKey: .ocrModel) ?? defaults.ocrModel
         screenshotFolderPath = try container.decodeIfPresent(String.self, forKey: .screenshotFolderPath)
         recordingFolderPath = try container.decodeIfPresent(String.self, forKey: .recordingFolderPath)
+        libraryRetentionDays = try container.decodeIfPresent(Int.self, forKey: .libraryRetentionDays) ?? defaults.libraryRetentionDays
         overlayDimOpacity = try container.decodeIfPresent(Double.self, forKey: .overlayDimOpacity) ?? defaults.overlayDimOpacity
         captureBorderColor = try container.decodeIfPresent(RGBColor.self, forKey: .captureBorderColor)
         captureBorderWidth = try container.decodeIfPresent(Double.self, forKey: .captureBorderWidth) ?? defaults.captureBorderWidth

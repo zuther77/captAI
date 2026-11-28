@@ -87,6 +87,17 @@ final class AppEnvironment {
             AnalysisSourceFactory.source(for: settings.settings, secrets: secrets, chatGPTStore: chatGPTStore)
         }
         let embedding: any TextEmbedding = NLSentenceTextEmbedding()
+        do {
+            let purged = try LibraryHistoryMaintenance.applyRetention(
+                days: settings.settings.clampedLibraryRetentionDays,
+                in: libraryStore
+            )
+            if purged > 0 {
+                diagnostics.info(.windows, "library.retentionPurged", ["count": String(purged)])
+            }
+        } catch {
+            diagnostics.error(.windows, "library.retentionFailed", error: error as? AppError ?? .libraryFailed)
+        }
         let workspace = ScreenshotWorkspaceController(
             analysisProvider: analysisProvider,
             textCopier: textCopier,

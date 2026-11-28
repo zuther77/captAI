@@ -8,6 +8,7 @@ struct SettingsView: View {
     let shortcuts: ShortcutRegistrar
     let secrets: any SecretStore
     let chatGPTStore: any ChatGPTSessionStore
+    var libraryStore: (any LibraryStore)?
 
     var body: some View {
         NavigationSplitView {
@@ -37,7 +38,7 @@ struct SettingsView: View {
         case .providers: ProvidersSettingsPane(model: model, secrets: secrets, chatGPTStore: chatGPTStore)
         case .ocr: OCRSettingsPane(model: model, secrets: secrets)
         case .shortcuts: ShortcutsSettingsPane(model: model, shortcuts: shortcuts)
-        case .storage: StorageSettingsPane(model: model)
+        case .storage: StorageSettingsPane(model: model, libraryStore: libraryStore)
         case .captureAndRecording: CaptureSettingsPane(model: model)
         case .privacy: PrivacySettingsPane(model: model, permissions: permissions)
         }
