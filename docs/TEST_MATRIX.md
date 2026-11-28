@@ -172,11 +172,11 @@ Local FTS5 + optional semantic library search. Mark PASS only from what you see.
 
 | # | Step | Expected | Status |
 |---|---|---|---|
-| 1 | Capture several screenshots with distinct visible text; close workspaces; Open Library; search an exact OCR phrase | Matching capture listed with a useful excerpt; Open in Workspace restores it | |
-| 2 | Search a conceptual paraphrase of one capture (e.g. “missing dependency”) | Relevant capture ranks near the top when OS sentence embeddings are available; otherwise keyword/FTS still finds exact terms | |
-| 3 | Filter by Screenshots vs Recordings; filter by app name when known | Filters narrow the list; clearing them restores browse | |
-| 4 | Turn Wi‑Fi off; search again; delete a hit | Search still works offline; deleted capture disappears from results | |
-| 5 | Quit and relaunch; repeat a prior query | Same results; empty query shows recent captures | |
+| 1 | Capture several screenshots with distinct visible text; close workspaces; Open Library; search an exact OCR phrase | Matching capture listed with a useful excerpt; Open in Workspace restores it | PASS |
+| 2 | Search a conceptual paraphrase of one capture (e.g. “missing dependency”) | Relevant capture ranks near the top when OS sentence embeddings are available; otherwise keyword/FTS still finds exact terms | PASS |
+| 3 | Filter by Screenshots vs Recordings; filter by app name when known | Filters narrow the list; clearing them restores browse | PASS |
+| 4 | Turn Wi‑Fi off; search again; delete a hit | Search still works offline; deleted capture disappears from results | PASS |
+| 5 | Quit and relaunch; repeat a prior query | Same results; empty query shows recent captures | PASS |
 
 ## Cross-milestone privacy matrix (M0 slice)
 
