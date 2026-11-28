@@ -34,8 +34,11 @@ struct AppSettingsTests {
     @Test func codableRoundTripPreservesEveryField() throws {
         var settings = AppSettings()
         settings.screenshotShortcut = KeyCombo(keyCode: 5, modifiers: [.control, .option])
+        settings.ocrEngine = .openAICompatible
         settings.ocrRecognitionLevel = .fast
         settings.ocrLanguages = ["en-US", "de-DE"]
+        settings.ocrEndpoint = "https://example.com/v1"
+        settings.ocrModel = "ocr-model"
         settings.screenshotFolderPath = "/tmp/shots"
         settings.recordingFolderPath = "/tmp/videos"
         settings.overlayDimOpacity = 0.4
@@ -44,6 +47,8 @@ struct AppSettingsTests {
         settings.defaultRecordingTarget = .display
         settings.recordSystemAudio = true
         settings.recordMicrophone = true
+        settings.videoSampleMaxFrames = 16
+        settings.videoSampleIntervalSeconds = 2.5
         settings.cloudConsentPolicy = .localOnly
         settings.saveQuickCopyToHistory = true
         settings.allowWorkspaceScreenCapture = true
@@ -97,6 +102,22 @@ struct AppSettingsTests {
         var settings = AppSettings()
         settings.captureBorderWidth = input
         #expect(settings.clampedCaptureBorderWidth == expected)
+    }
+
+    @Test func videoSamplingDefaultsMatchTheSamplerAndClamp() {
+        let settings = AppSettings()
+        #expect(settings.clampedVideoSampleMaxFrames == VideoFrameSampler.defaultMaxFrames)
+        #expect(settings.clampedVideoSampleIntervalSeconds == VideoFrameSampler.defaultIntervalSeconds)
+        var tight = AppSettings()
+        tight.videoSampleMaxFrames = 1
+        tight.videoSampleIntervalSeconds = 0.1
+        #expect(tight.clampedVideoSampleMaxFrames == 4)
+        #expect(tight.clampedVideoSampleIntervalSeconds == 1)
+        var wide = AppSettings()
+        wide.videoSampleMaxFrames = 100
+        wide.videoSampleIntervalSeconds = 60
+        #expect(wide.clampedVideoSampleMaxFrames == 48)
+        #expect(wide.clampedVideoSampleIntervalSeconds == 15)
     }
 
     @Test func colorComponentsAreClampedToTheValidRange() {

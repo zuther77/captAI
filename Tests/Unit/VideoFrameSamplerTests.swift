@@ -34,4 +34,18 @@ struct VideoFrameSamplerTests {
         #expect(times == times.sorted())
         #expect(times.allSatisfy { $0 >= 0 && $0 < 3_600 })
     }
+
+    @Test func samplesAroundACenterStayNearTheMoment() {
+        let times = VideoFrameSampler.sampleTimes(
+            around: 20,
+            durationSeconds: 60,
+            windowSeconds: 4,
+            maxFrames: 6,
+            intervalSeconds: 1
+        )
+        #expect(!times.isEmpty)
+        #expect(times.count <= 6)
+        #expect(times == times.sorted())
+        #expect(times.allSatisfy { $0 >= 18 && $0 <= 22 })
+    }
 }

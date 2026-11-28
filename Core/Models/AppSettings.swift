@@ -33,6 +33,14 @@ enum OCRRecognitionLevel: String, Codable, CaseIterable, Sendable {
     case accurate
 }
 
+/// Which engine reads text from captures (Settings > OCR).
+enum OCREngineChoice: String, Codable, CaseIterable, Sendable {
+    /// Apple Vision on this Mac — never uses the network.
+    case appleVision
+    /// OpenAI-compatible chat completions with an image (cloud API or a local server).
+    case openAICompatible
+}
+
 /// When a capture may be sent to a remote provider (PRD FR-P02). Default is to ask every time.
 enum CloudConsentPolicy: String, Codable, CaseIterable, Sendable {
     case askEveryTime
@@ -87,9 +95,14 @@ struct AppSettings: Equatable, Codable, Sendable {
     var quickCopyShortcut = KeyCombo(keyCode: KeyCombo.keyCodeH, modifiers: [.command, .shift])
 
     // OCR (Settings > OCR)
+    var ocrEngine: OCREngineChoice = .appleVision
     var ocrRecognitionLevel: OCRRecognitionLevel = .accurate
     /// BCP-47 identifiers in priority order. Empty means automatic language detection.
     var ocrLanguages: [String] = []
+    /// Base URL for ``OCREngineChoice.openAICompatible`` (for example `https://api.openai.com/v1`).
+    var ocrEndpoint: String = "https://api.openai.com/v1"
+    /// Model id for custom OCR (for example `gpt-4o-mini`).
+    var ocrModel: String = "gpt-4o-mini"
 
     // Analysis provider (Settings > Providers). Prefer named ``providerProfiles``; the fields below remain for
     // migration from earlier M4 builds.
@@ -120,6 +133,10 @@ struct AppSettings: Equatable, Codable, Sendable {
     var defaultRecordingTarget: DefaultRecordingTarget = .region
     var recordSystemAudio = false
     var recordMicrophone = false
+    /// Max still frames for recording analysis (M8). Clamped by ``clampedVideoSampleMaxFrames``.
+    var videoSampleMaxFrames: Int = VideoFrameSampler.defaultMaxFrames
+    /// Preferred seconds between sampled frames. Clamped by ``clampedVideoSampleIntervalSeconds``.
+    var videoSampleIntervalSeconds: Double = VideoFrameSampler.defaultIntervalSeconds
 
     // Privacy (Settings > Privacy)
     var cloudConsentPolicy: CloudConsentPolicy = .askEveryTime
@@ -131,6 +148,8 @@ struct AppSettings: Equatable, Codable, Sendable {
 
     static let overlayDimRange: ClosedRange<Double> = 0.30...0.40
     static let captureBorderWidthRange: ClosedRange<Double> = 0...8
+    static let videoSampleMaxFramesRange: ClosedRange<Int> = 4...48
+    static let videoSampleIntervalRange: ClosedRange<Double> = 1...15
 
     var clampedCaptureBorderWidth: Double {
         guard captureBorderWidth.isFinite else { return Self.captureBorderWidthRange.lowerBound }
@@ -139,6 +158,15 @@ struct AppSettings: Equatable, Codable, Sendable {
 
     var clampedOverlayDimOpacity: Double {
         min(max(overlayDimOpacity, Self.overlayDimRange.lowerBound), Self.overlayDimRange.upperBound)
+    }
+
+    var clampedVideoSampleMaxFrames: Int {
+        min(max(videoSampleMaxFrames, Self.videoSampleMaxFramesRange.lowerBound), Self.videoSampleMaxFramesRange.upperBound)
+    }
+
+    var clampedVideoSampleIntervalSeconds: Double {
+        guard videoSampleIntervalSeconds.isFinite else { return Self.videoSampleIntervalRange.lowerBound }
+        return min(max(videoSampleIntervalSeconds, Self.videoSampleIntervalRange.lowerBound), Self.videoSampleIntervalRange.upperBound)
     }
 
     func shortcut(for mode: CaptureMode) -> KeyCombo {
@@ -209,8 +237,11 @@ struct AppSettings: Equatable, Codable, Sendable {
         screenshotShortcut = try container.decodeIfPresent(KeyCombo.self, forKey: .screenshotShortcut) ?? defaults.screenshotShortcut
         recordingShortcut = try container.decodeIfPresent(KeyCombo.self, forKey: .recordingShortcut) ?? defaults.recordingShortcut
         quickCopyShortcut = try container.decodeIfPresent(KeyCombo.self, forKey: .quickCopyShortcut) ?? defaults.quickCopyShortcut
+        ocrEngine = try container.decodeIfPresent(OCREngineChoice.self, forKey: .ocrEngine) ?? defaults.ocrEngine
         ocrRecognitionLevel = try container.decodeIfPresent(OCRRecognitionLevel.self, forKey: .ocrRecognitionLevel) ?? defaults.ocrRecognitionLevel
         ocrLanguages = try container.decodeIfPresent([String].self, forKey: .ocrLanguages) ?? defaults.ocrLanguages
+        ocrEndpoint = try container.decodeIfPresent(String.self, forKey: .ocrEndpoint) ?? defaults.ocrEndpoint
+        ocrModel = try container.decodeIfPresent(String.self, forKey: .ocrModel) ?? defaults.ocrModel
         screenshotFolderPath = try container.decodeIfPresent(String.self, forKey: .screenshotFolderPath)
         recordingFolderPath = try container.decodeIfPresent(String.self, forKey: .recordingFolderPath)
         overlayDimOpacity = try container.decodeIfPresent(Double.self, forKey: .overlayDimOpacity) ?? defaults.overlayDimOpacity
@@ -219,6 +250,9 @@ struct AppSettings: Equatable, Codable, Sendable {
         defaultRecordingTarget = try container.decodeIfPresent(DefaultRecordingTarget.self, forKey: .defaultRecordingTarget) ?? defaults.defaultRecordingTarget
         recordSystemAudio = try container.decodeIfPresent(Bool.self, forKey: .recordSystemAudio) ?? defaults.recordSystemAudio
         recordMicrophone = try container.decodeIfPresent(Bool.self, forKey: .recordMicrophone) ?? defaults.recordMicrophone
+        videoSampleMaxFrames = try container.decodeIfPresent(Int.self, forKey: .videoSampleMaxFrames) ?? defaults.videoSampleMaxFrames
+        videoSampleIntervalSeconds = try container.decodeIfPresent(Double.self, forKey: .videoSampleIntervalSeconds)
+            ?? defaults.videoSampleIntervalSeconds
         cloudConsentPolicy = try container.decodeIfPresent(CloudConsentPolicy.self, forKey: .cloudConsentPolicy) ?? defaults.cloudConsentPolicy
         saveQuickCopyToHistory = try container.decodeIfPresent(Bool.self, forKey: .saveQuickCopyToHistory) ?? defaults.saveQuickCopyToHistory
         allowWorkspaceScreenCapture = try container.decodeIfPresent(Bool.self, forKey: .allowWorkspaceScreenCapture) ?? defaults.allowWorkspaceScreenCapture

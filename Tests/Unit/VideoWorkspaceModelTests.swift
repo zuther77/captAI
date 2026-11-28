@@ -92,6 +92,51 @@ struct VideoWorkspaceModelTests {
         model.selectMoment(event)
         #expect(seeks == [4.5])
         #expect(model.selectedMomentID == event.id)
+        model.selectMoment(event)
+        #expect(model.selectedMomentID == nil)
+        #expect(model.selectedMoment == nil)
+        #expect(seeks == [4.5])
+    }
+
+    @Test func reanalyzeUsesSamplingSettingsAndFocusesSelection() async throws {
+        let source = FakeAnalysisSource()
+        source.chunks = ["Focused."]
+        let image = tinyImage()
+        var maxFramesUsed = 0
+        let model = VideoWorkspaceModel(
+            movieURL: URL(fileURLWithPath: "/tmp/captAI-tests/clip.mov"),
+            metadata: Self.metadata,
+            durationSeconds: 30,
+            assetID: CaptureAssetID(),
+            sourceProvider: { source },
+            samplingProvider: { (12, 2) },
+            extractFrames: { _, times in
+                maxFramesUsed = times.count
+                return times.map { ExtractedVideoFrame(timestampSeconds: $0, image: image) }
+            },
+            skipAutomaticAnalysis: true
+        )
+        let event = RecordingEvent(
+            id: RecordingEventID(),
+            captureID: CaptureAssetID(),
+            timestampSeconds: 10,
+            title: "Alert",
+            detail: "",
+            provenance: .inferred,
+            providerAttribution: nil
+        )
+        model.selectMoment(event)
+        model.reanalyze()
+        await model.waitUntilSettled()
+        #expect(maxFramesUsed > 0)
+        #expect(maxFramesUsed <= 8)
+        let prompt = try #require(source.recordedRequests.last?.prompt)
+        #expect(prompt.contains("10.0"))
+        #expect(prompt.contains("Alert"))
+        guard case .ready = model.analysis else {
+            Issue.record("expected ready analysis")
+            return
+        }
     }
 
     @Test func followUpMentionsSelectedMoment() async throws {

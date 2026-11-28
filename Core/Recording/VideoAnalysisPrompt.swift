@@ -32,7 +32,38 @@ enum VideoAnalysisPrompt {
     }
 
     static func samplingLimitationNote(maxFrames: Int, interval: TimeInterval) -> String {
-        "Analysis uses up to \(maxFrames) still frames (~every \(Int(interval))s), not the full video stream. Some moments may be missed between samples."
+        let gap = String(format: "%g", interval)
+        return "Analysis uses up to \(maxFrames) still frames (~every \(gap)s), not the full video stream. Some moments may be missed between samples."
+    }
+
+    static func focused(
+        moment: RecordingEvent,
+        durationSeconds: TimeInterval,
+        sampleTimes: [TimeInterval],
+        route: VideoAnalysisRoute,
+        ocrByTime: [(TimeInterval, String)] = []
+    ) -> String {
+        let times = sampleTimes.map { String(format: "%.1f", $0) }.joined(separator: ", ")
+        var lines: [String] = [
+            "You are re-analyzing one moment in a \(String(format: "%.1f", durationSeconds))s screen recording.",
+            "Focus on \(String(format: "%.1f", moment.timestampSeconds))s — \(moment.title).",
+        ]
+        if !moment.detail.isEmpty {
+            lines.append("Prior detail: \(moment.detail)")
+        }
+        lines.append(contentsOf: [
+            routeDescription(route),
+            "Sample frame times near this moment (seconds): \(times).",
+            "Describe what happens at this moment and whether the timestamp still fits.",
+            momentFormatInstructions,
+        ])
+        if !ocrByTime.isEmpty {
+            lines.append("Local OCR from sampled frames (observed text, may be incomplete):")
+            for (t, text) in ocrByTime where !text.isEmpty {
+                lines.append("- \(String(format: "%.1f", t))s: \(text.prefix(240))")
+            }
+        }
+        return lines.joined(separator: "\n")
     }
 
     private static func routeDescription(_ route: VideoAnalysisRoute) -> String {

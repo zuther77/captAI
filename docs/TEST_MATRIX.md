@@ -160,11 +160,11 @@ Post-recording analysis and timestamped video workspace. Mark PASS only from wha
 
 | # | Step | Expected | Status |
 |---|---|---|---|
-| 1 | Record a 60–120 s workflow with a recognizable event; open and analyze | Summary / key moments with timestamps | NOT PERFORMED |
-| 2 | Click a key moment; ask a follow-up about that time | Player seeks; follow-up answers about that moment | NOT PERFORMED |
-| 3 | Try a direct-video provider (if available) and a frame-based fallback | Route labeled clearly; both usable | NOT PERFORMED |
+| 1 | Record a 60–120 s workflow with a recognizable event; open and analyze | Summary / key moments with timestamps | PASS |
+| 2 | Click a key moment; ask a follow-up about that time | Player seeks; follow-up answers about that moment | PASS |
+| 3 | Try a direct-video provider (if available) and a frame-based fallback | Route labeled clearly; both usable | SKIPPED  |
 | 4 | Decline cloud transmission; analyze with a local vision provider if available | Recording stays playable; no unwanted upload | NOT PERFORMED |
-| 5 | Analyze a longer recording | Bounded memory; clear progress; recoverable errors | NOT PERFORMED |
+| 5 | Analyze a longer recording | Bounded memory; clear progress; recoverable errors | SKIPPED |
 
 ## Cross-milestone privacy matrix (M0 slice)
 

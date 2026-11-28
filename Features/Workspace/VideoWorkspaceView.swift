@@ -117,11 +117,11 @@ struct VideoWorkspaceView: View {
 
     private var readingCard: some View {
         VStack(spacing: 0) {
-            HStack {
+            HStack(spacing: 8) {
                 Text("\(model.metadata.widthPx) × \(model.metadata.heightPx) · \(Self.formatDuration(model.durationSeconds))")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                Spacer()
+                Spacer(minLength: 0)
                 if let folder = model.savedFolderDisplay {
                     Label(folder, systemImage: "folder")
                         .font(.caption)
@@ -129,6 +129,20 @@ struct VideoWorkspaceView: View {
                         .lineLimit(1)
                         .truncationMode(.middle)
                 }
+                Button {
+                    model.reanalyze()
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                        .frame(width: 22, height: 22)
+                        .contentShape(.circle)
+                }
+                .buttonStyle(.borderless)
+                .disabled(!model.canReanalyze)
+                .help(model.selectedMoment == nil
+                      ? "Re-analyze this recording with the current frame-sampling settings"
+                      : "Re-analyze the selected moment")
+                .accessibilityLabel(model.selectedMoment == nil ? "Re-analyze recording" : "Re-analyze selected moment")
+                .accessibilityIdentifier("video.reanalyze")
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 8)

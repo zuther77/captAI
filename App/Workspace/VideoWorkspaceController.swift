@@ -133,6 +133,10 @@ final class VideoWorkspaceController {
                 rememberApproval: { [weak self] id in self?.rememberCloudApproval(id) },
                 asker: self
             ),
+            samplingProvider: { [weak self] in
+                let prefs = self?.settings() ?? AppSettings()
+                return (prefs.clampedVideoSampleMaxFrames, prefs.clampedVideoSampleIntervalSeconds)
+            },
             recognizeText: { [weak self] image in
                 guard let self else { return "" }
                 let capture = CapturedImage(image: image, metadata: metadata)

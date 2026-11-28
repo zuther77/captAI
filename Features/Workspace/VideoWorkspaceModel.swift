@@ -59,6 +59,7 @@ final class VideoWorkspaceModel {
     @ObservationIgnored private let sourceProvider: @MainActor () -> any AnalysisSource
     @ObservationIgnored private var source: any AnalysisSource
     @ObservationIgnored private let consent: ConsentGate?
+    @ObservationIgnored private let samplingProvider: @MainActor () -> (maxFrames: Int, interval: TimeInterval)
     @ObservationIgnored private let extractFrames: @MainActor (URL, [TimeInterval]) async throws(AppError) -> [ExtractedVideoFrame]
     @ObservationIgnored private let recognizeText: (@MainActor (CGImage) async -> String)?
     @ObservationIgnored private var analysisTask: Task<Void, Never>?
@@ -76,6 +77,9 @@ final class VideoWorkspaceModel {
         assetID: CaptureAssetID? = nil,
         sourceProvider: @escaping @MainActor () -> any AnalysisSource,
         consent: ConsentGate? = nil,
+        samplingProvider: @escaping @MainActor () -> (maxFrames: Int, interval: TimeInterval) = {
+            (VideoFrameSampler.defaultMaxFrames, VideoFrameSampler.defaultIntervalSeconds)
+        },
         extractFrames: @escaping @MainActor (URL, [TimeInterval]) async throws(AppError) -> [ExtractedVideoFrame] = {
             try await VideoFrameExtractor.extractFrames(from: $0, times: $1)
         },
@@ -91,6 +95,7 @@ final class VideoWorkspaceModel {
         self.assetID = assetID
         self.sourceProvider = sourceProvider
         self.consent = consent
+        self.samplingProvider = samplingProvider
         self.extractFrames = extractFrames
         self.recognizeText = recognizeText
         let initial = sourceProvider()
@@ -100,12 +105,9 @@ final class VideoWorkspaceModel {
         self.analysis = restoredAnalysis
         self.messages = restoredMessages
         self.keyMoments = restoredMoments
-        self.samplingNote = VideoAnalysisPrompt.samplingLimitationNote(
-            maxFrames: VideoFrameSampler.defaultMaxFrames,
-            interval: VideoFrameSampler.defaultIntervalSeconds
-        )
         if skipAutomaticAnalysis { hasStarted = true }
         refreshRoute()
+        refreshSamplingNote()
     }
 
     var savedFolderDisplay: String? {
@@ -132,6 +134,11 @@ final class VideoWorkspaceModel {
 
     var canStop: Bool { !isClosed && (isAnalyzing || isResponding) }
 
+    /// True when a fresh full-clip or selected-moment analysis can start.
+    var canReanalyze: Bool {
+        !isClosed && !isAnalyzing && !isResponding && !identity.needsSetup
+    }
+
     private var isAnalyzing: Bool {
         switch analysis {
         case .preparing, .loading, .streaming: true
@@ -150,24 +157,39 @@ final class VideoWorkspaceModel {
         route = VideoAnalysisRouter.route(for: .forIdentity(identity))
     }
 
+    private func refreshSamplingNote() {
+        let sampling = samplingProvider()
+        samplingNote = VideoAnalysisPrompt.samplingLimitationNote(
+            maxFrames: sampling.maxFrames,
+            interval: sampling.interval
+        )
+    }
+
     func start() {
         guard !isClosed, !hasStarted else { return }
         hasStarted = true
         guard !skipAutomaticAnalysis else { return }
         refreshSource()
         guard !identity.needsSetup else { return }
-        runAnalysis()
+        runAnalysis(focus: nil)
     }
 
     func retry() {
         guard !isClosed, case .failed = analysis else { return }
-        runAnalysis()
+        runAnalysis(focus: selectedMoment)
     }
 
-    private func runAnalysis() {
+    /// Re-runs analysis for the whole clip, or for the selected key moment when one is selected.
+    func reanalyze() {
+        guard canReanalyze else { return }
+        runAnalysis(focus: selectedMoment)
+    }
+
+    private func runAnalysis(focus: RecordingEvent?) {
         analysisTask?.cancel()
         replyTask?.cancel()
         refreshSource()
+        refreshSamplingNote()
         guard !identity.needsSetup else {
             analysis = .idle
             return
@@ -175,6 +197,24 @@ final class VideoWorkspaceModel {
         if case .unsupported = route {
             analysis = .failed(.analysisFailed)
             return
+        }
+
+        let sampling = samplingProvider()
+        let times: [TimeInterval]
+        if let focus {
+            times = VideoFrameSampler.sampleTimes(
+                around: focus.timestampSeconds,
+                durationSeconds: durationSeconds,
+                windowSeconds: max(sampling.interval * 2, 4),
+                maxFrames: min(sampling.maxFrames, 8),
+                intervalSeconds: max(sampling.interval / 2, 0.5)
+            )
+        } else {
+            times = VideoFrameSampler.sampleTimes(
+                durationSeconds: durationSeconds,
+                maxFrames: sampling.maxFrames,
+                intervalSeconds: sampling.interval
+            )
         }
 
         analysis = .preparing
@@ -185,19 +225,13 @@ final class VideoWorkspaceModel {
                 return
             }
 
-            let times = VideoFrameSampler.sampleTimes(durationSeconds: self.durationSeconds)
             self.sampleTimesUsed = times
             var frames: [ExtractedVideoFrame] = []
             var ocrByTime: [(TimeInterval, String)] = []
 
             do throws(AppError) {
                 switch self.route {
-                case .nativeVideo:
-                    // No native-video providers yet; fall through to frames if we somehow land here.
-                    frames = try await self.extractFrames(self.movieURL, times)
-                case .frameSampling, .offlineVision:
-                    frames = try await self.extractFrames(self.movieURL, times)
-                case .textOnly:
+                case .nativeVideo, .frameSampling, .offlineVision, .textOnly:
                     frames = try await self.extractFrames(self.movieURL, times)
                 case .unsupported:
                     throw AppError.analysisFailed
@@ -218,12 +252,23 @@ final class VideoWorkspaceModel {
                 }
             }
 
-            let prompt = VideoAnalysisPrompt.initial(
-                durationSeconds: self.durationSeconds,
-                sampleTimes: times,
-                route: self.route,
-                ocrByTime: ocrByTime
-            )
+            let prompt: String
+            if let focus {
+                prompt = VideoAnalysisPrompt.focused(
+                    moment: focus,
+                    durationSeconds: self.durationSeconds,
+                    sampleTimes: times,
+                    route: self.route,
+                    ocrByTime: ocrByTime
+                )
+            } else {
+                prompt = VideoAnalysisPrompt.initial(
+                    durationSeconds: self.durationSeconds,
+                    sampleTimes: times,
+                    route: self.route,
+                    ocrByTime: ocrByTime
+                )
+            }
             let image: Data?
             switch self.route {
             case .textOnly:
@@ -251,7 +296,9 @@ final class VideoWorkspaceModel {
                 }
                 guard !Task.isCancelled else { return }
                 self.analysis = .ready(text)
-                self.applyMoments(from: text)
+                if focus == nil {
+                    self.applyMoments(from: text)
+                }
             } catch {
                 guard !Task.isCancelled else { return }
                 self.analysis = .failed(Self.appError(from: error))
@@ -280,6 +327,11 @@ final class VideoWorkspaceModel {
 
     func selectMoment(_ event: RecordingEvent) {
         guard !isClosed else { return }
+        if selectedMomentID == event.id {
+            selectedMomentID = nil
+            selectedMoment = nil
+            return
+        }
         selectedMomentID = event.id
         selectedMoment = event
         onEvent?(.seekTo(event.timestampSeconds))

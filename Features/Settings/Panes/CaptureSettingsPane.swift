@@ -96,6 +96,47 @@ struct CaptureSettingsPane: View {
                 ))
                 .accessibilityIdentifier("settings.capture.microphone")
             }
+            Section("Recording analysis") {
+                LabeledContent("Max frames") {
+                    HStack {
+                        Slider(
+                            value: Binding(
+                                get: { Double(model.settings.clampedVideoSampleMaxFrames) },
+                                set: { value in model.update { $0.videoSampleMaxFrames = Int(value.rounded()) } }
+                            ),
+                            in: Double(AppSettings.videoSampleMaxFramesRange.lowerBound)...Double(AppSettings.videoSampleMaxFramesRange.upperBound),
+                            step: 1
+                        )
+                        .frame(width: 180)
+                        .accessibilityLabel("Max sample frames")
+                        .accessibilityIdentifier("settings.capture.videoMaxFrames")
+                        Text("\(model.settings.clampedVideoSampleMaxFrames)")
+                            .monospacedDigit()
+                            .frame(width: 44, alignment: .trailing)
+                    }
+                }
+                LabeledContent("Frame interval") {
+                    HStack {
+                        Slider(
+                            value: Binding(
+                                get: { model.settings.clampedVideoSampleIntervalSeconds },
+                                set: { value in model.update { $0.videoSampleIntervalSeconds = value } }
+                            ),
+                            in: AppSettings.videoSampleIntervalRange,
+                            step: 0.5
+                        )
+                        .frame(width: 180)
+                        .accessibilityLabel("Sample interval")
+                        .accessibilityIdentifier("settings.capture.videoInterval")
+                        Text(String(format: "%g s", model.settings.clampedVideoSampleIntervalSeconds))
+                            .monospacedDigit()
+                            .frame(width: 44, alignment: .trailing)
+                    }
+                }
+                Text("Used when analyzing a recording. Fewer frames or a wider interval uses less memory and network.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
         .formStyle(.grouped)
         .accessibilityIdentifier("settings.pane.capture")

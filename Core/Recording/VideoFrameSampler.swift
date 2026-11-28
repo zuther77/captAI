@@ -47,6 +47,23 @@ enum VideoFrameSampler {
         return times
     }
 
+    /// Samples a short window around `center` inside the clip (for re-analyzing a selected moment).
+    static func sampleTimes(
+        around center: TimeInterval,
+        durationSeconds: TimeInterval,
+        windowSeconds: TimeInterval = 4,
+        maxFrames: Int = 8,
+        intervalSeconds: TimeInterval = 1
+    ) -> [TimeInterval] {
+        guard durationSeconds.isFinite, durationSeconds > 0, center.isFinite else { return [] }
+        let half = max(windowSeconds, 0.5) / 2
+        let start = min(max(center - half, 0), max(durationSeconds - 0.01, 0))
+        let end = min(max(center + half, start + 0.05), max(durationSeconds - 0.01, 0))
+        let local = max(end - start, 0.05)
+        return sampleTimes(durationSeconds: local, maxFrames: maxFrames, intervalSeconds: intervalSeconds)
+            .map { min(max(start + $0, 0), max(durationSeconds - 0.01, 0)) }
+    }
+
     private static func evenlySpaced(count: Int, durationSeconds: TimeInterval) -> [TimeInterval] {
         guard count > 0 else { return [] }
         if count == 1 { return [min(durationSeconds / 2, max(durationSeconds - 0.01, 0))] }

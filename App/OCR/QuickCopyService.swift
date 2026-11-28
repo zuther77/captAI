@@ -37,14 +37,33 @@ final class QuickCopyService: TextCopying {
         }
     }
 
-    private let recognizer: any TextRecognizing
+    private let makeRecognizer: @MainActor (AppSettings) -> any TextRecognizing
     private let clipboard: any TextClipboard
     private let diagnostics: Diagnostics
+    private let consent: ConsentGate?
 
-    init(recognizer: any TextRecognizing, clipboard: any TextClipboard, diagnostics: Diagnostics) {
-        self.recognizer = recognizer
+    init(
+        recognizer: any TextRecognizing,
+        clipboard: any TextClipboard,
+        diagnostics: Diagnostics,
+        consent: ConsentGate? = nil
+    ) {
+        self.makeRecognizer = { _ in recognizer }
         self.clipboard = clipboard
         self.diagnostics = diagnostics
+        self.consent = consent
+    }
+
+    init(
+        makeRecognizer: @escaping @MainActor (AppSettings) -> any TextRecognizing,
+        clipboard: any TextClipboard,
+        diagnostics: Diagnostics,
+        consent: ConsentGate? = nil
+    ) {
+        self.makeRecognizer = makeRecognizer
+        self.clipboard = clipboard
+        self.diagnostics = diagnostics
+        self.consent = consent
     }
 
     func copyText(from capture: CapturedImage, settings: AppSettings) async -> Outcome {
@@ -78,6 +97,13 @@ final class QuickCopyService: TextCopying {
             diagnostics.info(.ocr, "quickCopy.blank")
             return ""
         }
+        if let consent {
+            let identity = TextRecognizerFactory.identity(for: settings)
+            if let blocked = await consent.allow(identity) {
+                throw blocked
+            }
+        }
+        let recognizer = makeRecognizer(settings)
         let observations = try await recognizer.recognize(
             in: capture,
             level: settings.ocrRecognitionLevel,

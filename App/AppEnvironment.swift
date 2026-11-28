@@ -45,13 +45,28 @@ final class AppEnvironment {
 
         let displays = DisplayLayoutProvider()
         let feedback = AlertCaptureFeedback(opener: opener)
-        let textCopier = QuickCopyService(
-            recognizer: VisionTextRecognizer(),
-            clipboard: PasteboardTextClipboard(),
-            diagnostics: diagnostics
-        )
         let secrets = KeychainSecretStore()
         let chatGPTStore = FileChatGPTSessionStore(secrets: secrets)
+        let ocrConsentAsker = AlertConsentAsker()
+        let textCopier = QuickCopyService(
+            makeRecognizer: { prefs in
+                TextRecognizerFactory.recognizer(for: prefs, secrets: secrets)
+            },
+            clipboard: PasteboardTextClipboard(),
+            diagnostics: diagnostics,
+            consent: ConsentGate(
+                policy: { settings.settings.cloudConsentPolicy },
+                approvedIDs: { Set(settings.settings.approvedCloudProviderIDs) },
+                rememberApproval: { id in
+                    settings.update { current in
+                        if !current.approvedCloudProviderIDs.contains(id) {
+                            current.approvedCloudProviderIDs.append(id)
+                        }
+                    }
+                },
+                asker: ocrConsentAsker
+            )
+        )
         let libraryStore: any LibraryStore
         do {
             libraryStore = try SQLiteLibraryStore(url: SQLiteLibraryStore.defaultURL())
