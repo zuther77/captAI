@@ -39,6 +39,32 @@ enum OCREngineChoice: String, Codable, CaseIterable, Sendable {
     case appleVision
     /// OpenAI-compatible chat completions with an image (cloud API or a local server).
     case openAICompatible
+    /// Anthropic Messages API with an image (`/v1/messages`).
+    case anthropic
+
+    var displayName: String {
+        switch self {
+        case .appleVision: "Apple Vision (on device)"
+        case .openAICompatible: "OpenAI-compatible API"
+        case .anthropic: "Anthropic"
+        }
+    }
+
+    var defaultEndpoint: String {
+        switch self {
+        case .appleVision: ""
+        case .openAICompatible: "https://api.openai.com/v1"
+        case .anthropic: AnthropicAnalysisSource.defaultEndpoint.absoluteString
+        }
+    }
+
+    var defaultModel: String {
+        switch self {
+        case .appleVision: ""
+        case .openAICompatible: "gpt-4o-mini"
+        case .anthropic: AnthropicAnalysisSource.defaultModel
+        }
+    }
 }
 
 /// When a capture may be sent to a remote provider (PRD FR-P02). Default is to ask every time.
@@ -99,9 +125,9 @@ struct AppSettings: Equatable, Codable, Sendable {
     var ocrRecognitionLevel: OCRRecognitionLevel = .accurate
     /// BCP-47 identifiers in priority order. Empty means automatic language detection.
     var ocrLanguages: [String] = []
-    /// Base URL for ``OCREngineChoice.openAICompatible`` (for example `https://api.openai.com/v1`).
+    /// Base URL for custom OCR (`openAICompatible` or `anthropic`).
     var ocrEndpoint: String = "https://api.openai.com/v1"
-    /// Model id for custom OCR (for example `gpt-4o-mini`).
+    /// Model id for custom OCR (for example `gpt-4o-mini` or `claude-sonnet-4-5`).
     var ocrModel: String = "gpt-4o-mini"
 
     // Analysis provider (Settings > Providers). Prefer named ``providerProfiles``; the fields below remain for

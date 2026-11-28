@@ -12,13 +12,11 @@ struct OCRSettingsPane: View {
             Section {
                 Picker("Engine", selection: Binding(
                     get: { model.settings.ocrEngine },
-                    set: { value in
-                        model.update { $0.ocrEngine = value }
-                        refreshKeyState()
-                    }
+                    set: { value in selectEngine(value) }
                 )) {
-                    Text("Apple Vision (on device)").tag(OCREngineChoice.appleVision)
-                    Text("Custom API (OpenAI-compatible)").tag(OCREngineChoice.openAICompatible)
+                    ForEach(OCREngineChoice.allCases, id: \.self) { engine in
+                        Text(engine.displayName).tag(engine)
+                    }
                 }
                 .accessibilityIdentifier("settings.ocr.engine")
 
@@ -45,7 +43,7 @@ struct OCRSettingsPane: View {
                     SecureField(
                         keyIsSaved && draftAPIKey.isEmpty
                             ? "API key saved — enter a new key to replace it"
-                            : "API key (optional for localhost)",
+                            : keyPlaceholder,
                         text: $draftAPIKey
                     )
                     .accessibilityIdentifier("settings.ocr.apiKey")
@@ -68,13 +66,47 @@ struct OCRSettingsPane: View {
         .accessibilityIdentifier("settings.pane.ocr")
     }
 
+    private var keyPlaceholder: String {
+        switch model.settings.ocrEngine {
+        case .appleVision: "API key"
+        case .openAICompatible: "API key (optional for localhost)"
+        case .anthropic: "API key"
+        }
+    }
+
     private var footerText: String {
         switch model.settings.ocrEngine {
         case .appleVision:
             return "Apple Vision runs entirely on this Mac and never uses the network."
         case .openAICompatible:
-            return "Custom OCR sends the capture image to the endpoint you configure. Cloud endpoints obey Settings > Privacy. Localhost endpoints stay on this Mac and may omit an API key."
+            return "Sends the capture to an OpenAI-compatible chat-completions endpoint. Cloud endpoints obey Settings > Privacy. Localhost may omit an API key."
+        case .anthropic:
+            return "Sends the capture to Anthropic’s Messages API (`/v1/messages`). Cloud endpoints obey Settings > Privacy. An API key is required."
         }
+    }
+
+    private func selectEngine(_ value: OCREngineChoice) {
+        model.update { settings in
+            let previous = settings.ocrEngine
+            settings.ocrEngine = value
+            guard value != .appleVision else { return }
+            // Swap endpoint/model when leaving Apple Vision or switching API families with stock defaults.
+            let previousDefaults = previous.defaultEndpoint
+            let previousModel = previous.defaultModel
+            if settings.ocrEndpoint.isEmpty
+                || settings.ocrEndpoint == previousDefaults
+                || OCREngineChoice.allCases.map(\.defaultEndpoint).contains(settings.ocrEndpoint)
+            {
+                settings.ocrEndpoint = value.defaultEndpoint
+            }
+            if settings.ocrModel.isEmpty
+                || settings.ocrModel == previousModel
+                || OCREngineChoice.allCases.map(\.defaultModel).contains(settings.ocrModel)
+            {
+                settings.ocrModel = value.defaultModel
+            }
+        }
+        refreshKeyState()
     }
 
     private func refreshKeyState() {

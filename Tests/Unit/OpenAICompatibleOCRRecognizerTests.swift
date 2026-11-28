@@ -60,5 +60,9 @@ struct OpenAICompatibleOCRRecognizerTests {
         settings.ocrEndpoint = "https://api.openai.com/v1"
         #expect(TextRecognizerFactory.identity(for: settings).locality == .cloud)
         #expect(TextRecognizerFactory.identity(for: settings).providerID == "ocr-custom")
+
+        settings.ocrEngine = .anthropic
+        settings.ocrEndpoint = AnthropicAnalysisSource.defaultEndpoint.absoluteString
+        #expect(TextRecognizerFactory.identity(for: settings).providerID == "ocr-anthropic")
     }
 }
