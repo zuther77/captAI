@@ -62,6 +62,8 @@ final class ScreenshotWorkspaceModel {
     private(set) var isCopyingText = false
     /// Heuristic chips from OCR (M5). Empty until recognition finishes or when the capture is blank.
     private(set) var suggestedActions: [ScreenshotAction] = []
+    /// Latest OCR text from suggestion recognition; persisted into the library search index (M9).
+    private(set) var recognizedOCRText = ""
     /// Vector marks on the frozen capture. Shared with the capture overlay; never rewrites the PNG on disk.
     let annotations = AnnotationDocument()
     var draft = ""
@@ -177,6 +179,7 @@ final class ScreenshotWorkspaceModel {
             guard let self else { return }
             let text = await recognizeTextAction()
             guard !Task.isCancelled, !self.isClosed else { return }
+            self.recognizedOCRText = text
             self.suggestedActions = HeuristicActionClassifier.actions(for: text)
         }
     }

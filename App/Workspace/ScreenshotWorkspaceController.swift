@@ -21,6 +21,7 @@ final class ScreenshotWorkspaceController: ScreenshotWorkspacePresenting {
     private let settings: @MainActor () -> AppSettings
     private let rememberCloudApproval: @MainActor (String) -> Void
     private let library: (any LibraryStore)?
+    private let embedding: any TextEmbedding
     private let diagnostics: Diagnostics
 
     private var model: ScreenshotWorkspaceModel?
@@ -37,6 +38,7 @@ final class ScreenshotWorkspaceController: ScreenshotWorkspacePresenting {
         settings: @escaping @MainActor () -> AppSettings,
         rememberCloudApproval: @escaping @MainActor (String) -> Void,
         library: (any LibraryStore)? = nil,
+        embedding: any TextEmbedding = NLSentenceTextEmbedding(),
         diagnostics: Diagnostics
     ) {
         self.analysisProvider = analysisProvider
@@ -45,6 +47,7 @@ final class ScreenshotWorkspaceController: ScreenshotWorkspacePresenting {
         self.settings = settings
         self.rememberCloudApproval = rememberCloudApproval
         self.library = library
+        self.embedding = embedding
         self.diagnostics = diagnostics
     }
 
@@ -325,7 +328,10 @@ final class ScreenshotWorkspaceController: ScreenshotWorkspacePresenting {
                 messages: model.messages,
                 annotations: model.annotations.annotations,
                 identityAttribution: ScreenshotWorkspaceModel.attribution(of: model.identity),
-                into: library
+                ocrText: model.recognizedOCRText,
+                appName: previousApplication?.localizedName ?? "",
+                into: library,
+                embedding: embedding
             )
             onLibraryChanged?()
             NotificationCenter.default.post(name: .captAILibraryDidChange, object: nil)

@@ -22,7 +22,12 @@ struct LibraryModelTests {
     }
 
     private func makeModel(store: EphemeralLibraryStore) -> LibraryModel {
-        LibraryModel(store: store, openCapture: { _ in }, diagnostics: makeRecordingDiagnostics().0)
+        LibraryModel(
+            store: store,
+            embedding: HashTextEmbedding(),
+            openCapture: { _ in },
+            diagnostics: makeRecordingDiagnostics().0
+        )
     }
 
     @Test func multiSelectDeleteRemovesEveryChosenCapture() throws {
@@ -77,5 +82,36 @@ struct LibraryModelTests {
         model.deleteSelected()
         #expect(model.captures.isEmpty)
         #expect(try store.fetchCapture(id: asset.id) == nil)
+    }
+
+    @Test func searchFiltersSidebarToMatchingCaptures() throws {
+        let store = EphemeralLibraryStore()
+        let match = sampleAsset(path: "/tmp/captAI-tests/match.png", created: Date(timeIntervalSince1970: 2))
+        let other = sampleAsset(path: "/tmp/captAI-tests/other.png", created: Date(timeIntervalSince1970: 1))
+        try store.upsert(match)
+        try store.upsert(other)
+        try LibrarySearchIndexer.reindex(
+            captureID: match.id,
+            ocrText: "ExactErrorCode XYZ-42",
+            into: store,
+            embedding: HashTextEmbedding()
+        )
+        try LibrarySearchIndexer.reindex(
+            captureID: other.id,
+            ocrText: "nothing relevant here",
+            into: store,
+            embedding: HashTextEmbedding()
+        )
+
+        let model = LibraryModel(
+            store: store,
+            embedding: UnavailableTextEmbedding(),
+            openCapture: { _ in },
+            diagnostics: makeRecordingDiagnostics().0
+        )
+        model.searchText = "ExactErrorCode XYZ-42"
+        model.applySearch()
+        #expect(model.displayedCaptures.map(\.id) == [match.id])
+        #expect(model.excerpt(for: match.id)?.contains("ExactErrorCode") == true)
     }
 }

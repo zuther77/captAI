@@ -163,8 +163,20 @@ Post-recording analysis and timestamped video workspace. Mark PASS only from wha
 | 1 | Record a 60–120 s workflow with a recognizable event; open and analyze | Summary / key moments with timestamps | PASS |
 | 2 | Click a key moment; ask a follow-up about that time | Player seeks; follow-up answers about that moment | PASS |
 | 3 | Try a direct-video provider (if available) and a frame-based fallback | Route labeled clearly; both usable | SKIPPED  |
-| 4 | Decline cloud transmission; analyze with a local vision provider if available | Recording stays playable; no unwanted upload | NOT PERFORMED |
-| 5 | Analyze a longer recording | Bounded memory; clear progress; recoverable errors | SKIPPED |
+| 4 | Decline cloud transmission; analyze with a local vision provider if available | Recording stays playable; no unwanted upload | PASS |
+| 5 | Analyze a longer recording | Bounded memory; clear progress; recoverable errors | PASS |
+
+## Manual: M9 (real Mac)
+
+Local FTS5 + optional semantic library search. Mark PASS only from what you see. Run `scripts/run.sh`.
+
+| # | Step | Expected | Status |
+|---|---|---|---|
+| 1 | Capture several screenshots with distinct visible text; close workspaces; Open Library; search an exact OCR phrase | Matching capture listed with a useful excerpt; Open in Workspace restores it | |
+| 2 | Search a conceptual paraphrase of one capture (e.g. “missing dependency”) | Relevant capture ranks near the top when OS sentence embeddings are available; otherwise keyword/FTS still finds exact terms | |
+| 3 | Filter by Screenshots vs Recordings; filter by app name when known | Filters narrow the list; clearing them restores browse | |
+| 4 | Turn Wi‑Fi off; search again; delete a hit | Search still works offline; deleted capture disappears from results | |
+| 5 | Quit and relaunch; repeat a prior query | Same results; empty query shows recent captures | |
 
 ## Cross-milestone privacy matrix (M0 slice)
 

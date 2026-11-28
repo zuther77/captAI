@@ -124,6 +124,11 @@ final class SQLiteLibraryStore: LibraryStore, @unchecked Sendable {
                 row: { stmt in filePath = self.text(stmt, 0) }
             )
             try exec(
+                "DELETE FROM capture_fts WHERE capture_id = ?;",
+                db: db,
+                binders: { self.bind($0, 1, id.rawValue.uuidString) }
+            )
+            try exec(
                 "DELETE FROM capture_assets WHERE id = ?;",
                 db: db,
                 binders: { self.bind($0, 1, id.rawValue.uuidString) }
@@ -441,7 +446,208 @@ final class SQLiteLibraryStore: LibraryStore, @unchecked Sendable {
                 INSERT INTO schema_migrations(version) VALUES (2);
                 """
             )
+            version = 2
         }
+        if version < 3 {
+            try exec(
+                """
+                CREATE TABLE capture_search_docs (
+                  capture_id TEXT PRIMARY KEY NOT NULL REFERENCES capture_assets(id) ON DELETE CASCADE,
+                  ocr_text TEXT NOT NULL DEFAULT '',
+                  app_name TEXT NOT NULL DEFAULT '',
+                  body TEXT NOT NULL DEFAULT '',
+                  indexed_at REAL NOT NULL
+                );
+                CREATE TABLE capture_embeddings (
+                  capture_id TEXT PRIMARY KEY NOT NULL REFERENCES capture_assets(id) ON DELETE CASCADE,
+                  model_id TEXT NOT NULL,
+                  dimensions INTEGER NOT NULL,
+                  vector BLOB NOT NULL,
+                  indexed_at REAL NOT NULL
+                );
+                CREATE VIRTUAL TABLE capture_fts USING fts5(
+                  capture_id UNINDEXED,
+                  body,
+                  tokenize = 'porter unicode61'
+                );
+                INSERT INTO schema_migrations(version) VALUES (3);
+                """
+            )
+        }
+    }
+
+    // MARK: Search index (M9)
+
+    func replaceSearchDocument(_ document: CaptureSearchDocument) throws {
+        try withDB { db in
+            try exec(
+                """
+                INSERT INTO capture_search_docs (capture_id, ocr_text, app_name, body, indexed_at)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(capture_id) DO UPDATE SET
+                  ocr_text=excluded.ocr_text,
+                  app_name=excluded.app_name,
+                  body=excluded.body,
+                  indexed_at=excluded.indexed_at;
+                """,
+                db: db,
+                binders: { stmt in
+                    self.bind(stmt, 1, document.captureID.rawValue.uuidString)
+                    self.bind(stmt, 2, document.ocrText)
+                    self.bind(stmt, 3, document.appName)
+                    self.bind(stmt, 4, document.body)
+                    self.bind(stmt, 5, document.indexedAt.timeIntervalSince1970)
+                }
+            )
+            try exec(
+                "DELETE FROM capture_fts WHERE capture_id = ?;",
+                db: db,
+                binders: { self.bind($0, 1, document.captureID.rawValue.uuidString) }
+            )
+            if !document.body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                try exec(
+                    "INSERT INTO capture_fts (capture_id, body) VALUES (?, ?);",
+                    db: db,
+                    binders: { stmt in
+                        self.bind(stmt, 1, document.captureID.rawValue.uuidString)
+                        self.bind(stmt, 2, document.body)
+                    }
+                )
+            }
+        }
+    }
+
+    func fetchSearchDocument(for captureID: CaptureAssetID) throws -> CaptureSearchDocument? {
+        try withDB { db in
+            var found: CaptureSearchDocument?
+            try query(
+                """
+                SELECT capture_id, ocr_text, app_name, body, indexed_at
+                FROM capture_search_docs WHERE capture_id = ?;
+                """,
+                db: db,
+                binders: { self.bind($0, 1, captureID.rawValue.uuidString) },
+                row: { stmt in
+                    guard let id = self.uuid(stmt, 0) else { return }
+                    found = CaptureSearchDocument(
+                        captureID: CaptureAssetID(id),
+                        ocrText: self.text(stmt, 1) ?? "",
+                        appName: self.text(stmt, 2) ?? "",
+                        body: self.text(stmt, 3) ?? "",
+                        indexedAt: Date(timeIntervalSince1970: sqlite3_column_double(stmt, 4))
+                    )
+                }
+            )
+            return found
+        }
+    }
+
+    func replaceEmbedding(_ embedding: CaptureEmbeddingRecord) throws {
+        let blob = EmbeddingMath.encode(embedding.vector)
+        try withDB { db in
+            try exec(
+                """
+                INSERT INTO capture_embeddings (capture_id, model_id, dimensions, vector, indexed_at)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(capture_id) DO UPDATE SET
+                  model_id=excluded.model_id,
+                  dimensions=excluded.dimensions,
+                  vector=excluded.vector,
+                  indexed_at=excluded.indexed_at;
+                """,
+                db: db,
+                binders: { stmt in
+                    self.bind(stmt, 1, embedding.captureID.rawValue.uuidString)
+                    self.bind(stmt, 2, embedding.modelID)
+                    self.bind(stmt, 3, Int64(embedding.dimensions))
+                    self.bind(stmt, 4, blob)
+                    self.bind(stmt, 5, embedding.indexedAt.timeIntervalSince1970)
+                }
+            )
+        }
+    }
+
+    func fetchEmbeddings(modelID: String) throws -> [CaptureEmbeddingRecord] {
+        try withDB { db in
+            var rows: [CaptureEmbeddingRecord] = []
+            try query(
+                """
+                SELECT capture_id, model_id, dimensions, vector, indexed_at
+                FROM capture_embeddings WHERE model_id = ?;
+                """,
+                db: db,
+                binders: { self.bind($0, 1, modelID) },
+                row: { stmt in
+                    guard let id = self.uuid(stmt, 0),
+                          let model = self.text(stmt, 1)
+                    else { return }
+                    let dimensions = Int(sqlite3_column_int64(stmt, 2))
+                    guard let blob = self.blob(stmt, 3),
+                          let vector = EmbeddingMath.decode(blob, dimensions: dimensions)
+                    else { return }
+                    rows.append(CaptureEmbeddingRecord(
+                        captureID: CaptureAssetID(id),
+                        modelID: model,
+                        dimensions: dimensions,
+                        vector: vector,
+                        indexedAt: Date(timeIntervalSince1970: sqlite3_column_double(stmt, 4))
+                    ))
+                }
+            )
+            return rows
+        }
+    }
+
+    func searchFTS(_ searchQuery: LibrarySearchQuery) throws -> [(captureID: CaptureAssetID, excerpt: String, rank: Double)] {
+        let match = Self.ftsMatchQuery(from: searchQuery.text)
+        guard let match else { return [] }
+        return try withDB { db in
+            var rows: [(CaptureAssetID, String, Double)] = []
+            try query(
+                """
+                SELECT capture_fts.capture_id,
+                       snippet(capture_fts, 1, '', '', '…', 24),
+                       bm25(capture_fts),
+                       capture_assets.creation_time,
+                       capture_assets.kind
+                FROM capture_fts
+                JOIN capture_assets ON capture_assets.id = capture_fts.capture_id
+                WHERE capture_fts MATCH ?
+                ORDER BY bm25(capture_fts) ASC, capture_assets.creation_time DESC
+                LIMIT ?;
+                """,
+                db: db,
+                binders: { stmt in
+                    self.bind(stmt, 1, match)
+                    self.bind(stmt, 2, Int64(max(searchQuery.limit, 0)))
+                },
+                row: { stmt in
+                    guard let id = self.uuid(stmt, 0) else { return }
+                    let kindRaw = self.text(stmt, 4) ?? ""
+                    if let kind = searchQuery.kind, kind.rawValue != kindRaw { return }
+                    let created = Date(timeIntervalSince1970: sqlite3_column_double(stmt, 3))
+                    if let from = searchQuery.createdFrom, created < from { return }
+                    if let to = searchQuery.createdTo, created > to { return }
+                    // bm25: lower is better — invert for LibrarySearchHit scoring.
+                    let bm25 = sqlite3_column_double(stmt, 2)
+                    let score = 1.0 / (1.0 + max(bm25, 0))
+                    rows.append((
+                        CaptureAssetID(id),
+                        self.text(stmt, 1) ?? "",
+                        score
+                    ))
+                }
+            )
+            return rows
+        }
+    }
+
+    /// Phrase-oriented FTS5 query. Quotes are escaped; empty input yields nil.
+    static func ftsMatchQuery(from raw: String) -> String? {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        let escaped = trimmed.replacingOccurrences(of: "\"", with: "\"\"")
+        return "\"\(escaped)\""
     }
 
     // MARK: SQLite helpers
@@ -525,9 +731,22 @@ final class SQLiteLibraryStore: LibraryStore, @unchecked Sendable {
         sqlite3_bind_int64(stmt, index, value)
     }
 
+    private func bind(_ stmt: OpaquePointer, _ index: Int32, _ value: Data) {
+        value.withUnsafeBytes { raw in
+            let pointer = raw.bindMemory(to: UInt8.self).baseAddress
+            sqlite3_bind_blob(stmt, index, pointer, Int32(value.count), unsafeBitCast(-1, to: sqlite3_destructor_type.self))
+        }
+    }
+
     private func text(_ stmt: OpaquePointer, _ index: Int32) -> String? {
         guard let c = sqlite3_column_text(stmt, index) else { return nil }
         return String(cString: c)
+    }
+
+    private func blob(_ stmt: OpaquePointer, _ index: Int32) -> Data? {
+        guard let bytes = sqlite3_column_blob(stmt, index) else { return nil }
+        let count = Int(sqlite3_column_bytes(stmt, index))
+        return Data(bytes: bytes, count: count)
     }
 
     private func uuid(_ stmt: OpaquePointer, _ index: Int32) -> UUID? {

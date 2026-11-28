@@ -7,30 +7,47 @@ struct LibraryView: View {
 
     var body: some View {
         NavigationSplitView {
-            List(selection: Binding(
-                get: { model.selectedIDs },
-                set: { model.setSelection($0) }
-            )) {
-                ForEach(model.captures) { asset in
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(Self.dateString(asset.creationTime))
-                            .font(.body)
-                        Text(asset.kind == .video ? "Recording · \(asset.widthPx) × \(asset.heightPx)" : "\(asset.widthPx) × \(asset.heightPx)")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+            VStack(spacing: 0) {
+                searchControls
+                List(selection: Binding(
+                    get: { model.selectedIDs },
+                    set: { model.setSelection($0) }
+                )) {
+                    ForEach(model.displayedCaptures) { asset in
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(Self.dateString(asset.creationTime))
+                                .font(.body)
+                            Text(asset.kind == .video ? "Recording · \(asset.widthPx) × \(asset.heightPx)" : "\(asset.widthPx) × \(asset.heightPx)")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            if let excerpt = model.excerpt(for: asset.id), !excerpt.isEmpty {
+                                Text(excerpt)
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(2)
+                            }
+                        }
+                        .tag(asset.id)
+                        .accessibilityIdentifier("library.row.\(asset.id.rawValue.uuidString)")
                     }
-                    .tag(asset.id)
-                    .accessibilityIdentifier("library.row.\(asset.id.rawValue.uuidString)")
                 }
             }
             .navigationTitle("Library")
             .overlay {
-                if model.captures.isEmpty {
-                    ContentUnavailableView(
-                        "No screenshots yet",
-                        systemImage: "photo.on.rectangle",
-                        description: Text("Capture a screenshot to save it here. Quick Copy never adds history.")
-                    )
+                if model.displayedCaptures.isEmpty {
+                    if model.isSearching {
+                        ContentUnavailableView(
+                            "No matches",
+                            systemImage: "magnifyingglass",
+                            description: Text("Try a different query, or clear filters. Semantic ranking is \(model.semanticSearchAvailable ? "on" : "unavailable — keyword search only").")
+                        )
+                    } else {
+                        ContentUnavailableView(
+                            "No screenshots yet",
+                            systemImage: "photo.on.rectangle",
+                            description: Text("Capture a screenshot to save it here. Quick Copy never adds history.")
+                        )
+                    }
                 }
             }
         } detail: {
@@ -70,6 +87,48 @@ struct LibraryView: View {
             model.refresh()
         }
         .accessibilityIdentifier("library.window.content")
+    }
+
+    private var searchControls: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            TextField("Search OCR and chat", text: Binding(
+                get: { model.searchText },
+                set: { value in
+                    model.searchText = value
+                    model.applySearch()
+                }
+            ))
+            .textFieldStyle(.roundedBorder)
+            .accessibilityIdentifier("library.search")
+
+            HStack {
+                Picker("Type", selection: Binding(
+                    get: { model.kindFilter },
+                    set: { value in
+                        model.kindFilter = value
+                        model.applySearch()
+                    }
+                )) {
+                    Text("All").tag(nil as CaptureAssetRecord.Kind?)
+                    Text("Screenshots").tag(CaptureAssetRecord.Kind?.some(.image))
+                    Text("Recordings").tag(CaptureAssetRecord.Kind?.some(.video))
+                }
+                .labelsHidden()
+                .accessibilityIdentifier("library.filter.kind")
+
+                TextField("App", text: Binding(
+                    get: { model.appNameFilter },
+                    set: { value in
+                        model.appNameFilter = value
+                        model.applySearch()
+                    }
+                ))
+                .textFieldStyle(.roundedBorder)
+                .frame(maxWidth: 120)
+                .accessibilityIdentifier("library.filter.app")
+            }
+        }
+        .padding(8)
     }
 
     @ViewBuilder

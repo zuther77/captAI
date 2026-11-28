@@ -58,6 +58,7 @@ struct AppKitWindowFactory: WindowFactory {
     let secrets: any SecretStore
     let chatGPTStore: any ChatGPTSessionStore
     let libraryStore: any LibraryStore
+    var embedding: any TextEmbedding = NLSentenceTextEmbedding()
     let openLibraryCapture: @MainActor (CaptureAssetID) -> Void
     let diagnostics: Diagnostics
 
@@ -75,6 +76,7 @@ struct AppKitWindowFactory: WindowFactory {
         case .library:
             let model = LibraryModel(
                 store: libraryStore,
+                embedding: embedding,
                 openCapture: openLibraryCapture,
                 diagnostics: diagnostics
             )

@@ -86,6 +86,7 @@ final class AppEnvironment {
         let analysisProvider: @MainActor () -> any AnalysisSource = {
             AnalysisSourceFactory.source(for: settings.settings, secrets: secrets, chatGPTStore: chatGPTStore)
         }
+        let embedding: any TextEmbedding = NLSentenceTextEmbedding()
         let workspace = ScreenshotWorkspaceController(
             analysisProvider: analysisProvider,
             textCopier: textCopier,
@@ -93,6 +94,7 @@ final class AppEnvironment {
             settings: { settings.settings },
             rememberCloudApproval: rememberCloudApproval,
             library: libraryStore,
+            embedding: embedding,
             diagnostics: diagnostics
         )
         let videoWorkspace = VideoWorkspaceController(
@@ -102,6 +104,7 @@ final class AppEnvironment {
             settings: { settings.settings },
             rememberCloudApproval: rememberCloudApproval,
             library: libraryStore,
+            embedding: embedding,
             diagnostics: diagnostics
         )
         let capture = CaptureCoordinator(
@@ -152,6 +155,7 @@ final class AppEnvironment {
             secrets: secrets,
             chatGPTStore: chatGPTStore,
             libraryStore: libraryStore,
+            embedding: embedding,
             openLibraryCapture: { [weak workspace, weak videoWorkspace] id in
                 Task { @MainActor in
                     if let asset = try? libraryStore.fetchCapture(id: id), asset.kind == .video {

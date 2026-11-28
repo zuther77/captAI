@@ -15,6 +15,7 @@ final class VideoWorkspaceController {
     private let settings: @MainActor () -> AppSettings
     private let rememberCloudApproval: @MainActor (String) -> Void
     private let library: (any LibraryStore)?
+    private let embedding: any TextEmbedding
     private let diagnostics: Diagnostics
 
     private var model: VideoWorkspaceModel?
@@ -29,6 +30,7 @@ final class VideoWorkspaceController {
         settings: @escaping @MainActor () -> AppSettings,
         rememberCloudApproval: @escaping @MainActor (String) -> Void,
         library: (any LibraryStore)? = nil,
+        embedding: any TextEmbedding = NLSentenceTextEmbedding(),
         diagnostics: Diagnostics
     ) {
         self.analysisProvider = analysisProvider
@@ -37,6 +39,7 @@ final class VideoWorkspaceController {
         self.settings = settings
         self.rememberCloudApproval = rememberCloudApproval
         self.library = library
+        self.embedding = embedding
         self.diagnostics = diagnostics
     }
 
@@ -227,7 +230,8 @@ final class VideoWorkspaceController {
                 messages: model.messages,
                 events: model.keyMoments,
                 identityAttribution: VideoWorkspaceModel.attribution(of: model.identity),
-                into: library
+                into: library,
+                embedding: embedding
             )
             onLibraryChanged?()
             NotificationCenter.default.post(name: .captAILibraryDidChange, object: nil)

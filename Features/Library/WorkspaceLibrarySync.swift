@@ -30,7 +30,10 @@ enum WorkspaceLibrarySync {
         messages: [ScreenshotWorkspaceModel.Message],
         annotations: [CaptureAnnotation],
         identityAttribution: String?,
-        into store: any LibraryStore
+        ocrText: String = "",
+        appName: String = "",
+        into store: any LibraryStore,
+        embedding: (any TextEmbedding)? = nil
     ) throws {
         let conversation = ConversationRecord(
             id: ConversationID(),
@@ -86,6 +89,13 @@ enum WorkspaceLibrarySync {
             )
         }
         try store.replaceAnnotations(marks, for: assetID)
+        try LibrarySearchIndexer.reindex(
+            captureID: assetID,
+            ocrText: ocrText,
+            appName: appName,
+            into: store,
+            embedding: embedding
+        )
     }
 
     /// Loads PNG pixels for a stored asset. Returns nil when the file is missing or unreadable.
@@ -138,7 +148,9 @@ enum WorkspaceLibrarySync {
         messages: [VideoWorkspaceModel.Message],
         events: [RecordingEvent],
         identityAttribution: String?,
-        into store: any LibraryStore
+        ocrText: String = "",
+        into store: any LibraryStore,
+        embedding: (any TextEmbedding)? = nil
     ) throws {
         let conversation = ConversationRecord(
             id: ConversationID(),
@@ -194,6 +206,12 @@ enum WorkspaceLibrarySync {
                 providerAttribution: $0.providerAttribution
             )
         }, for: assetID)
+        try LibrarySearchIndexer.reindex(
+            captureID: assetID,
+            ocrText: ocrText,
+            into: store,
+            embedding: embedding
+        )
     }
 
     /// Splits stored video messages into automatic analysis + follow-ups.
