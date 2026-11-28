@@ -6,6 +6,7 @@ final class EphemeralLibraryStore: LibraryStore, @unchecked Sendable {
     private var captures: [CaptureAssetID: CaptureAssetRecord] = [:]
     private var conversations: [CaptureAssetID: (ConversationRecord, [MessageRecord])] = [:]
     private var annotations: [CaptureAssetID: [AnnotationRecord]] = [:]
+    private var recordingEvents: [CaptureAssetID: [RecordingEvent]] = [:]
 
     func upsert(_ asset: CaptureAssetRecord) throws {
         lock.lock(); defer { lock.unlock() }
@@ -31,6 +32,7 @@ final class EphemeralLibraryStore: LibraryStore, @unchecked Sendable {
         captures[id] = nil
         conversations[id] = nil
         annotations[id] = nil
+        recordingEvents[id] = nil
         if deleteFile, let path {
             try? FileManager.default.removeItem(atPath: path)
         }
@@ -54,5 +56,15 @@ final class EphemeralLibraryStore: LibraryStore, @unchecked Sendable {
     func fetchAnnotations(for captureID: CaptureAssetID) throws -> [AnnotationRecord] {
         lock.lock(); defer { lock.unlock() }
         return annotations[captureID] ?? []
+    }
+
+    func replaceRecordingEvents(_ events: [RecordingEvent], for captureID: CaptureAssetID) throws {
+        lock.lock(); defer { lock.unlock() }
+        recordingEvents[captureID] = events
+    }
+
+    func fetchRecordingEvents(for captureID: CaptureAssetID) throws -> [RecordingEvent] {
+        lock.lock(); defer { lock.unlock() }
+        return recordingEvents[captureID] ?? []
     }
 }

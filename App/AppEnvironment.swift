@@ -61,18 +61,31 @@ final class AppEnvironment {
             libraryStore = EphemeralLibraryStore()
         }
         let overlay = SelectionOverlayController()
+        let rememberCloudApproval: @MainActor (String) -> Void = { id in
+            settings.update { current in
+                if !current.approvedCloudProviderIDs.contains(id) {
+                    current.approvedCloudProviderIDs.append(id)
+                }
+            }
+        }
+        let analysisProvider: @MainActor () -> any AnalysisSource = {
+            AnalysisSourceFactory.source(for: settings.settings, secrets: secrets, chatGPTStore: chatGPTStore)
+        }
         let workspace = ScreenshotWorkspaceController(
-            analysisProvider: { AnalysisSourceFactory.source(for: settings.settings, secrets: secrets, chatGPTStore: chatGPTStore) },
+            analysisProvider: analysisProvider,
             textCopier: textCopier,
             feedback: feedback,
             settings: { settings.settings },
-            rememberCloudApproval: { id in
-                settings.update { current in
-                    if !current.approvedCloudProviderIDs.contains(id) {
-                        current.approvedCloudProviderIDs.append(id)
-                    }
-                }
-            },
+            rememberCloudApproval: rememberCloudApproval,
+            library: libraryStore,
+            diagnostics: diagnostics
+        )
+        let videoWorkspace = VideoWorkspaceController(
+            analysisProvider: analysisProvider,
+            textCopier: textCopier,
+            feedback: feedback,
+            settings: { settings.settings },
+            rememberCloudApproval: rememberCloudApproval,
             library: libraryStore,
             diagnostics: diagnostics
         )
@@ -99,6 +112,9 @@ final class AppEnvironment {
             layout: { displays.currentLayout() },
             isCaptureBusy: { capture.isBusy }
         )
+        recording.onRecordingSaved = { [weak videoWorkspace] id, artifact in
+            videoWorkspace?.present(artifact: artifact, assetID: id)
+        }
         capture.isExternalBusy = { recording.isBusy }
 
         let shortcuts = ShortcutRegistrar(
@@ -121,14 +137,24 @@ final class AppEnvironment {
             secrets: secrets,
             chatGPTStore: chatGPTStore,
             libraryStore: libraryStore,
-            openLibraryCapture: { [weak workspace] id in workspace?.presentFromLibrary(assetID: id) },
+            openLibraryCapture: { [weak workspace, weak videoWorkspace] id in
+                Task { @MainActor in
+                    if let asset = try? libraryStore.fetchCapture(id: id), asset.kind == .video {
+                        videoWorkspace?.presentFromLibrary(assetID: id)
+                    } else {
+                        workspace?.presentFromLibrary(assetID: id)
+                    }
+                }
+            },
             diagnostics: diagnostics
         )
         let windows = WindowCoordinator(factory: factory, navigation: navigation, diagnostics: diagnostics)
         workspace.openProviders = { windows.showSettings(pane: .providers) }
-        settings.onSettingsSaved = { [shortcuts, workspace] saved in
+        videoWorkspace.openProviders = { windows.showSettings(pane: .providers) }
+        settings.onSettingsSaved = { [shortcuts, workspace, videoWorkspace] saved in
             shortcuts.apply(saved)
             workspace.applyScreenSharing(allowCapture: saved.allowWorkspaceScreenCapture)
+            videoWorkspace.applyScreenSharing(allowCapture: saved.allowWorkspaceScreenCapture)
         }
         return AppEnvironment(
             diagnostics: diagnostics,

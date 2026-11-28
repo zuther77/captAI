@@ -294,6 +294,78 @@ final class SQLiteLibraryStore: LibraryStore, @unchecked Sendable {
         }
     }
 
+    func replaceRecordingEvents(_ events: [RecordingEvent], for captureID: CaptureAssetID) throws {
+        try withDB { db in
+            try exec("BEGIN IMMEDIATE;")
+            do {
+                try exec(
+                    "DELETE FROM recording_events WHERE capture_id = ?;",
+                    db: db,
+                    binders: { self.bind($0, 1, captureID.rawValue.uuidString) }
+                )
+                for (index, event) in events.enumerated() {
+                    try exec(
+                        """
+                        INSERT INTO recording_events (
+                          id, capture_id, timestamp_seconds, title, detail, provenance, provider, sort_index
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+                        """,
+                        db: db,
+                        binders: { stmt in
+                            self.bind(stmt, 1, event.id.rawValue.uuidString)
+                            self.bind(stmt, 2, captureID.rawValue.uuidString)
+                            self.bind(stmt, 3, event.timestampSeconds)
+                            self.bind(stmt, 4, event.title)
+                            self.bind(stmt, 5, event.detail)
+                            self.bind(stmt, 6, event.provenance.rawValue)
+                            if let provider = event.providerAttribution {
+                                self.bind(stmt, 7, provider)
+                            } else {
+                                sqlite3_bind_null(stmt, 7)
+                            }
+                            self.bind(stmt, 8, Int64(index))
+                        }
+                    )
+                }
+                try exec("COMMIT;")
+            } catch {
+                try? exec("ROLLBACK;")
+                throw error
+            }
+        }
+    }
+
+    func fetchRecordingEvents(for captureID: CaptureAssetID) throws -> [RecordingEvent] {
+        try withDB { db in
+            var rows: [RecordingEvent] = []
+            try query(
+                """
+                SELECT id, capture_id, timestamp_seconds, title, detail, provenance, provider, sort_index
+                FROM recording_events WHERE capture_id = ? ORDER BY sort_index ASC;
+                """,
+                db: db,
+                binders: { self.bind($0, 1, captureID.rawValue.uuidString) },
+                row: { stmt in
+                    guard let id = self.uuid(stmt, 0), let capture = self.uuid(stmt, 1),
+                          let title = self.text(stmt, 3), let detail = self.text(stmt, 4),
+                          let provenanceRaw = self.text(stmt, 5),
+                          let provenance = RecordingEvent.Provenance(rawValue: provenanceRaw)
+                    else { return }
+                    rows.append(RecordingEvent(
+                        id: RecordingEventID(id),
+                        captureID: CaptureAssetID(capture),
+                        timestampSeconds: sqlite3_column_double(stmt, 2),
+                        title: title,
+                        detail: detail,
+                        provenance: provenance,
+                        providerAttribution: self.text(stmt, 6)
+                    ))
+                }
+            )
+            return rows
+        }
+    }
+
     // MARK: Schema
 
     private func migrate() throws {
@@ -349,6 +421,24 @@ final class SQLiteLibraryStore: LibraryStore, @unchecked Sendable {
                   sort_index INTEGER NOT NULL
                 );
                 INSERT INTO schema_migrations(version) VALUES (1);
+                """
+            )
+            version = 1
+        }
+        if version < 2 {
+            try exec(
+                """
+                CREATE TABLE recording_events (
+                  id TEXT PRIMARY KEY NOT NULL,
+                  capture_id TEXT NOT NULL REFERENCES capture_assets(id) ON DELETE CASCADE,
+                  timestamp_seconds REAL NOT NULL,
+                  title TEXT NOT NULL,
+                  detail TEXT NOT NULL,
+                  provenance TEXT NOT NULL,
+                  provider TEXT,
+                  sort_index INTEGER NOT NULL
+                );
+                INSERT INTO schema_migrations(version) VALUES (2);
                 """
             )
         }

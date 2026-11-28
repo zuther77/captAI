@@ -10,6 +10,7 @@ final class LibraryModel {
     private(set) var selectedIDs: Set<CaptureAssetID> = []
     private(set) var conversation: (ConversationRecord, [MessageRecord])?
     private(set) var annotations: [AnnotationRecord] = []
+    private(set) var recordingEvents: [RecordingEvent] = []
     private(set) var lastError: AppError?
     /// True when the single selected file is missing on disk.
     private(set) var selectedFileMissing = false
@@ -95,6 +96,7 @@ final class LibraryModel {
         do {
             conversation = try store.fetchConversation(for: id)
             annotations = try store.fetchAnnotations(for: id)
+            recordingEvents = try store.fetchRecordingEvents(for: id)
             if let asset = captures.first(where: { $0.id == id }) {
                 selectedFileMissing = !FileManager.default.fileExists(atPath: asset.filePath)
             } else {
@@ -109,6 +111,7 @@ final class LibraryModel {
     private func clearDetail() {
         conversation = nil
         annotations = []
+        recordingEvents = []
         selectedFileMissing = false
     }
 }

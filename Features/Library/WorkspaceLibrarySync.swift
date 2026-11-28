@@ -130,4 +130,94 @@ enum WorkspaceLibrarySync {
         }
         return (analysis, messages)
     }
+
+    /// Persists recording analysis, follow-ups, and key moments (M8).
+    static func persistVideoSession(
+        assetID: CaptureAssetID,
+        analysis: VideoWorkspaceModel.Analysis,
+        messages: [VideoWorkspaceModel.Message],
+        events: [RecordingEvent],
+        identityAttribution: String?,
+        into store: any LibraryStore
+    ) throws {
+        let conversation = ConversationRecord(
+            id: ConversationID(),
+            captureID: assetID,
+            createdAt: Date()
+        )
+        var records: [MessageRecord] = []
+        var index = 0
+        if case .ready(let text) = analysis, !text.isEmpty {
+            records.append(MessageRecord(
+                id: MessageID(),
+                conversationID: conversation.id,
+                role: .user,
+                text: AnalysisRequest.videoAutomaticPrompt,
+                provider: nil,
+                createdAt: Date(),
+                sortIndex: index
+            ))
+            index += 1
+            records.append(MessageRecord(
+                id: MessageID(),
+                conversationID: conversation.id,
+                role: .assistant,
+                text: text,
+                provider: identityAttribution,
+                createdAt: Date(),
+                sortIndex: index
+            ))
+            index += 1
+        }
+        for message in messages {
+            guard case .complete = message.status, !message.text.isEmpty else { continue }
+            records.append(MessageRecord(
+                id: MessageID(message.id),
+                conversationID: conversation.id,
+                role: message.role == .user ? .user : .assistant,
+                text: message.text,
+                provider: message.provider,
+                createdAt: Date(),
+                sortIndex: index
+            ))
+            index += 1
+        }
+        try store.replaceConversation(conversation, messages: records)
+        try store.replaceRecordingEvents(events.map {
+            RecordingEvent(
+                id: $0.id,
+                captureID: assetID,
+                timestampSeconds: $0.timestampSeconds,
+                title: $0.title,
+                detail: $0.detail,
+                provenance: $0.provenance,
+                providerAttribution: $0.providerAttribution
+            )
+        }, for: assetID)
+    }
+
+    /// Splits stored video messages into automatic analysis + follow-ups.
+    static func restoreVideoChat(
+        from records: [MessageRecord]
+    ) -> (analysis: VideoWorkspaceModel.Analysis, messages: [VideoWorkspaceModel.Message]) {
+        var remaining = records.sorted { $0.sortIndex < $1.sortIndex }
+        var analysis: VideoWorkspaceModel.Analysis = .idle
+        if remaining.count >= 2,
+           remaining[0].role == .user,
+           remaining[0].text == AnalysisRequest.videoAutomaticPrompt,
+           remaining[1].role == .assistant {
+            analysis = .ready(remaining[1].text)
+            remaining = Array(remaining.dropFirst(2))
+        }
+        let messages = remaining.map { record in
+            VideoWorkspaceModel.Message(
+                id: record.id.rawValue,
+                role: record.role == .user ? .user : .assistant,
+                text: record.text,
+                status: .complete,
+                provider: record.provider
+            )
+        }
+        return (analysis, messages)
+    }
 }

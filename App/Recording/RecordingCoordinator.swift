@@ -47,6 +47,8 @@ final class RecordingCoordinator {
     @ObservationIgnored private var startedAt: Date?
     @ObservationIgnored private var limitTask: Task<Void, Never>?
     @ObservationIgnored private var screenObserver: (any NSObjectProtocol)?
+    /// Called after a playable recording is saved and upserted into the library (M8 workspace).
+    @ObservationIgnored var onRecordingSaved: (@MainActor (CaptureAssetID, RecordingArtifact) -> Void)?
 
     init(
         permissions: PermissionStore,
@@ -230,7 +232,7 @@ final class RecordingCoordinator {
                 durationSeconds: duration
             )
             lastRecording = artifact
-            persist(artifact)
+            let assetID = persist(artifact)
             state = .idle
             activeScope = nil
             startedAt = nil
@@ -239,6 +241,9 @@ final class RecordingCoordinator {
                 "height": String(artifact.heightPx)
             ])
             feedback.showToast(ToastMessage(text: "Recording saved", style: .success))
+            if let assetID {
+                onRecordingSaved?(assetID, artifact)
+            }
         } catch {
             _ = machine.handle(.finalizeFailed(error.code))
             await recorder.abort()
@@ -362,11 +367,13 @@ final class RecordingCoordinator {
         }
     }
 
-    private func persist(_ artifact: RecordingArtifact) {
-        guard let library else { return }
+    @discardableResult
+    private func persist(_ artifact: RecordingArtifact) -> CaptureAssetID? {
+        guard let library else { return nil }
+        let id = CaptureAssetID()
         do {
             try library.upsert(CaptureAssetRecord(
-                id: CaptureAssetID(),
+                id: id,
                 kind: .video,
                 filePath: artifact.fileURL.path(percentEncoded: false),
                 creationTime: artifact.creationTime,
@@ -376,8 +383,10 @@ final class RecordingCoordinator {
                 backingScale: artifact.backingScale
             ))
             NotificationCenter.default.post(name: .captAILibraryDidChange, object: nil)
+            return id
         } catch {
             diagnostics.error(.capture, "recording.libraryFailed", error: error as? AppError ?? .libraryFailed)
+            return nil
         }
     }
 

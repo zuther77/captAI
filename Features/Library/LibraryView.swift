@@ -111,34 +111,50 @@ struct LibraryView: View {
                 if asset.kind == .image {
                     LabeledContent("Annotations", value: "\(model.annotations.count)")
                 }
+                if asset.kind == .video {
+                    LabeledContent("Key moments", value: "\(model.recordingEvents.count)")
+                }
 
-                if asset.kind == .image {
-                    if let conversation = model.conversation {
-                        Text("Conversation")
-                            .font(.headline)
-                        ForEach(conversation.1) { message in
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(message.role == .user ? "You" : (message.provider ?? "Assistant"))
+                if !model.recordingEvents.isEmpty {
+                    Text("Key moments")
+                        .font(.headline)
+                    ForEach(model.recordingEvents) { event in
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(String(format: "%.1fs — %@", event.timestampSeconds, event.title))
+                                .font(.callout.weight(.medium))
+                            if !event.detail.isEmpty {
+                                Text(event.detail)
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
-                                Text(message.text)
-                                    .textSelection(.enabled)
                             }
-                            .padding(.vertical, 4)
                         }
-                    } else {
-                        Text("No conversation saved for this capture.")
-                            .foregroundStyle(.secondary)
+                        .padding(.vertical, 2)
                     }
                 }
 
-                HStack {
-                    if asset.kind == .image {
-                        Button("Open in Workspace") { model.openSelected() }
-                            .buttonStyle(.borderedProminent)
-                            .disabled(model.selectedFileMissing)
-                            .accessibilityIdentifier("library.open")
+                if let conversation = model.conversation {
+                    Text("Conversation")
+                        .font(.headline)
+                    ForEach(conversation.1) { message in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(message.role == .user ? "You" : (message.provider ?? "Assistant"))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Text(message.text)
+                                .textSelection(.enabled)
+                        }
+                        .padding(.vertical, 4)
                     }
+                } else if asset.kind == .image {
+                    Text("No conversation saved for this capture.")
+                        .foregroundStyle(.secondary)
+                }
+
+                HStack {
+                    Button("Open in Workspace") { model.openSelected() }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(model.selectedFileMissing)
+                        .accessibilityIdentifier("library.open")
                     Button("Reveal in Finder") {
                         NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: asset.filePath)])
                     }

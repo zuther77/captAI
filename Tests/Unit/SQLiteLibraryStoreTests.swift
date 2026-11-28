@@ -105,4 +105,43 @@ struct SQLiteLibraryStoreTests {
         try store.deleteCapture(id: asset.id, deleteFile: true)
         #expect(try store.fetchCaptures(limit: 5).isEmpty)
     }
+
+    @Test func recordingEventsRoundTripAndCascadeOnDelete() throws {
+        let (store, _) = try tempStore()
+        let asset = CaptureAssetRecord(
+            id: CaptureAssetID(),
+            kind: .video,
+            filePath: "/tmp/captAI-tests/clip.mov",
+            creationTime: Date(timeIntervalSince1970: 1_800_000_000),
+            widthPx: 800,
+            heightPx: 600,
+            captureBoundsPoints: CGRect(x: 0, y: 0, width: 400, height: 300),
+            backingScale: 2
+        )
+        try store.upsert(asset)
+        let events = [
+            RecordingEvent(
+                id: RecordingEventID(),
+                captureID: asset.id,
+                timestampSeconds: 2.5,
+                title: "Click",
+                detail: "Opened menu",
+                provenance: .inferred,
+                providerAttribution: "Ollama · local"
+            ),
+            RecordingEvent(
+                id: RecordingEventID(),
+                captureID: asset.id,
+                timestampSeconds: 10,
+                title: "Dialog",
+                detail: "",
+                provenance: .observed,
+                providerAttribution: nil
+            ),
+        ]
+        try store.replaceRecordingEvents(events, for: asset.id)
+        #expect(try store.fetchRecordingEvents(for: asset.id) == events)
+        try store.deleteCapture(id: asset.id, deleteFile: false)
+        #expect(try store.fetchRecordingEvents(for: asset.id).isEmpty)
+    }
 }

@@ -5,6 +5,8 @@ import Foundation
 struct AnalysisRequest: Sendable {
     /// The first-turn prompt when the assistant analyzes a new capture automatically.
     static let automaticPrompt = "Describe what is in this screenshot and point out any text or details that matter."
+    /// Stable library marker for the automatic first turn of a recording analysis (M8).
+    static let videoAutomaticPrompt = "Analyze this screen recording and list key moments with timestamps."
     let prompt: String?
     let metadata: CaptureMetadata
     /// Earlier turns of the conversation, oldest first. Empty for the automatic first analysis.

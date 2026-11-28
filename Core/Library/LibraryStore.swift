@@ -14,4 +14,8 @@ protocol LibraryStore: AnyObject, Sendable {
 
     func replaceAnnotations(_ annotations: [AnnotationRecord], for captureID: CaptureAssetID) throws
     func fetchAnnotations(for captureID: CaptureAssetID) throws -> [AnnotationRecord]
+
+    /// Replaces all key moments for a recording (M8). Cascades away with the capture.
+    func replaceRecordingEvents(_ events: [RecordingEvent], for captureID: CaptureAssetID) throws
+    func fetchRecordingEvents(for captureID: CaptureAssetID) throws -> [RecordingEvent]
 }
