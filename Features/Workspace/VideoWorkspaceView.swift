@@ -1,3 +1,4 @@
+import AVFoundation
 import AVKit
 import SwiftUI
 
@@ -70,7 +71,7 @@ struct VideoWorkspaceView: View {
     }
 
     private var playerCard: some View {
-        VideoPlayer(player: player)
+        AppKitVideoPlayer(player: player)
             .frame(minHeight: 180, maxHeight: 260)
             .clipShape(RoundedRectangle(cornerRadius: Self.innerRadius, style: .continuous))
             .overlay(
@@ -296,6 +297,24 @@ struct VideoWorkspaceView: View {
     private static func formatDuration(_ seconds: TimeInterval) -> String {
         let total = max(0, Int(seconds.rounded()))
         return String(format: "%d:%02d", total / 60, total % 60)
+    }
+}
+
+/// AppKit ``AVPlayerView`` host. SwiftUI ``VideoPlayer`` aborts in `_AVKit_SwiftUI` on current SDK betas.
+private struct AppKitVideoPlayer: NSViewRepresentable {
+    let player: AVPlayer
+
+    func makeNSView(context: Context) -> AVPlayerView {
+        let view = AVPlayerView()
+        view.controlsStyle = .inline
+        view.player = player
+        return view
+    }
+
+    func updateNSView(_ nsView: AVPlayerView, context: Context) {
+        if nsView.player !== player {
+            nsView.player = player
+        }
     }
 }
 

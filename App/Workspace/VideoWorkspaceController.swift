@@ -1,6 +1,6 @@
 import AppKit
 import AVFoundation
-import AVKit
+import CoreMedia
 import SwiftUI
 
 /// Presents the recording workspace: one panel with player, moments, and assistant (plan M8).
